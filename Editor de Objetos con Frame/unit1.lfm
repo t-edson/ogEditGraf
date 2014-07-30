@@ -1,0 +1,22 @@
+object Form1: TForm1
+  Left = 268
+  Height = 317
+  Top = 207
+  Width = 401
+  Caption = 'Form1'
+  ClientHeight = 317
+  ClientWidth = 401
+  OnCreate = FormCreate
+  LCLVersion = '1.2.0.3'
+  inline fraMotEdicion1: TfraEditor
+    Height = 317
+    Width = 401
+    Align = alClient
+    ClientHeight = 317
+    ClientWidth = 401
+    inherited PaintBox1: TPaintBox
+      Height = 317
+      Width = 401
+    end
+  end
+end
