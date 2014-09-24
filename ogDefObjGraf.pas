@@ -1,6 +1,12 @@
-{Unidad ogDefObjGraf
+{Unidad ogDefObjGraf 1.3b
 ======================
 Por Tito Hinostroza 25/07/2014
+* Se agrega el método Delete(), para eliminar a un objeto gráfico.
+* Se agregan los objetos TogCheckBox y TogScrollBar
+* Se cambia de nombre a Tbot por TogButton
+
+Descripcion
+===========
 Define a los objetos gráficos primarios que serán usados por los objetos de mayor nivel
 a usar en un editor de objetos gráficos.
 El objeto TObjGraf, es el objeto base del que deben derivarse los objetos más específicos
@@ -8,22 +14,25 @@ que se dibujarán en pantalla.
 Se incluyen también la definición de puntos de control, que permiten redimensionar al
 objeto; y de botones que pueden incluirse en los objetos graficos.
 En esta unidad solo deben estar definidos los objetos básicos, los que se pueden usar en
-muchas aplicaciones. Los más específicos se deben poner en otra uniadad.
+muchas aplicaciones. Los más específicos se deben poner en otra unidad.
 No se recomienda modificar esta unidad para adecuar los objetos gráficos a la aplicación.
-Si se desea manjar otra clase de objetos generañes, es emjor crear otra clase general a
+Si se desea manjar otra clase de objetos generales, es mejor crear otra clase general a
 partir de TObjGraf.
 La jerarquía de clases es:
 
-TObjVisible --------------------------------> TObjGraf ---> Derivar objetos aquí
-              |                                   |
-               --> TPtoCtrl --(Se incluyen en)----
-              |                                   |
-               --> Tbot --(Se pueden incluir en)--
+TObjVisible ---------------------------------------> TObjGraf ---> Derivar objetos aquí
+              |                                        |
+               --> TPtoCtrl --(Se incluyen en)---------
+              |                                        |
+               --> TogButton --(Se pueden incluir en)--
+              |                                        |
+               --> TCheckBox --(Se pueden incluir en)--
+
 }
 unit ogDefObjGraf;
 {$mode objfpc}{$H+}
 interface
-uses  Classes, Controls, SysUtils, Fgl, Graphics, GraphType, Types,
+uses  Classes, Controls, SysUtils, Fgl, Graphics, GraphType, Types, ExtCtrls,
   ogMotGraf2D;
 
 const
@@ -35,8 +44,8 @@ type
   //Clase base para todos los objetos visibles
   TObjVsible = class
   public
-    Id         : Integer;     //identificador del objeto
-    ancho, alto: Single;
+    Id          : Integer;     //identificador del objeto
+    ancho, alto : Single;
     Seleccionado: Boolean;
     NombreObj   : String;     //Nombre de Objeto, usado para identificarlo
                               //dentro de una colección.
@@ -98,22 +107,68 @@ type
 //Procedimiento-evento para evento Click en Botón
   TEvenBTclk = procedure(estado: Boolean) of object;
 
-  TipTBot =
+  TTipBot =
    (BOT_CERRAR,   //botón cerrar
     BOT_EXPAND,   //botón expandir/contraer
     BOT_CHECK,    //check
     BOT_REPROD);   //reproducir/detener
 
-  Tbot = class(TObjVsible)
+  TSBOrientation =
+   (SB_HORIZONT,    //horizontal
+    SB_VERTICAL);   //vertical
+
+  { TogButton }
+  TogButton = class(TObjVsible)
     estado     : Boolean;   //Permite ver el estado del botón o el check
-    constructor Crear(mGraf: TMotGraf; ancho0,alto0: Integer; tipo0: TipTBot; EvenBTclk0: TEvenBTclk);
+    drawBack   : boolean;   //indica si debe dibujar el fondo
+    constructor Create(mGraf: TMotGraf; tipo0: TTipBot; EvenBTclk0: TEvenBTclk);
     procedure Dibujar;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
   private
-    tipo       : TipTBot;
+    tipo       : TTipBot;
     OnClick: TEvenBTclk
   end;
-  TBotones = specialize TFPGObjectList<Tbot>;  //Lista para gestionar los botones
+
+  { TogCheckBox }
+  TogCheckBox = class(TObjVsible)
+    estado     : Boolean;   //Permite ver el estado del botón o el check
+    constructor Create(mGraf: TMotGraf; ancho0,alto0: Integer; tipo0: TTipBot; EvenBTclk0: TEvenBTclk);
+    procedure Dibujar;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
+  private
+    tipo       : TTipBot;
+    OnClick: TEvenBTclk
+  end;
+
+  { TogScrollBar }
+  //Este ScrollBar está diseñado para manejara desplazamientos con valores discretos
+  TogScrollBar = class(TObjVsible)
+    valMin   : integer;   //valor mínimo
+    valMax   : integer;   //valor máximo
+    valCur   : integer;   //valor actual
+    step     : integer;   //valor del paso
+    page     : integer;      //cantidad de elementos por página
+    pulsado  : boolean;   //bandera para temporización
+    constructor Create(mGraf: TMotGraf; tipo0: TSBOrientation; EvenBTclk0: TEvenBTclk);
+    destructor Destroy; override;
+    procedure Scroll(delta: integer);  //desplaza el valor del cursor
+    procedure Dibujar;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
+    procedure procButDown(estado: Boolean);
+    procedure procButUp(estado: Boolean);
+    procedure ProcTic(Sender: TObject);
+  private
+    tipo       : TSBOrientation;
+    butUp      : TogButton;
+    butDown    : TogButton;
+    OnClick    : TEvenBTclk;
+    clock      : TTimer;     //temporizador para leer salida del proceso
+    ticCont    : integer;    //contador
+  end;
+
+  TogButtons = specialize TFPGObjectList<TogButton>;       //Para gestionar los botones
+  TogScrollBars = specialize TFPGObjectList<TogScrollBar>; //Para gestionar barras de desplazamiento
 
   TObjGraf = class;
   TEventSelec = procedure(obj: TObjGraf) of object; //Procedimiento-evento para seleccionar
@@ -126,9 +181,10 @@ type
   private
     procedure ProcPCdim(x0, y0, ancho0, alto0: Single);
   protected
-    pcx: TPtoCtrl;            //variable para Punto de Control
-    PtosControl: TPtosControl; //Lista de puntos de control
-    Botones  : TBotones;      //Lista para contener botones
+    pcx        : TPtoCtrl;      //variable para Punto de Control
+    PtosControl: TPtosControl;  //Lista de puntos de control
+    Buttons    : TogButtons;    //Lista para contener botones
+    ScrollBars : TogScrollBars; //Lista para contener barras de desplazamiento
     //puntos de control por defecto
     pc_SUP_IZQ: TPtoCtrl;
     pc_SUP_CEN: TPtoCtrl;
@@ -148,12 +204,12 @@ type
     TamBloqueado: boolean;   //protege al objeto de redimensionado
 //  Bloqueado   : Boolean;   //Indica si el objeto está bloqueado
     tipo        : Integer;   //Tipo de objeto
-//    etiq         As New CFLetra  //Etiqueta
     Relleno     : TColor;    //Color de relleno
     Proceso     : Boolean;   //Bandera
     Dimensionando: boolean;  //indica que el objeto está dimensionándose
+    Erased      : boolean;   //bandera para eliminar al objeto
     //Eventos de la clase
-    OnSelec: TEventSelec;
+    OnSelec  : TEventSelec;
     OnDeselec: TEventSelec;
     OnCamPunt: TEventCPunt;
     function XCent: Single;  //Coordenada Xcentral del objeto
@@ -161,26 +217,32 @@ type
     procedure Ubicar(x0, y0: Single);
     procedure Selec;         //Método único para seleccionar al objeto
     procedure Deselec;       //Método único para quitar la selección del objeto
+    procedure Delete;        //Método para eliminar el objeto
     procedure Mover(xr, yr : Integer; nobjetos : Integer); virtual;
     function LoSelecciona(xr, yr:integer): Boolean;
     procedure Dibujar; virtual;  //Dibuja el objeto gráfico
     procedure LeePropiedades(cad: string; grabar_ini: boolean=true); virtual; abstract;
     procedure InicMover(xr, yr : Integer);
     procedure MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState;
-       xp, yp: Integer);   //Metodo que funciona como evento mouse_down
+       xp, yp: Integer); virtual;  //Metodo que funciona como evento mouse_down
     procedure MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState;
        xp, yp: Integer; solto_objeto: Boolean); virtual;
     procedure MouseMove(Sender: TObject; Shift: TShiftState; xp, yp: Integer); virtual;
-    function AgregarBoton(ancho0, alto0: Integer; tipo0: TipTBot;
-      EvenBTclk0: TEvenBTclk): TBot;
+    procedure MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer;
+                 MousePos: TPoint; var Handled: Boolean); virtual;
+    function AddButton(ancho0, alto0: Integer; tipo0: TTipBot;
+      EvenBTclk0: TEvenBTclk): TogButton;
     function AgregarPtoControl(PosicPCtrol, tipDesplaz0: TPosicPCtrol): TPtoCtrl;
+    function AddScrollBar(ancho0, alto0: Integer; tipo0: TSBOrientation;
+      EvenBTclk0: TEvenBTclk): TogScrollBar;
     constructor Create(mGraf: TMotGraf); virtual;
     destructor Destroy; override;
   end;
 
 implementation
 
-const ANC_PCT2 = 5;       //mitad del ancho de punto de control
+const
+  ANC_PCT2 = 5;       //mitad del ancho de punto de control
 
 { TObjVsible }
 procedure TObjVsible.Crear(mGraf: TMotGraf; ancho0, alto0: Integer);
@@ -205,7 +267,6 @@ begin
        (yv > y - 2) And (yv < y + alto + 2) Then
         LoSelec := True;
 end;
-
 function TObjVsible.InicMover(xr, yr: Integer): Boolean;
 begin
     if not visible then exit;    //validación
@@ -222,8 +283,276 @@ begin
   inherited Destroy;
 end;
 
-{ TObjGraf }
+{ TogCheckBox }
+constructor TogCheckBox.Create(mGraf: TMotGraf; ancho0, alto0: Integer;
+  tipo0: TTipBot; EvenBTclk0: TEvenBTclk);
+begin
 
+end;
+procedure TogCheckBox.Dibujar;
+//Dibuja el botón de acuerdo a su tipo y estado
+begin
+  case tipo of
+  BOT_CERRAR: begin
+//       v2d.DibFonBoton(x,y,15,15);
+       v2d.DibVnormal(x+2,y+2,10,5);
+       v2d.DibVnormal(x+2,y+12,10,-5);
+     end;
+  BOT_EXPAND:
+      if estado then begin
+//         v2d.DibFonBoton(x,y,15,15);
+//         v2d.DibVnormal(x+2,y+7,10,-5);
+//         v2d.DibVnormal(x+2,y+11,10,-5);
+         v2d.FijaColor(COL_GRIS, COL_GRIS, 1);
+         v2d.poligono(x+3      , y + alto-5,
+                      x+ancho-3, y + alto-5,
+                      x+ancho/2, y + 4);
+      end else begin
+//         v2d.DibFonBoton(x,y,15,15);
+//         v2d.DibVnormal(x+2,y+2,10,5);
+//         v2d.DibVnormal(x+2,y+6,10,5);
+        v2d.FijaColor(COL_GRIS, COL_GRIS, 1);
+        v2d.poligono(x+3      , y + 5,
+                     x+ancho-3, y + 5,
+                     x+ancho/2, y + alto - 4);
+      end;
+  BOT_CHECK: begin  //botón check
+     if estado then begin   //dibuja solo borde
+        v2d.DibBorBoton(x,y,15,15);
+     end else begin         //dibuja con check
+        v2d.DibBorBoton(x,y,15,15);
+        v2d.DibCheck(x+2,y+2,10,8);
+     end;
+    end;
+  BOT_REPROD: begin  //botón reproducir
+     if estado then begin   //dibuja solo borde
+       v2d.FijaColor(clBlack, TColor($E5E5E5), 1);
+       v2d.RectRedonR(x,y,x+ancho, y+alto);
+       v2d.FijaColor(clBlack, clBlack, 1);
+       v2d.RectangR(x+6,y+6,x+ancho-6, y+alto-6);
+     end else begin         //dibuja con check
+       v2d.FijaColor(clBlack, TColor($E5E5E5), 1);
+       v2d.RectRedonR(x,y,x+ancho, y+alto);
+       v2d.FijaColor(clBlack, clBlack, 1);
+       v2d.poligono(x+6, y+3,
+                    x+18, y + alto/2,
+                    x+6, y + alto - 4);
+     end;
+    end;
+  end;
+end;
+procedure TogCheckBox.MouseUp(Button: TMouseButton; Shift: TShiftState; xp,
+  yp: Integer);
+begin
+
+end;
+
+{ TogButton }
+constructor TogButton.Create(mGraf: TMotGraf; tipo0: TTipBot;
+  EvenBTclk0: TEvenBTclk);
+begin
+   inherited Crear(mGraf, 16, 16);    //crea
+   tipo := tipo0;
+   OnClick := EvenBTclk0;
+   estado := FALSE;   //inicia en 0 (check no marcado, o botón por contraer)
+   drawBack := true;
+end;
+procedure TogButton.Dibujar;
+//Dibuja el botón de acuerdo a su tipo y estado
+begin
+  case tipo of
+  BOT_CERRAR: begin
+       if drawBack then v2d.DibBorBoton(x,y,ancho,alto);
+       v2d.DibVnormal(x+2,y+2,10,5);
+       v2d.DibVnormal(x+2,y+12,10,-5);
+     end;
+  BOT_EXPAND:
+      if estado then begin
+        if drawBack then v2d.DibBorBoton(x,y,ancho,alto);
+//         v2d.DibVnormal(x+2,y+7,10,-5);
+//         v2d.DibVnormal(x+2,y+11,10,-5);
+         v2d.FijaColor(COL_GRIS, COL_GRIS, 1);
+         v2d.DrawTrianUp(x+2,y+4,ancho-4,alto-10);
+      end else begin
+         if drawBack then v2d.DibBorBoton(x,y,ancho,alto);
+//         v2d.DibVnormal(x+2,y+2,10,5);
+//         v2d.DibVnormal(x+2,y+6,10,5);
+        v2d.FijaColor(COL_GRIS, COL_GRIS, 1);
+        v2d.DrawTrianDown(x+2,y+5,ancho-4,alto-10);
+      end;
+  BOT_CHECK: begin  //botón check
+     if estado then begin   //dibuja solo borde
+        v2d.DibBorBoton(x,y,15,15);
+     end else begin         //dibuja con check
+        v2d.DibBorBoton(x,y,15,15);
+        v2d.DibCheck(x+2,y+2,10,8);
+     end;
+    end;
+  BOT_REPROD: begin  //botón reproducir
+     if estado then begin   //dibuja solo borde
+       v2d.FijaColor(clBlack, TColor($E5E5E5), 1);
+       v2d.RectRedonR(x,y,x+ancho, y+alto);
+       v2d.FijaColor(clBlack, clBlack, 1);
+       v2d.RectangR(x+6,y+6,x+ancho-6, y+alto-6);
+     end else begin         //dibuja con check
+       v2d.FijaColor(clBlack, TColor($E5E5E5), 1);
+       v2d.RectRedonR(x,y,x+ancho, y+alto);
+       v2d.FijaColor(clBlack, clBlack, 1);
+       v2d.poligono(x+6, y+3,
+                    x+18, y + alto/2,
+                    x+6, y + alto - 4);
+     end;
+    end;
+  end;
+end;
+procedure TogButton.MouseUp(Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
+begin
+   if LoSelec(xp,yp) then begin    //se soltó en el botón
+      //cambia el estado, si aplica
+      if tipo in [BOT_EXPAND, BOT_CHECK, BOT_REPROD] then estado := not estado;
+      if Assigned(OnClick) then
+         OnClick(estado);    //ejecuta evento
+   end;
+end;
+
+{ TogScrollBar }
+constructor TogScrollBar.Create(mGraf: TMotGraf; tipo0: TSBOrientation;
+  EvenBTclk0: TEvenBTclk);
+begin
+  inherited Crear(mGraf, 16, 50);    //crea
+  clock := TTimer.Create(nil);
+  clock.interval:=250;  //ciclo de conteo
+  clock.OnTimer:=@ProcTic;
+  tipo := tipo0;
+  OnClick := EvenBTclk0;
+  valMin:=0;
+  valMax:=255;
+  pulsado := false;   //limpia bandera para detectar pulsado contínuo.
+  ticCont := 0;       //inicia contador
+  case tipo of
+  SB_HORIZONT: begin
+      ancho:=80; alto:=19;  {se usa 19 de ancho porque así tendremos a los botones con
+                             16, que es el tamño en el que mejor se dibuja}
+    end;
+  SB_VERTICAL: begin
+      ancho:=19; alto:=80;
+    end;
+  end;
+  //crea botones
+  butUp := TogButton.Create(mGraf,BOT_EXPAND, @procButUp);
+  butUp.drawBack:=false;
+  butUp.estado:=true;
+  butDown := TogButton.Create(mGraf,BOT_EXPAND, @procButDown);
+  butDown.drawBack:=false;
+  butDown.estado:=false;
+end;
+destructor TogScrollBar.Destroy;
+begin
+  butUp.Destroy;
+  butDown.Destroy;
+  clock.Free;  //destruye temporizador
+  inherited Destroy;
+end;
+procedure TogScrollBar.Scroll(delta: integer);
+//Desplaza el cursor en "delta" unidades.
+begin
+  valCur += delta;
+//   if valCur  > valMax then valCur := valMax;
+  if valCur + page - 1 > valMax then valCur := valMax - page + 1;
+  if valCur < valMin then valCur := valMin;
+  if OnClick<>nil then OnClick(true);
+end;
+procedure TogScrollBar.procButDown(estado: Boolean);
+begin
+  Scroll(1);
+end;
+procedure TogScrollBar.procButUp(estado: Boolean);
+begin
+  Scroll(-1);
+end;
+procedure TogScrollBar.ProcTic(Sender: TObject);
+begin
+  //Se verifica si los botones están pulsados
+  inc(ticCont);
+
+end;
+procedure TogScrollBar.Dibujar;
+const
+  ALT_MIN_CUR = 10;
+var
+  altBot: Single;
+  y2: Extended;
+  facPag: Single;
+  espCur: Single;
+  altCur: Single;
+  yIni, yFin: Single;
+  yDesp: SIngle;
+begin
+  case tipo of
+  SB_HORIZONT: begin
+    end;
+  SB_VERTICAL: begin
+      v2d.FijaLapiz(psSolid, 1, clScrollBar);
+      v2d.FijaRelleno(clMenu);
+      v2d.rectangR(x,y,x+ancho,y+alto);  //fondo
+
+      butUp.x:=x+1;
+      butUp.ancho:=ancho-3;
+      butUp.y:=y;
+
+      butDown.x:=x+1;
+      butDown.ancho:=ancho-3;
+      butDown.y:=y+alto-butDown.alto;
+
+      butUp.Dibujar;
+      butDown.Dibujar;
+      //dibuja líneas
+      altBot := butUp.alto;
+      y2 := y + alto;
+      yIni := y+altBot;
+      yFin := y2-altBot;
+      v2d.FijaLapiz(psSolid, 1, clScrollBar);
+      v2d.FijaRelleno(clScrollBar);
+      v2d.Linea(x,yIni,x+ancho,yIni);
+      v2d.Linea(x,yFin,x+ancho,yFin);
+      //dibuja cursor
+      facPag := page/(valMax-valMin+1);  //factor de página
+      espCur := yFin-yIni;  //espacio disponible para desplazamiento del cursor
+      if espCur > ALT_MIN_CUR then begin
+         altCur := facPag * espCur;
+         if altCur<ALT_MIN_CUR then altCur:= ALT_MIN_CUR;
+         //dibuja cursor
+         yDesp := (valCur-valMin)/(valMax-valMin+1)*espCur;
+         if espCur<=altCur then exit;   //protección
+         yIni := yIni + yDesp*(espCur-altCur)/(espCur-facPag * espCur);
+         if yIni+altCur > yFin then exit;   //protección
+         v2d.RectangR(x,yIni,x+ancho,yIni+altCur);
+      end;
+    end;
+  end;
+end;
+procedure TogScrollBar.MouseUp(Button: TMouseButton; Shift: TShiftState; xp,
+  yp: Integer);
+begin
+  pulsado := false;   //limpia bandera
+  ticCont := 0;
+  //pasa eventos
+//  butUp.MouseUp(Button, Shift, xp, yp);
+//  butDown.MouseUp(Button, Shift, xp, yp);
+end;
+procedure TogScrollBar.MouseDown(Button: TMouseButton; Shift: TShiftState; xp,
+  yp: Integer);
+begin
+  pulsado := true;   //marca bandera
+  //pasa eventos como si fueran MouseUP, porque las barras de desplazamiento deben
+  //responder rápidamente.
+  butUp.MouseUp(Button, Shift, xp, yp);
+  butUp.estado:=true;     //para que no cambie el ícono
+  butDown.MouseUp(Button, Shift, xp, yp);
+  butDown.estado:=false;  //para que no cambie el ícono
+end;
+
+{ TObjGraf }
 function TObjGraf.SelecPtoControl(xp, yp:integer): TPtoCtrl;
 //Indica si selecciona a algún punto de control y devuelve la referencia.
 var pdc: TPtoCtrl;
@@ -255,6 +584,11 @@ begin
    //Llama al evento que selecciona el objeto. El editor debe responder
    if Assigned(OnDeselec) then OnDeselec(self);  //llama al evento
    { TODO : Aquí se debe desactivar los controles para dimensionar el objeto }
+end;
+procedure TObjGraf.Delete;
+begin
+  //Marca para eliminarse
+  Erased := true;
 end;
 procedure TObjGraf.Mover(xr, yr: Integer; nobjetos: Integer);
 {Metodo que funciona como evento movimiento al objeto
@@ -301,11 +635,13 @@ End;
 procedure TObjGraf.Dibujar;
 const tm = 3;
 var
-  pdc: TPtoCtrl;
-  bot: TBot;
+  pdc  : TPtoCtrl;
+  bot  : TogButton;
+  sbar : TogScrollBar;
 begin
-  //dibuja botones
-  for bot in Botones do bot.Dibujar;     //Dibuja botones
+  //dibuja Buttons
+  for bot in Buttons do bot.Dibujar;     //Dibuja Buttons
+  for sbar in ScrollBars do sbar.Dibujar;
   //---------------dibuja remarcado --------------
   If Marcado Then begin
     v2d.FijaLapiz(psSolid, 2, clBlue);   //RGB(128, 128, 255)
@@ -349,7 +685,9 @@ procedure TObjGraf.MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; xp, yp: Integer; solto_objeto: Boolean);
 //Metodo que funciona como evento MouseUp
 //la bandera "solto_objeto" indica que se ha soltado el objeto despues de estarlo arrastrando
-var bot: Tbot;
+var
+  bot: TogButton;
+  sbar : TogScrollBar;
 begin
     Proceso := False;
     //verifica si cae de un arrastre
@@ -358,8 +696,9 @@ begin
     end;
     //Se soltó el ratón
     If Button = mbLeft Then  begin          //soltó izquierdo
-       //pasa evento a los botones
-       for bot in Botones do bot.MouseUp(Button, Shift, xp, yp);
+       //pasa evento a los controles
+       for bot in Buttons do bot.MouseUp(Button, Shift, xp, yp);
+       for sbar in ScrollBars do sbar.MouseUp(Button, Shift, xp, yp);
     end else If Button = mbRight Then begin //soltó derecho
         If LoSelecciona(xp, yp) Then
             Proceso := True;
@@ -387,17 +726,24 @@ begin
            OnCamPunt(crDefault);
     end;
 end;
+procedure TObjGraf.MouseWheel(Sender: TObject; Shift: TShiftState;
+  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+begin
+
+end;
 
 constructor TObjGraf.Create(mGraf: TMotGraf);
 begin
   inherited Create;
+  erased := false;
   v2d := mGraf;   //asigna motor gráfico
   ancho := 100;   //ancho por defecto
   alto := 100;    //alto por defecto
   x := 100;
   y := 100;
-  Botones := TBotones.Create(True);      //Crea lista con administración de objetos
-  PtosControl := TPtosControl.Create(True);   //Crea lista con administración de objetos
+  PtosControl:= TPtosControl.Create(True);   //Crea lista con administración de objetos
+  Buttons    := TogButtons.Create(True);     //Crea lista con administración de objetos
+  ScrollBars := TogScrollBars.Create(True);
   Seleccionado := False;
   Marcado := False;
   Proceso := false;
@@ -447,8 +793,9 @@ begin
 end;
 destructor TObjGraf.Destroy;
 begin
+  ScrollBars.Free;
+  Buttons.Free;        //Libera Buttons y Lista
   PtosControl.Free;    //Libera Puntos de Control y lista
-  Botones.Free;        //Libera Botones y Lista
   inherited Destroy;
 end;
 procedure TObjGraf.Ubicar(x0, y0: Single);
@@ -458,12 +805,23 @@ begin
   y := y0;
   ReubicElemen;   //reubica sus elementos
 end;
-function TObjGraf.AgregarBoton(ancho0, alto0: Integer; tipo0: TipTBot;
-  EvenBTclk0: TEvenBTclk): TBot;
+function TObjGraf.AddButton(ancho0, alto0: Integer; tipo0: TTipBot;
+  EvenBTclk0: TEvenBTclk): TogButton;
 //Agrega un botón al objeto.
 begin
-  Result := TBot.Crear(v2d, ancho0, alto0, tipo0, EvenBTclk0);
-  Botones.Add(Result);
+  Result := TogButton.Create(v2d, tipo0, EvenBTclk0);
+  Result.ancho := ancho0;
+  Result.alto := alto0;
+  Buttons.Add(Result);
+end;
+function TObjGraf.AddScrollBar(ancho0, alto0: Integer; tipo0: TSBOrientation;
+  EvenBTclk0: TEvenBTclk): TogScrollBar;
+//Agrega un botón al objeto.
+begin
+  Result := TogScrollBar.Create(v2d, tipo0, EvenBTclk0);
+  Result.ancho := ancho0;
+  Result.alto := alto0;
+  ScrollBars.Add(Result);
 end;
 function TObjGraf.AgregarPtoControl(PosicPCtrol, tipDesplaz0: TPosicPCtrol): TPtoCtrl;
 //Agrega un punto de control
@@ -580,69 +938,6 @@ begin
        (yp >= yp0 - ANC_PCT2) And (yp <= yp0 + ANC_PCT2) Then
          LoSelec := True;
 End;
-
-//////////////////////////////  Tbot  //////////////////////////////
-constructor Tbot.Crear(mGraf: TMotGraf; ancho0, alto0: Integer; tipo0: TipTBot;
-  EvenBTclk0: TEvenBTclk);
-begin
-   inherited Crear(mGraf, ancho0, alto0);    //crea
-   tipo := tipo0;
-   OnClick := EvenBTclk0;
-   estado := FALSE;   //inicia en 0 (check no marcado, o botón por contraer)
-end;
-procedure Tbot.Dibujar;
-//Dibuja el botón de acuerdo a su tipo y estado
-begin
-  case tipo of
-  BOT_CERRAR: begin
-       v2d.DibFonBoton(x,y,15,15);
-       v2d.DibVnormal(x+2,y+2,10,5);
-       v2d.DibVnormal(x+2,y+12,10,-5);
-     end;
-  BOT_EXPAND:
-      if estado then begin
-         v2d.DibFonBoton(x,y,15,15);
-         v2d.DibVnormal(x+2,y+7,10,-5);
-         v2d.DibVnormal(x+2,y+11,10,-5);
-      end else begin
-         v2d.DibFonBoton(x,y,15,15);
-         v2d.DibVnormal(x+2,y+2,10,5);
-         v2d.DibVnormal(x+2,y+6,10,5);
-      end;
-  BOT_CHECK: begin  //botón check
-     if estado then begin   //dibuja solo borde
-        v2d.DibFonBoton(x,y,15,15);
-     end else begin         //dibuja con check
-        v2d.DibFonBoton(x,y,15,15);
-        v2d.DibCheck(x+2,y+2,10,8);
-     end;
-    end;
-  BOT_REPROD: begin  //botón reproducir
-     if estado then begin   //dibuja solo borde
-       v2d.FijaColor(clBlack, TColor($E5E5E5), 1);
-       v2d.RectRedonR(x,y,x+ancho, y+alto);
-       v2d.FijaColor(clBlack, clBlack, 1);
-       v2d.RectangR(x+6,y+6,x+ancho-6, y+alto-6);
-     end else begin         //dibuja con check
-       v2d.FijaColor(clBlack, TColor($E5E5E5), 1);
-       v2d.RectRedonR(x,y,x+ancho, y+alto);
-       v2d.FijaColor(clBlack, clBlack, 1);
-       v2d.poligono(x+6, y+3,
-                    x+18, y + alto/2,
-                    x+6, y + alto - 4);
-     end;
-    end;
-  end;
-end;
-procedure Tbot.MouseUp(Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
-begin
-     if LoSelec(xp,yp) then begin    //se soltó en el botón
-        //cambia el estado, si aplica
-        if tipo in [BOT_EXPAND, BOT_CHECK, BOT_REPROD] then estado := not estado;
-        if Assigned(OnClick) then
-           OnClick(estado);    //ejecuta evento
-     end;
-end;
 
 end.
 

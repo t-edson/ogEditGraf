@@ -17,7 +17,7 @@ TMiObjeto = class(TObjGraf)  //objeto gráfico que dibujaremos
   procedure ProcDesac(estado0: Boolean);   //Para responder a evento del botón
   constructor Create(mGraf: TMotGraf); override;
 private
-  Bot1   : TBot;          //Botón
+  Bot1   : TogButton;          //Botón
   procedure ReubicElemen; override;
 end;
 
@@ -26,7 +26,7 @@ implementation
 constructor TMiObjeto.Create(mGraf: TMotGraf);
 begin
   inherited;
-  Bot1 := AgregarBoton(24,24,BOT_REPROD, @ProcDesac);
+  Bot1 := AddButton(24,24,BOT_REPROD, @ProcDesac);
   pc_SUP_IZQ.tipDesplaz:=TD_CEN_IZQ;
   ReConstGeom;     //Se debe llamar después de crear los puntos de control para poder ubicarlos
   ProcDesac(False);   //Desactivado := False
@@ -55,7 +55,7 @@ var x2: Single;
 begin
   inherited;
   x2 := x + ancho;
-  Botones[0].Ubicar(x2 - 24, y + 1);
+  Buttons[0].Ubicar(x2 - 24, y + 1);
 end;
 
 procedure TMiObjeto.ProcDesac(estado0: Boolean);

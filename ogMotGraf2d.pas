@@ -1,8 +1,16 @@
 unit ogMotGraf2D;
 {
-ogMotGraf2D 1.0
-=============
-Por Tito Hinostroza  19/05/2013
+ogMotGraf2D 1.3b
+================
+Por Tito Hinostroza 15/09/2014
+* Se agrega el método DibujarIcono(), y al apropiedad ImageList, para gaurdar una
+referencia a un control ImageList, con información sobre íconos para poder dibujarlos
+on DibujarIcono().
+* Se agrega el método TextRect().
+* Se agregan los métodos DrawTrianDown() y DrawTrianUp().
+
+Descripción
+===========
 Unidad que define a un motor gráfico, para realizar dibujos en pantalla.
 Contiene funciones de dibujo para las principales formas.
 Maneja desplazamientos y Zoom. Incluye definiciones y funciones para dibujo de controles
@@ -19,19 +27,6 @@ Usa el objeto canvas para la salida gráfica. No se usan las opciones de cambio 
 y desplazamientos del Canvas, para tener mayor libertad de cambiar las transformaciones
 gráficas. Basado en la clase equivalente CV2D desarrollada en VB.
 
-
-ogMotGraf2D 1.1
-=============
-Por Tito Hinostroza 10/03/2014
-Se agrega el tipo Tperspectiva y la constante COL_GRIS, como parte de la unidad.
-Se agrega la clase base TObjVisible, para poder definir objetos gráficos en pantalla.
-Se agrega la función para dibujar polígonos.
-
-ogMotGraf2D 1.2
-=============
-Por Tito Hinostroza 25/07/2014
-Se quita la definición de la clase TObjVisible, para que sea incluida en la unidad
-ObjGrafBasicos.
 }
 {$mode objfpc}{$H+}
 interface
@@ -58,11 +53,7 @@ TMotGraf = class
   x_des      : integer;
   y_des      : Integer;
 
-  //hdc As Long              'contexto de salida
-//  NumImagenes : Integer;   //contador de número de imágenes
-//  rgnPts() As POINTAPI
-//ret_pt As POINTAPI      //punto POINTAPI para uso temporal
-
+  ImageList  : TImageList;
   constructor IniMotGraf(canvas0: Tcanvas);
   procedure FijaModoEscrit(modo:TFPPenMode);
   procedure FijaLapiz(estilo:TFPPenStyle; ancho:Integer; color:Tcolor);
@@ -83,32 +74,39 @@ TMotGraf = class
     y6: Single=-10000);
   procedure FijaLetra(Letra: string);
   procedure FijaTexto(color: TColor; tam: single);
+  procedure FijaTexto(negrita: Boolean=False; cursiva: Boolean=False;
+    subrayado: Boolean=False);
   procedure FijaTexto(color: TColor; tam: single; Letra: String;
     negrita: Boolean=False; cursiva: Boolean=False; subrayado: Boolean=False);
   procedure Texto(x1, y1: Single; txt: String);
+  procedure TextRect(x1, y1, x2, y2: Single; x0, y0: Single; const Text: string;
+    const Style: TTextStyle);
   procedure TextoR(x1, y1, ancho, alto: Single; txt: String);
-  procedure DibujarImagenN(im: TGraphic; x1, y1: Single);
 
   procedure GuardarPerspectivaEn(var p: TPerspectiva);
   procedure LeePerspectivaDe(p: TPerspectiva);
 
-  procedure XYvirt(xp, yp: Integer; var xv, yv: Single);
-  procedure XYpant(xv, yv: Single; var xp, yp: Integer);
   procedure FijarVentana(ScaleWidth, ScaleHeight: Real; xMin, xMax, yMin, yMax: Real);
   procedure Desplazar(dx, dy: Integer);
   procedure ObtenerDesplaz2(xr, yr: Integer; Xant, Yant: Integer; var dx,dy: Single);
+  procedure DibujarIcono(x1, y1: Single; idx: integer);
   procedure DibujarImagen(im: TGraphic; x1, y1, dx, dy: Single);
+  procedure DibujarImagenN(im: TGraphic; x1, y1: Single);
   procedure DibujarImagen0(im: TGraphic; x1, y1, dx, dy: Integer);
 
-  //funciones para botones
-  procedure DibFonBoton(x1,y1:Single; ancho,alto: Single);
-  procedure DibCheck(px, py: Single; ancho, alto: Single);
-  procedure DibVnormal(x1, y1: Single; ancho, alto: Single);
-
+  procedure XYvirt(xp, yp: Integer; var xv, yv: Single);
+  procedure XYpant(xv, yv: Single; var xp, yp: Integer);
   function Xvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
   function Yvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
   function XPant(x: Single): Integer;    //INLINE Para acelerar las llamadas
   function YPant(y: Single): Integer;    //INLINE Para acelerar las llamadas
+  //funciones básicas para dibujo de Controles
+  procedure DibBorBoton(x1,y1:Single; ancho,alto: Single);
+  procedure DibFonBotonOsc(x1, y1: Single; ancho, alto: Single);
+  procedure DibCheck(px, py: Single; ancho, alto: Single);
+  procedure DibVnormal(x1, y1: Single; ancho, alto: Single);
+  procedure DrawTrianUp(x1,y1:Single; ancho,alto: Single);
+  procedure DrawTrianDown(x1,y1:Single; ancho,alto: Single);
 private
   Canvas    : Tcanvas;                 //referencia al lienzo
 end;
@@ -191,7 +189,14 @@ begin
    Canvas.Font.Color := color;
    Canvas.Font.Size := round(tam * Zoom);
 end;
-
+procedure TMotGraf.FijaTexto( negrita:Boolean = False; cursiva: Boolean = False;
+            subrayado: Boolean = False);
+//Establece las características completas del texto
+begin
+   Canvas.Font.Bold := negrita;
+   Canvas.Font.Italic := cursiva;
+   Canvas.Font.Underline := subrayado;
+End;
 procedure TMotGraf.FijaTexto(color: TColor; tam: single; //; nDegrees As Single, _
             Letra: String;
             negrita:Boolean = False;
@@ -284,10 +289,32 @@ End;
 *)
 procedure TMotGraf.Texto(x1, y1: Single; txt: String);
 //Escribe un texto
+var
+  tmp: Integer;
 begin
    Canvas.Brush.Style := bsClear;  //Fondo transparente
-//   Canvas.Font.Size := round(10 * Zoom);
+//   tmp := Canvas.Font.Size;  //guarda tamaño actual
+//   Canvas.Font.Size := round(Canvas.Font.Size * Zoom);
    Canvas.TextOut(XPant(x1), YPant(y1), txt);
+//   Canvas.Font.Size := tmp;  //restaura
+   Canvas.Brush.Style := bsSolid;  //devuelve estilo de fondo
+End;
+procedure TMotGraf.TextRect(x1,y1,x2,y2: Single; x0, y0: Single; const Text: string;
+                       const Style: TTextStyle);
+//Escribe un texto
+var
+  tmp: Integer;
+  Arect: TRect;
+begin
+   Canvas.Brush.Style := bsClear;  //Fondo transparente
+//   tmp := Canvas.Font.Size;  //guarda tamaño actual
+//   Canvas.Font.Size := round(Canvas.Font.Size * Zoom);
+   ARect.Left   := XPant(x1);
+   ARect.Top    := YPant(y1);
+   ARect.Right  := XPant(x2);
+   ARect.Bottom := YPant(y2);
+   Canvas.TextRect(Arect, XPant(x0), YPant(y0), Text);
+//   Canvas.Font.Size := tmp;  //restaura
    Canvas.Brush.Style := bsSolid;  //devuelve estilo de fondo
 End;
 procedure TMotGraf.TextoR(x1, y1, ancho, alto: Single; txt: String);
@@ -687,6 +714,7 @@ begin
     dx := (xr - Xant) / Zoom;
     dy := (yr - Yant) / Zoom;
 End;
+
 (*
 Public Function LeeGeomTextoZ(cad As String, ancho As Single, alto As Single)
 //Devuelve el ancho y alto del texto. El ancho y alto del texto debe ser independiente
@@ -716,11 +744,6 @@ Dim entran As Long
     NCaracTextAncho = entran
 End Function
 
-//**************************************************************************************************
-Private Sub Class_Initialize()
-    NumImagenes = 0     //Inicialmente se tiene 0 imágenes
-End;
-
 *)
 //////////////////////////////  FUNCIONES DE PERSPECTIVA  //////////////////////////////
 procedure TMotGraf.GuardarPerspectivaEn(var p: TPerspectiva);
@@ -739,6 +762,11 @@ begin
 End;
 
 //*********************************************************************************
+procedure TMotGraf.DibujarIcono(x1, y1: Single; idx: integer);
+//Dibuja una de las imágenes alamcenadas en la propiedad ImageList
+begin
+  ImageList.Draw(Canvas, XPant(x1),YPant(y1), idx);
+end;
 procedure TMotGraf.DibujarImagen(im: TGraphic; x1, y1, dx, dy: Single);
 //Dibuja imagen. Debe recibir el ancho y alto de la imagen
 //en pixeles. Estos valores "ancho" y "alto" no se puede obtener
@@ -778,40 +806,17 @@ begin
 End;
 
 ////////////////////////  Funciones de Dibujo de Controles /////////////////////////
-(*
-Public Sub DibFlecha(x1 As Single, y1 As Single, _
-                  dx As Single, dy As Single, _
-                  Optional Orientacion As Integer = 0)
-//Dibuja una flecha rellena usando llamadas a la API de Windows
-Dim Ptos3(1 To 8) As Tpunto      //puntos
-Dim ptos(1 To 8) As POINTAPI    //arreglo de puntos a dibujar
-Dim nPtos As Long
-Dim x1c As Single, y1c As Single
-Dim i As Integer
-    Select Case Orientacion
-    Case 0
-        //Flecha hacia abajo
-        Ptos3(1).X = x1 + 0.25 * dx: Ptos3(1).Y = y1
-        Ptos3(2).X = x1 + 0.75 * dx: Ptos3(2).Y = y1
-        Ptos3(3).X = x1 + 0.75 * dx: Ptos3(3).Y = y1 + 0.5 * dy
-        Ptos3(4).X = x1 + dx: Ptos3(4).Y = y1 + 0.5 * dy
-        Ptos3(5).X = x1 + 0.5 * dx: Ptos3(5).Y = y1 + dy
-        Ptos3(6).X = x1: Ptos3(6).Y = y1 + 0.5 * dy
-        Ptos3(7).X = x1 + 0.25 * dx: Ptos3(7).Y = y1 + 0.5 * dy
-        Ptos3(8) = Ptos3(1) //cierra el polígono
-    End Select
-    //transformación
-    For i = 1 To 8
-        ptos(i).X = (x_des + (Ptos3(i).X - x_cam) * mZoom)
-        ptos(i).Y = (y_des + (Ptos3(i).Y - y_cam) * mZoom)
-    Next
-    Call Polygon(hdc, ptos(1), 8)    //dibuja borde
-End;
-*)
-procedure TMotGraf.DibFonBoton(x1, y1: Single; ancho, alto: Single);
+procedure TMotGraf.DibBorBoton(x1, y1: Single; ancho, alto: Single);
+//Dibuja el borde de los botones
+begin
+   FijaColor(clGray, clWhite, 1);
+   Canvas.RoundRect(XPant(x1), YPant(y1), XPant(x1+ancho), YPant(y1+alto),
+                    round(6 * Zoom), Round(6 * Zoom));
+end;
+procedure TMotGraf.DibFonBotonOsc(x1, y1: Single; ancho, alto: Single);
 //Dibuja el fondo de los botones
 begin
-   FijaColor(COL_GRIS, clWhite, 1);
+   FijaColor(clGray, clScrollBar, 1);
    Canvas.RoundRect(XPant(x1), YPant(y1), XPant(x1+ancho), YPant(y1+alto),
                     round(6 * Zoom), Round(6 * Zoom));
 end;
@@ -834,6 +839,31 @@ begin
     Linea(px     , py + 3, px + xm, py + alto);
     Linea(px + xm, py + alto, px + ancho, py );
 End;
+procedure TMotGraf.DrawTrianUp(x1, y1: Single; ancho, alto: Single);
+//Dibuja un pequeño triángulo apuntando hacia arriba
+var
+  Ptos: array of TPoint;    //arreglo de puntos a dibujar
+begin
+  SetLength(Ptos, 3);   //dimensiona
+  //Llena arreglo
+  Ptos[0].x := XPant(x1);         Ptos[0].y := YPant(y1+alto);
+  Ptos[1].x := XPant(x1+ancho);   Ptos[1].y := YPant(y1+alto);
+  Ptos[2].x := XPant(x1+ancho/2); Ptos[2].y := YPant(y1);
+  Canvas.Polygon(Ptos);   //dibuja
+end;
+procedure TMotGraf.DrawTrianDown(x1, y1: Single; ancho, alto: Single);
+//Dibuja un pequeño triángulo apuntando hacia abajo
+var
+  Ptos: array of TPoint;    //arreglo de puntos a dibujar
+begin
+  SetLength(Ptos, 3);   //dimensiona
+  //Llena arreglo
+  Ptos[0].x := XPant(x1);         Ptos[0].y := YPant(y1);
+  Ptos[1].x := XPant(x1+ancho);   Ptos[1].y := YPant(y1);
+  Ptos[2].x := XPant(x1+ancho/2); Ptos[2].y := YPant(y1+alto);
+  Canvas.Polygon(Ptos);   //dibuja
+end;
+
 
 end.
 

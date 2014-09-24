@@ -53,7 +53,7 @@
         <UnitName Value="ogMotGraf2D"/>
       </Unit2>
       <Unit3>
-        <Filename Value="..\ogdefobjgraf.pas"/>
+        <Filename Value="..\ogDefObjGraf.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="ogDefObjGraf"/>
       </Unit3>

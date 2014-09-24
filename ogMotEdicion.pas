@@ -1,6 +1,13 @@
-{Unidad ogMotEdicion
-======================
-Por Tito Hinostroza 28/07/2014
+{Unidad ogMotEdicion 1.3b
+=========================
+Por Tito Hinostroza 16/09/2014
+* Se modifica método MouseUp(), para que verifique la bandera "Erased", de los objetos
+gráficos y aliminarlos de ser el caso.
+* Se cambia de nombre a diversas rutinas.
+* Se agrega el evento para procesar la rueda del ratón
+
+Descripción
+============
 Define la clase TModEdicion para la implementación de una interfaz de objetos gráficos
 en un Editor.
 Los objetos a manejar deben derivarse de la clase TObjGraf.
@@ -13,7 +20,7 @@ unit ogMotEdicion;
 INTERFACE
 uses
   Classes, Forms, Controls, ExtCtrls, SysUtils, Graphics, Fgl, LCLIntf,
-  LCLType, GraphType, ogMotGraf2D, ogDefObjGraf;
+  LCLType, GraphType, Dialogs, ogMotGraf2D, ogDefObjGraf;
 
 const
   CUR_DEFEC = crDefault;          //cursor por defecto
@@ -43,6 +50,8 @@ type
     procedure MouseUp(Sender: TObject; Button: TMouseButton;Shift: TShiftState; xp, yp: Integer);
     procedure MouseMove(Sender: TObject; Shift: TShiftState; X,  Y: Integer);
     procedure Paint(Sender: TObject);
+    procedure PBMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   public
     EstPuntero   : EstadosPuntero; //Estado del puntero
     ParaMover    : Boolean; //bandera de control para el inicio del movimiento
@@ -71,6 +80,7 @@ type
 
     procedure AgregarObjGrafico(og: TObjGraf; AutoPos: boolean=true);
     procedure EliminarTodosObj;
+    procedure EliminarObjGrafico(obj: TObjGraf);
     function Seleccionado: TObjGraf;
     function ObjPorNombre(nom: string): TObjGraf;
     procedure Refrescar;
@@ -107,7 +117,6 @@ type
       yr: integer=0);
     procedure BorraRecSeleccion;
     procedure DibujRecSeleccion;
-    procedure EliminarObjGrafico(obj: TObjGraf);
 
     function enRecSeleccion(X, Y: Single): Boolean;
     procedure InicMover;
@@ -120,9 +129,9 @@ type
     function VerificarMovimientoRaton(X, Y: Integer): TObjGraf;
     procedure VerificarParaMover(xp, yp: Integer);
   public
-    procedure AgrListSelec(obj: TObjGraf);    //Respuesta a Evento
-    procedure CamPuntero(Punt: integer);      //Respuesta a Evento
-    procedure QuiListSelec(obj: TObjGraf);    //Respuesta a Evento
+    procedure ObjGraf_Select(obj: TObjGraf);    //Respuesta a Evento
+    procedure ObjGraf_Unselec(obj: TObjGraf);    //Respuesta a Evento
+    procedure ObjGraf_SetPointer(Punt: integer);      //Respuesta a Evento
     constructor Create(PB0: TPaintBox);
     destructor Destroy; override;
   end;
@@ -178,19 +187,23 @@ begin
                 RaiseEvent ClickDerSel     //Genera evento
             End If*)
           end
-        Else If Button = mbLeft Then  //----- solto izquierdo -----------------
-          begin
+        else If Button = mbLeft Then begin //----- solto izquierdo -----------
             If o = NIL Then    //No selecciona a ninguno
 //                Call DeseleccionarTodos
-            Else begin         //Selecciona a alguno
+            else begin         //Selecciona a alguno
                 If Shift = [] Then DeseleccionarTodos;
                 o.Selec;   //selecciona
                 o.MouseUp(Sender, Button, Shift, xp, yp, false);
                 Refrescar;
+                //verifica si el objeto está piddiendo que lo eliminen
+                if o.Erased then begin
+                  EliminarObjGrafico(o);
+                  Refrescar;
+                end;
             End;
             CapturoEvento := NIL;      //inicia bandera de captura de evento
             ParaMover := False;        //por si aca
-          end;
+        end;
       end;
     EP_DIMEN_OBJ:  //Se soltó mientras se estaba dimensionado un objeto
       begin
@@ -327,13 +340,29 @@ begin
             if s <> NIL then s.MouseMove(Sender, Shift, X, Y);  //pasa el evento
         end;
 End;
+
 procedure TModEdicion.Paint(Sender: TObject);
 begin
   Refrescar;
 end;
 
+procedure TModEdicion.PBMouseWheel(Sender: TObject; Shift: TShiftState;
+  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+var
+  ogs: TObjGraf;
+begin
+  ogs := SeleccionaAlguno(MousePos.x, MousePos.y);  //verifica si selecciona a un objeto
+  if ogs=nil then begin
+    //debe desplazar la pantalla
+  end else begin
+    //lo selecciona, pero debe ver si está seleccionado
+    if ogs.Seleccionado then begin
+       ogs.MouseWheel(Sender, Shift, WheelDelta, MousePos, Handled);
+    end else begin
 
-
+    end;
+  end;
+end;
 
 
 
@@ -350,6 +379,7 @@ begin
   PB.OnMouseUp:=@MouseUp;
   PB.OnMouseDown:=@MouseDown;
   PB.OnMouseMove:=@MouseMove;
+  PB.OnMouseWheel:=@PBMouseWheel;
   PB.OnPaint:=@Paint;
   //inicia motor
   ColorRelleno := clWhite  ;  //Color por defecto
@@ -718,15 +748,17 @@ begin
     og.Ubicar(x,y);
   end;
   //configura eventos para ser controlado por este editor
-  og.OnSelec := @AgrListSelec;    //referencia a procedimiento de selección
-  og.OnDeselec := @QuiListSelec;  //referencia a procedimiento de "de-selección"
-  og.OnCamPunt := @CamPuntero;    //procedimiento para cambiar el puntero
+  og.OnSelec   := @ObjGraf_Select;    //referencia a procedimiento de selección
+  og.OnDeselec := @ObjGraf_Unselec;  //referencia a procedimiento de "de-selección"
+  og.OnCamPunt := @ObjGraf_SetPointer;    //procedimiento para cambiar el puntero
 //  Refrescar(s)   ;                //Refresca objeto
   objetos.Add(og);                //agrega elemento
 end;
 procedure TModEdicion.EliminarObjGrafico(obj: TObjGraf);  //elimina un objeto grafico
 begin
     Modif := True;  //Marca documento como modificado
+    obj.Deselec;  //por si acaso
+    objetos.Remove(obj);
 //    Case obj.Id
 //    Case ID_SIMBOLO
 //        If obj.Seleccionado Then obj.Deselec;
@@ -1073,21 +1105,21 @@ Public Function BuscarSig(): String
 End Function
 *)
 ////////////////// Eventos para atender requerimientos de objetos "TObjGraf" ///////////////////////
-procedure TModEdicion.AgrListSelec(obj: TObjGraf);
+procedure TModEdicion.ObjGraf_Select(obj: TObjGraf);
 //Agrega un objeto gráfico a la lista "selección". Este método no debe ser llamado directamente.
 //Si se quiere seleccionar un objeto se debe usar la forma objeto.Selec.
 begin
 //    If obj.Seleccionado Then Exit;  //Ya está seleccionado. No debe ser necesario
     seleccion.Add(obj);      { TODO : Verificar si se puede manejar bien el programa sin usar la propiedad "NombreObj"}
 End;
-procedure TModEdicion.QuiListSelec(obj: TObjGraf);
+procedure TModEdicion.ObjGraf_Unselec(obj: TObjGraf);
 //Quita un objeto gráfico de la lista "selección". Este método no debe ser llamado directamente.
 //Si se quiere quitar la seleccion a un objeto se debe usar la forma objeto.Deselec.
 begin
 //    If not obj.Seleccionado Then Exit;
     seleccion.Remove(obj);
 End;
-procedure TModEdicion.CamPuntero(Punt: integer);
+procedure TModEdicion.ObjGraf_SetPointer(Punt: integer);
 //procedimiento que cambia el puntero del mouse. Es usado para proporcionar la los objetos "TObjGraf"
 //la posibilidad de cambiar el puntero.
 begin
