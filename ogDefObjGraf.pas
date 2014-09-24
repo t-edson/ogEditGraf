@@ -1,6 +1,8 @@
-{Unidad ogDefObjGraf 1.3b
+{Unidad ogDefObjGraf 1.3
 ======================
 Por Tito Hinostroza 25/07/2014
+* Se cambia nombre de TObjVsible.x aTObjVsible.fx y de TObjVsible.y a TObjVsible.fy
+* Se crean las propiedades X e Y para acceder a las coordenadas del objeto.
 * Se agrega el método Delete(), para eliminar a un objeto gráfico.
 * Se agregan los objetos TogCheckBox y TogScrollBar
 * Se cambia de nombre a Tbot por TogButton
@@ -43,6 +45,10 @@ type
   { TObjVsible }
   //Clase base para todos los objetos visibles
   TObjVsible = class
+  protected
+    fx,fy      : Single;     //coordenadas virtuales
+    v2d        : TMotGraf;   //motor gráfico
+    Xant,Yant  : Integer;    //coordenadas anteriores
   public
     Id          : Integer;     //identificador del objeto
     ancho, alto : Single;
@@ -54,12 +60,10 @@ type
     procedure Ubicar(x0, y0: Single);  //Fija posición
     function LoSelec(xr, yr: Integer): Boolean;
     function InicMover(xr, yr: Integer): Boolean;
+    property x: Single read fx;
+    property y: Single read fy;
     constructor Create; virtual;
     destructor Destroy; override;
-  protected
-    x,y        : Single;    //coordenadas virtuales
-    v2d        : TMotGraf;   //motor gráfico
-    Xant,Yant  : Integer;    //coordenadas anteriores
   end;
 
   TPosicPCtrol = (   //tipo de desplazamiento de punto de control
@@ -254,8 +258,8 @@ begin
 end;
 procedure TObjVsible.Ubicar(x0, y0: Single);
 begin
-  x := x0;
-  y := y0;
+  fx := x0;
+  fy := y0;
 end;
 function TObjVsible.LoSelec(xr, yr: Integer): Boolean;
 //Indica si las coordenadas de ratón seleccionan al botón en su posición actual
@@ -263,8 +267,8 @@ var xv, yv: Single;    //coordenadas virtuales
 begin
     v2d.XYvirt(xr, yr, xv, yv);
     LoSelec := False;    //valor por defecto
-    If (xv > x - 2) And (xv < x + ancho + 2) And
-       (yv > y - 2) And (yv < y + alto + 2) Then
+    If (xv > fx - 2) And (xv < fx + ancho + 2) And
+       (yv > fy - 2) And (yv < fy + alto + 2) Then
         LoSelec := True;
 end;
 function TObjVsible.InicMover(xr, yr: Integer): Boolean;
@@ -294,49 +298,49 @@ procedure TogCheckBox.Dibujar;
 begin
   case tipo of
   BOT_CERRAR: begin
-//       v2d.DibFonBoton(x,y,15,15);
-       v2d.DibVnormal(x+2,y+2,10,5);
-       v2d.DibVnormal(x+2,y+12,10,-5);
+//       v2d.DibFonBoton(fx,fy,15,15);
+       v2d.DibVnormal(fx+2,fy+2,10,5);
+       v2d.DibVnormal(fx+2,fy+12,10,-5);
      end;
   BOT_EXPAND:
       if estado then begin
-//         v2d.DibFonBoton(x,y,15,15);
-//         v2d.DibVnormal(x+2,y+7,10,-5);
-//         v2d.DibVnormal(x+2,y+11,10,-5);
+//         v2d.DibFonBoton(fx,fy,15,15);
+//         v2d.DibVnormal(fx+2,fy+7,10,-5);
+//         v2d.DibVnormal(fx+2,fy+11,10,-5);
          v2d.FijaColor(COL_GRIS, COL_GRIS, 1);
-         v2d.poligono(x+3      , y + alto-5,
-                      x+ancho-3, y + alto-5,
-                      x+ancho/2, y + 4);
+         v2d.poligono(fx+3      , fy + alto-5,
+                      fx+ancho-3, fy + alto-5,
+                      fx+ancho/2, fy + 4);
       end else begin
-//         v2d.DibFonBoton(x,y,15,15);
-//         v2d.DibVnormal(x+2,y+2,10,5);
-//         v2d.DibVnormal(x+2,y+6,10,5);
+//         v2d.DibFonBoton(fx,fy,15,15);
+//         v2d.DibVnormal(fx+2,fy+2,10,5);
+//         v2d.DibVnormal(fx+2,fy+6,10,5);
         v2d.FijaColor(COL_GRIS, COL_GRIS, 1);
-        v2d.poligono(x+3      , y + 5,
-                     x+ancho-3, y + 5,
-                     x+ancho/2, y + alto - 4);
+        v2d.poligono(fx+3      , fy + 5,
+                     fx+ancho-3, fy + 5,
+                     fx+ancho/2, fy + alto - 4);
       end;
   BOT_CHECK: begin  //botón check
      if estado then begin   //dibuja solo borde
-        v2d.DibBorBoton(x,y,15,15);
+        v2d.DibBorBoton(fx,fy,15,15);
      end else begin         //dibuja con check
-        v2d.DibBorBoton(x,y,15,15);
-        v2d.DibCheck(x+2,y+2,10,8);
+        v2d.DibBorBoton(fx,fy,15,15);
+        v2d.DibCheck(fx+2,fy+2,10,8);
      end;
     end;
   BOT_REPROD: begin  //botón reproducir
      if estado then begin   //dibuja solo borde
        v2d.FijaColor(clBlack, TColor($E5E5E5), 1);
-       v2d.RectRedonR(x,y,x+ancho, y+alto);
+       v2d.RectRedonR(fx,fy,fx+ancho, fy+alto);
        v2d.FijaColor(clBlack, clBlack, 1);
-       v2d.RectangR(x+6,y+6,x+ancho-6, y+alto-6);
+       v2d.RectangR(fx+6,fy+6,fx+ancho-6, fy+alto-6);
      end else begin         //dibuja con check
        v2d.FijaColor(clBlack, TColor($E5E5E5), 1);
-       v2d.RectRedonR(x,y,x+ancho, y+alto);
+       v2d.RectRedonR(fx,fy,fx+ancho, fy+alto);
        v2d.FijaColor(clBlack, clBlack, 1);
-       v2d.poligono(x+6, y+3,
-                    x+18, y + alto/2,
-                    x+6, y + alto - 4);
+       v2d.poligono(fx+6, fy+3,
+                    fx+18, fy + alto/2,
+                    fx+6, fy + alto - 4);
      end;
     end;
   end;
@@ -362,45 +366,45 @@ procedure TogButton.Dibujar;
 begin
   case tipo of
   BOT_CERRAR: begin
-       if drawBack then v2d.DibBorBoton(x,y,ancho,alto);
-       v2d.DibVnormal(x+2,y+2,10,5);
-       v2d.DibVnormal(x+2,y+12,10,-5);
+       if drawBack then v2d.DibBorBoton(fx,fy,ancho,alto);
+       v2d.DibVnormal(fx+2,fy+2,10,5);
+       v2d.DibVnormal(fx+2,fy+12,10,-5);
      end;
   BOT_EXPAND:
       if estado then begin
-        if drawBack then v2d.DibBorBoton(x,y,ancho,alto);
-//         v2d.DibVnormal(x+2,y+7,10,-5);
-//         v2d.DibVnormal(x+2,y+11,10,-5);
+        if drawBack then v2d.DibBorBoton(fx,fy,ancho,alto);
+//         v2d.DibVnormal(fx+2,fy+7,10,-5);
+//         v2d.DibVnormal(fx+2,fy+11,10,-5);
          v2d.FijaColor(COL_GRIS, COL_GRIS, 1);
-         v2d.DrawTrianUp(x+2,y+4,ancho-4,alto-10);
+         v2d.DrawTrianUp(fx+2,fy+4,ancho-4,alto-10);
       end else begin
-         if drawBack then v2d.DibBorBoton(x,y,ancho,alto);
-//         v2d.DibVnormal(x+2,y+2,10,5);
-//         v2d.DibVnormal(x+2,y+6,10,5);
+         if drawBack then v2d.DibBorBoton(fx,fy,ancho,alto);
+//         v2d.DibVnormal(fx+2,fy+2,10,5);
+//         v2d.DibVnormal(fx+2,fy+6,10,5);
         v2d.FijaColor(COL_GRIS, COL_GRIS, 1);
-        v2d.DrawTrianDown(x+2,y+5,ancho-4,alto-10);
+        v2d.DrawTrianDown(fx+2,fy+5,ancho-4,alto-10);
       end;
   BOT_CHECK: begin  //botón check
      if estado then begin   //dibuja solo borde
-        v2d.DibBorBoton(x,y,15,15);
+        v2d.DibBorBoton(fx,fy,15,15);
      end else begin         //dibuja con check
-        v2d.DibBorBoton(x,y,15,15);
-        v2d.DibCheck(x+2,y+2,10,8);
+        v2d.DibBorBoton(fx,fy,15,15);
+        v2d.DibCheck(fx+2,fy+2,10,8);
      end;
     end;
   BOT_REPROD: begin  //botón reproducir
      if estado then begin   //dibuja solo borde
        v2d.FijaColor(clBlack, TColor($E5E5E5), 1);
-       v2d.RectRedonR(x,y,x+ancho, y+alto);
+       v2d.RectRedonR(fx,fy,fx+ancho, fy+alto);
        v2d.FijaColor(clBlack, clBlack, 1);
-       v2d.RectangR(x+6,y+6,x+ancho-6, y+alto-6);
+       v2d.RectangR(fx+6,fy+6,fx+ancho-6, fy+alto-6);
      end else begin         //dibuja con check
        v2d.FijaColor(clBlack, TColor($E5E5E5), 1);
-       v2d.RectRedonR(x,y,x+ancho, y+alto);
+       v2d.RectRedonR(fx,fy,fx+ancho, fy+alto);
        v2d.FijaColor(clBlack, clBlack, 1);
-       v2d.poligono(x+6, y+3,
-                    x+18, y + alto/2,
-                    x+6, y + alto - 4);
+       v2d.poligono(fx+6, fy+3,
+                    fx+18, fy + alto/2,
+                    fx+6, fy + alto - 4);
      end;
     end;
   end;
@@ -494,27 +498,27 @@ begin
   SB_VERTICAL: begin
       v2d.FijaLapiz(psSolid, 1, clScrollBar);
       v2d.FijaRelleno(clMenu);
-      v2d.rectangR(x,y,x+ancho,y+alto);  //fondo
+      v2d.rectangR(fx,fy,fx+ancho,fy+alto);  //fondo
 
-      butUp.x:=x+1;
+      butUp.fx:=fx+1;
       butUp.ancho:=ancho-3;
-      butUp.y:=y;
+      butUp.fy:=fy;
 
-      butDown.x:=x+1;
+      butDown.fx:=fx+1;
       butDown.ancho:=ancho-3;
-      butDown.y:=y+alto-butDown.alto;
+      butDown.fy:=fy+alto-butDown.alto;
 
       butUp.Dibujar;
       butDown.Dibujar;
       //dibuja líneas
       altBot := butUp.alto;
-      y2 := y + alto;
-      yIni := y+altBot;
+      y2 := fy + alto;
+      yIni := fy+altBot;
       yFin := y2-altBot;
       v2d.FijaLapiz(psSolid, 1, clScrollBar);
       v2d.FijaRelleno(clScrollBar);
-      v2d.Linea(x,yIni,x+ancho,yIni);
-      v2d.Linea(x,yFin,x+ancho,yFin);
+      v2d.Linea(fx,yIni,fx+ancho,yIni);
+      v2d.Linea(fx,yFin,fx+ancho,yFin);
       //dibuja cursor
       facPag := page/(valMax-valMin+1);  //factor de página
       espCur := yFin-yIni;  //espacio disponible para desplazamiento del cursor
@@ -526,7 +530,7 @@ begin
          if espCur<=altCur then exit;   //protección
          yIni := yIni + yDesp*(espCur-altCur)/(espCur-facPag * espCur);
          if yIni+altCur > yFin then exit;   //protección
-         v2d.RectangR(x,yIni,x+ancho,yIni+altCur);
+         v2d.RectangR(fx,yIni,fx+ancho,yIni+altCur);
       end;
     end;
   end;
@@ -563,11 +567,11 @@ begin
 end;
 function TObjGraf.XCent: Single;
 begin
-   Result := X + Ancho / 2;
+   Result := fx + Ancho / 2;
 end;
 function TObjGraf.YCent: Single;
 begin
-   Result := Y + Alto / 2;
+   Result := fy + Alto / 2;
 end;
 procedure TObjGraf.Selec;
 begin
@@ -610,7 +614,7 @@ begin
            end
         else  //ningún elemento del objeto lo ha procesado, pasamos a mover todo el objeto
            begin
-              X := X + dx; Y := Y + dy;
+              fx := fx + dx; fy := fy + dy;
               ReubicElemen;  //reubica los elementos
               Proceso := False;
            End;
@@ -626,7 +630,7 @@ begin
     v2d.XYvirt(xr, yr, xv, yv);
     LoSelecciona := False; //valor por defecto
     //verifica área de selección
-    If (xv > x - 1) And (xv < x + Ancho + 1) And (yv > y - 1) And (yv < y + Alto + 1) Then
+    If (xv > fx - 1) And (xv < fx + Ancho + 1) And (yv > fy - 1) And (yv < fy + Alto + 1) Then
       LoSelecciona := True;
     if Seleccionado then begin   //seleccionado, tiene un área mayor de selección
       if SelecPtoControl(xr,yr) <> NIL then LoSelecciona := True;
@@ -645,12 +649,12 @@ begin
   //---------------dibuja remarcado --------------
   If Marcado Then begin
     v2d.FijaLapiz(psSolid, 2, clBlue);   //RGB(128, 128, 255)
-    v2d.rectang(X - tm, Y - tm, X + ancho + tm, Y + alto + tm);
+    v2d.rectang(fx - tm, fy - tm, fx + ancho + tm, fy + alto + tm);
   End;
   //---------------dibuja marca de seleccion--------------
   If Seleccionado Then begin
 //    v2d.FijaLapiz(psSolid, 1, clGreen);
-//    v2d.rectang(X, Y, X + ancho, Y + alto);
+//    v2d.rectang(fx, fy, fx + ancho, fy + alto);
      for pdc in PtosControl do pdc.Dibujar;   //Dibuja puntos de control
   End;
 end;
@@ -664,9 +668,9 @@ begin
   //Busca si algún punto de control lo procesa
   pcx := SelecPtoControl(xr,yr);
   if pcx <> NIL  then begin
-      pcx.InicMover(xr, yr, x, y,ancho,alto);     //prepara para movimiento y dimensionamiento
-      Proceso := True;      //Marcar para indicar al editor y a Mover() que este objeto procesará
-                            //el evento y no se lo pasé a los demás que pueden estar seleccionados.
+      pcx.InicMover(xr, yr, fx, fy,ancho,alto);     //prepara para movimiento fy dimensionamiento
+      Proceso := True;      //Marcar para indicar al editor fy a Mover() que este objeto procesará
+                            //el evento fy no se lo pasé a los demás que pueden estar seleccionados.
       Dimensionando := True; //Marca bandera
    end;
   { TODO : Verificar por qué, a veces se puede iniciar el movimiento del objeto cuando el puntero está en modo de dimensionamiento. }
@@ -739,8 +743,8 @@ begin
   v2d := mGraf;   //asigna motor gráfico
   ancho := 100;   //ancho por defecto
   alto := 100;    //alto por defecto
-  x := 100;
-  y := 100;
+  fx := 100;
+  fy := 100;
   PtosControl:= TPtosControl.Create(True);   //Crea lista con administración de objetos
   Buttons    := TogButtons.Create(True);     //Crea lista con administración de objetos
   ScrollBars := TogScrollBars.Create(True);
@@ -748,7 +752,7 @@ begin
   Marcado := False;
   Proceso := false;
   DibSimplif := false;
-  //Crea puntos de control estándar. Luego se pueden eliminar y crear nuevos o modificar
+  //Crea puntos de control estándar. Luego se pueden eliminar fy crear nuevos o modificar
   //estos puntos de control.
   pc_SUP_IZQ:=AgregarPtoControl(TD_SUP_IZQ, TD_SUP_IZQ);
   pc_SUP_CEN:=AgregarPtoControl(TD_SUP_CEN, TD_SUP_CEN);
@@ -765,24 +769,24 @@ begin
   //ubica puntos de control
   for pc in PtosControl do begin
     case pc.posicion of
-    TD_SUP_IZQ:  //superior izquierda, desplaza ancho (por izquierda) y alto (por arriba)
-      pc.Ubicar(x,y);
+    TD_SUP_IZQ:  //superior izquierda, desplaza ancho (por izquierda) fy alto (por arriba)
+      pc.Ubicar(fx,fy);
     TD_SUP_CEN:  //superior central, desplaza alto por arriba
-      pc.Ubicar(x+ancho/2,y);
-    TD_SUP_DER:  //superior derecha, desplaza ancho (por derecha) y alto (por arriba)
-      pc.Ubicar(x+ancho,y);
+      pc.Ubicar(fx+ancho/2,fy);
+    TD_SUP_DER:  //superior derecha, desplaza ancho (por derecha) fy alto (por arriba)
+      pc.Ubicar(fx+ancho,fy);
 
     TD_CEN_IZQ:  //central izquierda, desplaza ancho (por izquierda)
-      pc.Ubicar(x,y+alto/2);
+      pc.Ubicar(fx,fy+alto/2);
     TD_CEN_DER:  //central derecha, desplaza ancho (por derecha)
-      pc.Ubicar(x+ancho,y+alto/2);
+      pc.Ubicar(fx+ancho,fy+alto/2);
 
     TD_INF_IZQ:  //inferior izquierda
-      pc.Ubicar(x,y+alto);
+      pc.Ubicar(fx,fy+alto);
     TD_INF_CEN:  //inferior central
-      pc.Ubicar(x+ancho/2,y+alto);
+      pc.Ubicar(fx+ancho/2,fy+alto);
     TD_INF_DER:   //inferior izquierda
-      pc.Ubicar(x+ancho,y+alto);
+      pc.Ubicar(fx+ancho,fy+alto);
     else  //otra ubicación no lo reubica
     end;
   end;
@@ -794,15 +798,15 @@ end;
 destructor TObjGraf.Destroy;
 begin
   ScrollBars.Free;
-  Buttons.Free;        //Libera Buttons y Lista
-  PtosControl.Free;    //Libera Puntos de Control y lista
+  Buttons.Free;        //Libera Buttons fy Lista
+  PtosControl.Free;    //Libera Puntos de Control fy lista
   inherited Destroy;
 end;
 procedure TObjGraf.Ubicar(x0, y0: Single);
 //Ubica al objeto en unas coordenadas específicas
 begin
-  x := x0;
-  y := y0;
+  fx := x0;
+  fy := y0;
   ReubicElemen;   //reubica sus elementos
 end;
 function TObjGraf.AddButton(ancho0, alto0: Integer; tipo0: TTipBot;
@@ -836,13 +840,13 @@ begin
   //verifica validez de cambio de ancho
   if ancho0 >= ANCHO_MIN then begin
      ancho := ancho0;
-     x := x0;  //solo si cambió el ancho, se permite modificar la posición
+     fx := x0;  //solo si cambió el ancho, se permite modificar la posición
 //     fil.ancho:= ancho0-6;  //actualiza tabla de campos
   end;
   //verifica validez de cambio de alto
   if alto0 >= ALTO_MIN then begin
      alto := alto0;
-     y := y0; //solo si cambió el alto, se permite modificar la posición
+     fy := y0; //solo si cambió el alto, se permite modificar la posición
   end;
   ReConstGeom;       //reconstruye la geometría
 end;
@@ -876,15 +880,15 @@ begin
   tipDesplaz := tipDesplaz0;  //actualiza propiedad
   EvenPCdim := EvenPCdim0;     //Asigna evento para cambiar dimensiones
   visible := true;             //lo hace visible
-  x :=0;
-  y :=0;
+  fx :=0;
+  fy :=0;
 end;
 procedure TPtoCtrl.Dibujar();
 //Dibuja el Punto de control en la posición definida
 var xp, yp: Integer;
 begin
     if not visible then exit;    //validación
-    v2d.XYpant(x, y, xp, yp);      //obtiene coordenadas de pantalla
+    v2d.XYpant(fx, fy, xp, yp);      //obtiene coordenadas de pantalla
     v2d.Barra0(xp - ANC_PCT2, yp - ANC_PCT2,
                xp + ANC_PCT2, yp + ANC_PCT2, clNavy);  //siempre de tamaño fijo
 end;
@@ -932,7 +936,7 @@ var xp0, yp0 : Integer; //corodenadas virtuales
 begin
     LoSelec := False;
     if not visible then exit;    //validación
-    v2d.XYpant(x, y, xp0, yp0);   //obtiene sus coordenadas en pantalla
+    v2d.XYpant(fx, fy, xp0, yp0);   //obtiene sus coordenadas en pantalla
     //compara en coordenadas de pantalla
     If (xp >= xp0 - ANC_PCT2) And (xp <= xp0 + ANC_PCT2) And
        (yp >= yp0 - ANC_PCT2) And (yp <= yp0 + ANC_PCT2) Then

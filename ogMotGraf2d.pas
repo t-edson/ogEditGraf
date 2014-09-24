@@ -1,6 +1,6 @@
 unit ogMotGraf2D;
 {
-ogMotGraf2D 1.3b
+ogMotGraf2D 1.3
 ================
 Por Tito Hinostroza 15/09/2014
 * Se agrega el método DibujarIcono(), y al apropiedad ImageList, para gaurdar una
@@ -8,6 +8,7 @@ referencia a un control ImageList, con información sobre íconos para poder dib
 on DibujarIcono().
 * Se agrega el método TextRect().
 * Se agregan los métodos DrawTrianDown() y DrawTrianUp().
+* Se crea la función Polygon().
 
 Descripción
 ===========
@@ -42,6 +43,11 @@ Tperspectiva = record
   x_cam : Single;     //parámetro de desplazamiento x_cam
   y_cam : Single;     //parámetro de desplazamiento y_cam
 end;
+//Par ordenado de Reales.
+TFPoint = record
+  x: single;
+  y: single;
+end;
 
 { TMotGraf }
 TMotGraf = class
@@ -72,6 +78,7 @@ TMotGraf = class
   procedure poligono(x1, y1, x2, y2, x3, y3: Single; x4: Single=-10000;
     y4: Single=-10000; x5: Single=-10000; y5: Single=-10000; x6: Single=-10000;
     y6: Single=-10000);
+  procedure Polygon(const Points: array of TFPoint);
   procedure FijaLetra(Letra: string);
   procedure FijaTexto(color: TColor; tam: single);
   procedure FijaTexto(negrita: Boolean=False; cursiva: Boolean=False;
@@ -621,6 +628,20 @@ begin
   end;
   If x6 <> -10000 Then begin
     Ptos[5].x := XPant(x6); Ptos[5].y := YPant(y6);
+  end;
+  Canvas.Polygon(Ptos);   //dibuja
+End;
+procedure TMotGraf.Polygon(const Points: array of TFPoint);
+//Dibuja un polígono relleno.
+var
+  Ptos: array of TPoint;    //arreglo de puntos a dibujar
+  i: Integer;
+begin
+  SetLength(Ptos, high(Points)+1);   //dimensiona
+  //transforma puntos
+  for i:= 0 to high(Points) do begin
+    Ptos[i].x := XPant(Points[i].x);
+    Ptos[i].y := YPant(Points[i].y);
   end;
   Canvas.Polygon(Ptos);   //dibuja
 End;

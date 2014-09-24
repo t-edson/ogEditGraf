@@ -1,10 +1,13 @@
-{Unidad ogMotEdicion 1.3b
+{Unidad ogMotEdicion 1.3
 =========================
 Por Tito Hinostroza 16/09/2014
 * Se modifica método MouseUp(), para que verifique la bandera "Erased", de los objetos
 gráficos y aliminarlos de ser el caso.
 * Se cambia de nombre a diversas rutinas.
-* Se agrega el evento para procesar la rueda del ratón
+* Se agrega el evento para procesar la rueda del ratón.
+* Se crean los métodos ElimSeleccion(), PrimerVisible(), UltimoVisible(),
+SiguienteVisible() , AnteriorVisible() y NumeroVisibles().
+* Se crea el método KeyDown() para procesar teclado.
 
 Descripción
 ============
@@ -66,8 +69,6 @@ type
   //Public Event ObjSelec(o: og)      ;  //Evento cuando se selecciona un objeto
 //  Public Event ClickDerSel()          ;  //Evento cuando se pulsa Click Derecho en seleción
 //  Public Event DblClickObj(o: TObjGraf)   ;  //Doble Click en objeto
-//  Public Event ActualizarConsulta()   ;  //Indica que se debe actualizar la consulta
-//  Public Event InicArrastreFil(dat: String) ;  //Inicio del arrastre de una fila.
   //-----------------------------------------------------------
     Modif: Boolean;  //bandera para indicar Diagrama Modificado
 //  Public MostrarEtiquetas: Boolean     ;  //bandera que indica si se deben mostrar las etiquetas de los símbolos
@@ -80,8 +81,10 @@ type
 
     procedure AgregarObjGrafico(og: TObjGraf; AutoPos: boolean=true);
     procedure EliminarTodosObj;
+    procedure ElimSeleccion;
     procedure EliminarObjGrafico(obj: TObjGraf);
     function Seleccionado: TObjGraf;
+    procedure KeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     function ObjPorNombre(nom: string): TObjGraf;
     procedure Refrescar;
     procedure SeleccionarTodos;
@@ -115,6 +118,7 @@ type
 
     procedure AmpliarClick(factor: real=FACTOR_AMPLIA_ZOOM; xr: integer=0;
       yr: integer=0);
+    function AnteriorVisible(c: TObjGraf): TObjGraf;
     procedure BorraRecSeleccion;
     procedure DibujRecSeleccion;
 
@@ -122,10 +126,14 @@ type
     procedure InicMover;
     procedure InicRecSeleccion(X, Y: Integer);
     procedure MoverDesp(dx, dy: integer);
+    function NumeroVisibles: Integer;
+    function PrimerVisible: TObjGraf;
     function RecSeleccionNulo: Boolean;
     procedure ReducirClick(factor: Real=FACTOR_AMPLIA_ZOOM; x_zoom: Real=0;
       y_zoom: Real=0);
     function SeleccionaAlguno(xp, yp: Integer): TObjGraf;
+    function SiguienteVisible(c: TObjGraf): TObjGraf;
+    function UltimoVisible: TObjGraf;
     function VerificarMovimientoRaton(X, Y: Integer): TObjGraf;
     procedure VerificarParaMover(xp, yp: Integer);
   public
@@ -345,7 +353,6 @@ procedure TModEdicion.Paint(Sender: TObject);
 begin
   Refrescar;
 end;
-
 procedure TModEdicion.PBMouseWheel(Sender: TObject; Shift: TShiftState;
   WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 var
@@ -381,6 +388,7 @@ begin
   PB.OnMouseMove:=@MouseMove;
   PB.OnMouseWheel:=@PBMouseWheel;
   PB.OnPaint:=@Paint;
+
   //inicia motor
   ColorRelleno := clWhite  ;  //Color por defecto
   v2d := TMotGraf.IniMotGraf(PB.Canvas);   //Inicia motor gráfico
@@ -547,7 +555,7 @@ begin
     End;
 
 End;
-(*
+{
 //Respuesta al evento doble click
 Public Sub DblClick()
 Dim s: TObjGraf
@@ -558,81 +566,85 @@ Dim s: TObjGraf
         RaiseEvent DblClickObj(s)
     End If
 End Sub
-
-;  //***********Funciones para administrar los elementos visibles y seleccion por teclado**********
-Public Function NumeroVisibles(): Integer
-;  //devuelve el número de objetos visibles
-Dim v: TObjGraf
-Dim tmp: Integer
-    tmp = 0
-    For Each v In objetos
-        tmp = tmp + 1
-    Next
-    NumeroVisibles = tmp
-End Function
-
-Private Function PrimerVisible(): TObjGraf
-;  //devuelve el primer objeto visible
-Dim i: Integer
-2Dim v: TObjGraf
-    For i = 1 To objetos.Count
-        Set v = objetos(i)
-        Set PrimerVisible = v: Exit Function
-    Next
-End Function
-
-Private Function UltimoVisible(): TObjGraf
-;  //devuelve el último objeto visible
-Dim i: Integer
-Dim v: TObjGraf
-    For i = objetos.Count To 1 Step -1
-        Set v = objetos(i)
-        Set UltimoVisible = v: Exit Function
-    Next
-End Function
-
-Public Function SiguienteVisible(c: TObjGraf): TObjGraf
-;  //devuelve el siguiente objeto visible en el orden de creación
-Dim i: Integer
-Dim o: TObjGraf
-        ;  //busca su orden dentro de los objetos
-        For i = 1 To objetos.Count
-            If objetos(i) Is c Then Exit For
-        Next
-        ;  //calcula el siguiente elemento
-        Do
-            i = i + 1
-            If i > objetos.Count Then   ;  //se ha llegado al final del conjunto
-                Set SiguienteVisible = PrimerVisible()
-                Exit Function
-            End If
-            Set o = objetos(i)
-        Loop While False
-        ;  //selecciona el siguiente visible
-        Set SiguienteVisible = objetos(i)
-End Function
-
-Public Function AnteriorVisible(c: TObjGraf): TObjGraf
-;  //devuelve el anterior objeto visible en el orden de creación
-Dim i: Integer
-Dim o: TObjGraf
-        ;  //busca su orden dentro de los objetos
-        For i = 1 To objetos.Count
-            If objetos(i) Is c Then Exit For
-        Next
-        ;  //calcula el elemento anterior
-        Do
-            i = i - 1
-            If i < 1 Then  ;  //se ha llegado al inicio
-                Set AnteriorVisible = UltimoVisible()
-                Exit Function
-            End If
-            Set o = objetos(i)
-        Loop While False
-        ;  //selecciona el siguiente visible
-        Set AnteriorVisible = objetos(i)
-End Function
-
+}
+//***********Funciones para administrar los elementos visibles y seleccion por teclado**********
+Function TModEdicion.NumeroVisibles: Integer;
+//devuelve el número de objetos visibles
+var
+  v: TObjGraf;
+  tmp: Integer;
+begin
+  tmp := 0;
+  For v in objetos do begin
+    if v.visible then Inc(tmp);
+  end;
+  Result := tmp;
+end;
+Function TModEdicion.PrimerVisible: TObjGraf;
+ //devuelve el primer objeto visible
+var
+  i: integer;
+begin
+  for i:=0 to objetos.Count-1 do begin
+    if objetos[i].visible then begin
+      Result := objetos[i];
+      exit;
+    end;
+  end;
+End;
+Function TModEdicion.UltimoVisible: TObjGraf;
+ //devuelve el último objeto visible
+var
+  i: Integer;
+begin
+  for i:=objetos.Count-1 downto 0 do begin
+    if objetos[i].visible then begin
+      Result := objetos[i];
+      exit;
+    end;
+  end;
+end;
+Function TModEdicion.SiguienteVisible(c: TObjGraf): TObjGraf;
+//devuelve el siguiente objeto visible en el orden de creación
+var
+  i: Integer;
+begin
+    //busca su orden dentro de los objetos
+    For i := 0 To objetos.Count-1 do begin
+      if objetos[i] = c Then break;
+    end;
+    //calcula el siguiente elemento
+    repeat
+      Inc(i);
+      If i >= objetos.Count Then begin  //se ha llegado al final del conjunto
+        Result := PrimerVisible;
+        Exit;
+      end;
+    until objetos[i].visible;
+    //selecciona el siguiente visible
+    Result := objetos[i];
+end;
+Function TModEdicion.AnteriorVisible(c: TObjGraf): TObjGraf;
+//devuelve el anterior objeto visible en el orden de creación
+var
+  i: Integer;
+begin
+    //busca su orden dentro de los objetos
+    For i := 0 To objetos.Count-1 do begin
+      If objetos[i] = c Then break;
+    end;
+    //calcula el elemento anterior
+    repeat
+      Dec(i);
+      If i < 0 Then begin  //se ha llegado al inicio
+        Result := UltimoVisible;
+        Exit;
+      End;
+    until objetos[i].visible;
+    //selecciona el siguiente visible
+    Result := objetos[i];
+End;
+(*
 Public Sub SeleccionarSiguiente()
 ;  //Selecciona el siguiente elemento visible en el orden de creación.
 ;  //Si no hay ninguno seleccionado, selecciona el primero
@@ -670,68 +682,63 @@ Dim i: Integer
     End If
     Call Refrescar
 End Sub
-
-Sub KeyDown(tec: Integer, Shift: Integer)
-;  //Procesa el evento KeyDown()
-Dim v: TObjGraf
-    If Shift = 0 Then   ;  //********************* Teclas normales ***********************
-        ;  //If tec = 13 Then PropiedSeleccion ;  //Debe procesarlo el diagrama
-        If tec = 46 Then ElimSeleccion      ;  //DELETE
-        If tec = 9 Then Call SeleccionarSiguiente                 ;  //TAB
-        If tec = 27 Then Call DeseleccionarTodos: Call Refrescar  ;  //ESCAPE
-        If seleccion.Count = 0 Then     ;  //si no hay objetos seleccionados
-            If tec = 37 Then Call moverDerecha(DESPLAZ_MENOR)        ;  //derecha
-            If tec = 39 Then Call moverIzquierda(DESPLAZ_MENOR)      ;  //izquierda
-            If tec = 40 Then Call moverArriba(DESPLAZ_MENOR)         ;  //arriba
-            If tec = 38 Then Call moverAbajo(DESPLAZ_MENOR)          ;  //abajo
-        Else        ;  //hay seleccionados
-            If tec = 37 Then ;  //derecha
-                For Each v In seleccion
-                    If Not v.Bloqueado Then v.X = v.X - DESPLAZ_MENOR
-                Next
-                Call Refrescar
-            End If
-            If tec = 39 Then ;  //izquierda
-                For Each v In seleccion
-                    If Not v.Bloqueado Then v.X = v.X + DESPLAZ_MENOR
-                Next
-                Call Refrescar
-            End If
-            If tec = 40 Then ;  //arriba
-                For Each v In seleccion
-                    If Not v.Bloqueado Then v.Y = v.Y + DESPLAZ_MENOR
-                Next
-                Call Refrescar
-            End If
-            If tec = 38 Then ;  //abajo
-                For Each v In seleccion
-                    If Not v.Bloqueado Then v.Y = v.Y - DESPLAZ_MENOR
-                Next
-                Call Refrescar
-            End If
-        End If
-    ElseIf Shift = 1 Then   ;  //**********************Shift + ************************
-        If tec = 9 Then Call SeleccionarAnterior              ;  //TAB
-    ElseIf Shift = 2 Then   ;  //**********************Ctrl + ************************
-        If tec = 107 Then Call AmpliarClick      ;  //+
-        If tec = 109 Then Call ReducirClick      ;  //-
-        If tec = 37 Then Call moverDerecha(DESPLAZ_MAYOR)   ;  //derecha
-        If tec = 39 Then Call moverIzquierda(DESPLAZ_MAYOR) ;  //izquierda
-        If tec = 40 Then Call moverArriba(DESPLAZ_MAYOR)    ;  //arriba
-        If tec = 38 Then Call moverAbajo(DESPLAZ_MAYOR)     ;  //abajo
-    ElseIf Shift = 3 Then       ;  //******************Shift + Ctrl*************************
-        picSal.MousePointer = vbSizeAll     ;  //indica modo Zoom + desplazamiento
-    End If
-End Sub
-
-Sub KeyUp(tec: Integer, Shift: Integer)
-;  //Procesa el evento KeyUp()
-    picSal.MousePointer = vbDefault
-    If Shift = 0 Then           ;  //****************** Teclas normales ********************
-    ElseIf Shift = 3 Then       ;  //******************Shift + Ctrl*************************
-    End If
-End Sub
 *)
+procedure TModEdicion.KeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+//Procesa el evento KeyDown()
+var
+  v: TObjGraf;
+begin
+{  If Shift = [] Then begin  //********************* Teclas normales ***********************
+      //If tec = 13 Then PropiedSeleccion ;  //Debe procesarlo el diagrama
+      If tec = VK_DELETE Then ElimSeleccion;  //DELETE
+      If tec = 9 Then Call SeleccionarSiguiente                 ;  //TAB
+      If tec = 27 Then Call DeseleccionarTodos: Call Refrescar  ;  //ESCAPE
+      If seleccion.Count = 0 Then     ;  //si no hay objetos seleccionados
+          If tec = 37 Then Call moverDerecha(DESPLAZ_MENOR)        ;  //derecha
+          If tec = 39 Then Call moverIzquierda(DESPLAZ_MENOR)      ;  //izquierda
+          If tec = 40 Then Call moverArriba(DESPLAZ_MENOR)         ;  //arriba
+          If tec = 38 Then Call moverAbajo(DESPLAZ_MENOR)          ;  //abajo
+      Else        ;  //hay seleccionados
+          If tec = 37 Then ;  //derecha
+              For Each v In seleccion
+                  If Not v.Bloqueado Then v.X = v.X - DESPLAZ_MENOR
+              Next
+              Call Refrescar
+          End If
+          If tec = 39 Then ;  //izquierda
+              For Each v In seleccion
+                  If Not v.Bloqueado Then v.X = v.X + DESPLAZ_MENOR
+              Next
+              Call Refrescar
+          End If
+          If tec = 40 Then ;  //arriba
+              For Each v In seleccion
+                  If Not v.Bloqueado Then v.Y = v.Y + DESPLAZ_MENOR
+              Next
+              Call Refrescar
+          End If
+          If tec = 38 Then ;  //abajo
+              For Each v In seleccion
+                  If Not v.Bloqueado Then v.Y = v.Y - DESPLAZ_MENOR
+              Next
+              Call Refrescar
+          End If
+      End If
+  end else If Shift = [ssShift] Then begin //**********************Shift + ************************
+      If tec = 9 Then Call SeleccionarAnterior              ;  //TAB
+  end else If Shift = [ssCtrl] Then begin  //**********************Ctrl + ************************
+      If tec = 107 Then Call AmpliarClick      ;  //+
+      If tec = 109 Then Call ReducirClick      ;  //-
+      If tec = 37 Then Call moverDerecha(DESPLAZ_MAYOR)   ;  //derecha
+      If tec = 39 Then Call moverIzquierda(DESPLAZ_MAYOR) ;  //izquierda
+      If tec = 40 Then Call moverArriba(DESPLAZ_MAYOR)    ;  //arriba
+      If tec = 38 Then Call moverAbajo(DESPLAZ_MAYOR)     ;  //abajo
+  end else If Shift = [ssShift, ssCtrl] Then  begin  //******************Shift + Ctrl*************************
+    picSal.MousePointer := vbSizeAll;  //indica modo Zoom + desplazamiento
+  end;}
+end;
+
 procedure TModEdicion.AgregarObjGrafico(og: TObjGraf; AutoPos: boolean = true);
 //Agrega un objeto grafico al editor. El objeto gráfico debe haberse creado previamente,
 //y ser de tipo TObjGraf o un descendiente. "AutoPos", permite posiciionar automáticamente
@@ -759,27 +766,10 @@ begin
     Modif := True;  //Marca documento como modificado
     obj.Deselec;  //por si acaso
     objetos.Remove(obj);
-//    Case obj.Id
-//    Case ID_SIMBOLO
-//        If obj.Seleccionado Then obj.Deselec;
-//        objetos.Remove(obj.NombreObj)  ;  //quita elemento
-//    Case ID_TEXTO
-//        If obj.Seleccionado Then Deseleccionar obj
-//        Call frm.objetos.Remove(obj.NombreObj)  ;  //quita elemento
-//    Case ID_CONECTOR
-//        Call EliminarConec(frm, obj)
-//    Case IOQ_ORDEN
-//        If obj.Seleccionado Then Deseleccionar obj
-//        Set od = obj
-//        If od.TienePadre Then od.TablaPad.DesconectarOrden
-//        Set od = Nothing
-//        objetos.Remove(obj.NombreObj)  ;  //quita elemento
-//    End;
     obj := nil;
 End;
 procedure TModEdicion.EliminarTodosObj;
 //Elimina todos los objetos gráficos existentes
-//var o: TMiObjeto;
 begin
   if objetos.Count=0 then exit;  //no hay qué eliminar
   //elimina
@@ -793,6 +783,15 @@ begin
 //    EliminarObjGrafico(o);
   PB.Cursor := CUR_DEFEC;        //define cursor
 End;
+procedure TModEdicion.ElimSeleccion;
+//Elimina la selección.
+var
+  v: TObjGraf;
+begin
+    For v In seleccion  do  //explora todos
+      EliminarObjGrafico(v);
+    Refrescar;
+end;
 //******************* Funciones de visualización **********************
 procedure TModEdicion.AmpliarClick(factor: real = FACTOR_AMPLIA_ZOOM;
                         xr: integer = 0; yr: integer = 0);
@@ -854,16 +853,6 @@ begin
     end;
 End;
 (*
-Public Function ElimSeleccion(): Long
-;  //Elimina la selección. Devuelve número de objetos eliminados.
-Dim v: TObjGraf
-    ElimSeleccion = seleccion.Count
-    For Each v In seleccion ;  //explora todos
-        Call EliminarObjGrafico(v)
-    Next
-    Call Refrescar
-End Function
-
 Public Sub moverAbajo(Optional desp: Single = DESPLAZ_MENOR) ;  //abajo
 ;  //Genera un desplazamiento en la pantalla haciendolo independiente del
 ;  //factor de ampliación actual
@@ -1049,12 +1038,6 @@ Dim tmp: String
     Call v2d.GuardarPerspectivaEn(Pfinal)   ;  //para que no se regrese
 End Sub
 
-;  //--------------- Funciones de Arrastre---------------
-Public Sub InicArrastre(dat: String)
-;  //Inicia un arrastre en el pictureBox asociado.
-    RaiseEvent InicArrastreFil(dat)
-End Sub
-
 ;  //--------------- Funciones de Búsqueda---------------
 Public Sub InicBuscar(bus: String, _
                       Optional ambito: Integer = AMB_TODO, _
@@ -1110,20 +1093,20 @@ procedure TModEdicion.ObjGraf_Select(obj: TObjGraf);
 //Si se quiere seleccionar un objeto se debe usar la forma objeto.Selec.
 begin
 //    If obj.Seleccionado Then Exit;  //Ya está seleccionado. No debe ser necesario
-    seleccion.Add(obj);      { TODO : Verificar si se puede manejar bien el programa sin usar la propiedad "NombreObj"}
+  seleccion.Add(obj);      { TODO : Verificar si se puede manejar bien el programa sin usar la propiedad "NombreObj"}
 End;
 procedure TModEdicion.ObjGraf_Unselec(obj: TObjGraf);
 //Quita un objeto gráfico de la lista "selección". Este método no debe ser llamado directamente.
 //Si se quiere quitar la seleccion a un objeto se debe usar la forma objeto.Deselec.
 begin
 //    If not obj.Seleccionado Then Exit;
-    seleccion.Remove(obj);
+  seleccion.Remove(obj);
 End;
 procedure TModEdicion.ObjGraf_SetPointer(Punt: integer);
 //procedimiento que cambia el puntero del mouse. Es usado para proporcionar la los objetos "TObjGraf"
 //la posibilidad de cambiar el puntero.
 begin
-    PB.Cursor := Punt;        //define cursor
+  PB.Cursor := Punt;        //define cursor
 end;
 
 end.
