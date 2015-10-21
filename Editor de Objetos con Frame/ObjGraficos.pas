@@ -38,12 +38,12 @@ var s: String;
 begin
   //Dibuja etiqueta
   v2d.FijaLapiz(psSolid, 1, COL_GRIS);
-  v2d.FijaTexto(clBlack, 11,'', true);
+  v2d.SetText(clBlack, 11,'', true);
   v2d.Texto(X + 2, Y -20, nombre);
   //muestra un rectángulo
   v2d.FijaLapiz(psSolid, 1, clBlack);
   v2d.FijaRelleno(TColor($D5D5D5));
-  v2d.RectangR(x, y+10, x+ancho, y+alto);
+  v2d.RectangR(x, y+10, x+width, y+height);
   Bot1.estado:= false;
   inherited;
 end;
@@ -54,7 +54,7 @@ procedure TMiObjeto.ReubicElemen;
 var x2: Single;
 begin
   inherited;
-  x2 := x + ancho;
+  x2 := x + width;
   Buttons[0].Ubicar(x2 - 24, y + 1);
 end;
 

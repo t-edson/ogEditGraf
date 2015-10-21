@@ -1,14 +1,11 @@
 unit ogMotGraf2D;
 {
-ogMotGraf2D 1.3
+ogMotGraf2D 1.4b
 ================
-Por Tito Hinostroza 15/09/2014
-* Se agrega el método DibujarIcono(), y al apropiedad ImageList, para gaurdar una
-referencia a un control ImageList, con información sobre íconos para poder dibujarlos
-on DibujarIcono().
-* Se agrega el método TextRect().
-* Se agregan los métodos DrawTrianDown() y DrawTrianUp().
-* Se crea la función Polygon().
+Por Tito Hinostroza 24/09/2014
+* Se cambia el nombre de FijaLetra(), por SetFont().
+* Se cambia el nombre de FijaTexto(), por SetText().
+* Se reordena el código.
 
 Descripción
 ===========
@@ -79,16 +76,18 @@ TMotGraf = class
     y4: Single=-10000; x5: Single=-10000; y5: Single=-10000; x6: Single=-10000;
     y6: Single=-10000);
   procedure Polygon(const Points: array of TFPoint);
-  procedure FijaLetra(Letra: string);
-  procedure FijaTexto(color: TColor; tam: single);
-  procedure FijaTexto(negrita: Boolean=False; cursiva: Boolean=False;
+  //funciones para texto
+  procedure SetFont(Letra: string);
+  procedure SetText(color: TColor; tam: single);
+  procedure SetText(negrita: Boolean=False; cursiva: Boolean=False;
     subrayado: Boolean=False);
-  procedure FijaTexto(color: TColor; tam: single; Letra: String;
+  procedure SetText(color: TColor; tam: single; Letra: String;
     negrita: Boolean=False; cursiva: Boolean=False; subrayado: Boolean=False);
   procedure Texto(x1, y1: Single; txt: String);
   procedure TextRect(x1, y1, x2, y2: Single; x0, y0: Single; const Text: string;
     const Style: TTextStyle);
   procedure TextoR(x1, y1, ancho, alto: Single; txt: String);
+  function TextWidth(const txt: string): single;  //ancho del texto
 
   procedure GuardarPerspectivaEn(var p: TPerspectiva);
   procedure LeePerspectivaDe(p: TPerspectiva);
@@ -182,21 +181,20 @@ begin
     Canvas.Brush.Style:=bsSolid;
     Canvas.Brush.Color:=colRel;
 end;
-
-procedure TMotGraf.FijaLetra(Letra: string);
+//funciones para texto
+procedure TMotGraf.SetFont(Letra: string);
 //Permite definir el tipo de letra actual
 begin
   if Letra = '' then Canvas.Font.Name:= 'MS Sans Serif';
   //'Times New Roman'
 end;
-
-procedure TMotGraf.FijaTexto(color: TColor; tam: single);
+procedure TMotGraf.SetText(color: TColor; tam: single);
 //método sencillo para cambiar propiedades del texto
 begin
    Canvas.Font.Color := color;
    Canvas.Font.Size := round(tam * Zoom);
 end;
-procedure TMotGraf.FijaTexto( negrita:Boolean = False; cursiva: Boolean = False;
+procedure TMotGraf.SetText(negrita:Boolean = False; cursiva: Boolean = False;
             subrayado: Boolean = False);
 //Establece las características completas del texto
 begin
@@ -204,7 +202,7 @@ begin
    Canvas.Font.Italic := cursiva;
    Canvas.Font.Underline := subrayado;
 End;
-procedure TMotGraf.FijaTexto(color: TColor; tam: single; //; nDegrees As Single, _
+procedure TMotGraf.SetText(color: TColor; tam: single; //; nDegrees As Single, _
             Letra: String;
             negrita:Boolean = False;
             cursiva: Boolean = False;
@@ -218,86 +216,8 @@ begin
    Canvas.Font.Italic := cursiva;
    Canvas.Font.Underline := subrayado;
 End;
-(*
-Sub FijaTextoF(l As CFLetra)
-//Establece las características de texto, por medio de una clase "CFLetra"
-Dim grosor As Long
-Dim nHeight As Long
-    SetTextColor hdc, l.col
-    If hFont <> 0 Then DeleteObject hFont
-    If l.negrita Then grosor = FW_BOLD Else grosor = FW_NORMAL
-    nHeight = -MulDiv(l.tam, GetDeviceCaps(hdc, LOGPIXELSY) * mZoom, 72)
-    If nHeight = 0 Then nHeight = -1        //limita tamaño a un mínimo
-    hFont = CreateFont(nHeight, _
-        0, l.inclinacion * 10, 0, grosor, l.cursiva, l.subrayado, False, DEFAULT_CHARSET, _
-        OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH, l.tipo)
-    SelectObject hdc, hFont                 //queda pendiente eliminarlo
-End;
-
-//Public Sub APIMoveToEx(x As Single, y As Single)
-////Equivalente de la API MoveToEx
-//Dim x1c As Single, y1c As Single  //coordenadas corregidas
-//    x1c = (x - x_cam) * mZoom + x_des
-//    y1c = (y - y_cam) * mZoom + y_des
-//    MoveToEx HDC, x1c, y1c, &NULL
-//End;
-*)
-procedure TMotGraf.Linea(x1, y1, x2, y2: Single);
-//Dibuja una línea
-begin
-   Canvas.Line(XPant(x1), YPant(y1), XPant(x2), YPant(y2));
-End;
-procedure TMotGraf.Linea0(x1, y1, x2, y2: Integer);
-//Dibuja una línea , sin transformación
-begin
-   Canvas.Line(x1, y1, x2, y2);
-End;
-(*
-Public Sub Circulo(x1 As Single, y1 As Single, radio As Single)
-//Dibuja un círculo relleno
-Dim x1c As Single, y1c As Single  //coordenadas corregidas
-Dim rc As Single
-    x1c = (x1 - x_cam) * mZoom + x_des
-    y1c = (y1 - y_cam) * mZoom + y_des
-    rc = radio * mZoom
-    Ellipse hdc, (x1c - rc), (y1c - rc), (x1c + rc), (y1c + rc)
-End;
-
-Public Sub circulo0(x1 As Single, y1 As Single, radio As Single)
-//Dibuja un círculo relleno, "sin transformación"
-Dim x1c As Single, y1c As Single  //coordenadas corregidas
-Dim rc As Single
-    x1c = x1
-    y1c = y1
-    rc = radio
-    Ellipse hdc, (x1c - rc), (y1c - rc), (x1c + rc), (y1c + rc)
-End;
-
-Public Sub Arco(x1 As Single, y1 As Single, radio As Single, _
-                AngIni As Single, Ang As Single)
-Dim x1c As Single, y1c As Single  //coordenadas corregidas
-Dim rc As Single
-Dim PT As POINTAPI
-    x1c = (x1 - x_cam) * mZoom + x_des
-    y1c = (y1 - y_cam) * mZoom + y_des
-    rc = radio * mZoom
-    BeginPath hdc
-    MoveToEx hdc, x1c, y1c, ret_pt
-    AngleArc hdc, x1c, y1c, rc, AngIni, Ang
-    LineTo hdc, x1c, y1c
-    EndPath hdc
-    StrokeAndFillPath hdc
-    //arc hdc,  (x1c - rc), (y1c - rc), (x1c + rc), (y1c + rc),
-End;
-
-Public Sub FijaAlineamiento(Optional alineac As Long = TA_LEFT)
-    SetTextAlign hdc, alineac
-End;
-*)
 procedure TMotGraf.Texto(x1, y1: Single; txt: String);
 //Escribe un texto
-var
-  tmp: Integer;
 begin
    Canvas.Brush.Style := bsClear;  //Fondo transparente
 //   tmp := Canvas.Font.Size;  //guarda tamaño actual
@@ -310,7 +230,6 @@ procedure TMotGraf.TextRect(x1,y1,x2,y2: Single; x0, y0: Single; const Text: str
                        const Style: TTextStyle);
 //Escribe un texto
 var
-  tmp: Integer;
   Arect: TRect;
 begin
    Canvas.Brush.Style := bsClear;  //Fondo transparente
@@ -320,7 +239,7 @@ begin
    ARect.Top    := YPant(y1);
    ARect.Right  := XPant(x2);
    ARect.Bottom := YPant(y2);
-   Canvas.TextRect(Arect, XPant(x0), YPant(y0), Text);
+   Canvas.TextRect(Arect, XPant(x0), YPant(y0), Text, Style);
 //   Canvas.Font.Size := tmp;  //restaura
    Canvas.Brush.Style := bsSolid;  //devuelve estilo de fondo
 End;
@@ -341,8 +260,31 @@ begin
    Canvas.TextRect(r,r.Left,r.Top,txt);
    Canvas.Brush.Style := bsSolid;  //devuelve estilo de fondo
 End;
+function TMotGraf.TextWidth(const txt: string): single;
+begin
+  Result := Canvas.TextWidth(txt) * Zoom;
+end;
 
 (*
+Sub FijaTextoF(l As CFLetra)
+//Establece las características de texto, por medio de una clase "CFLetra"
+Dim grosor As Long
+Dim nHeight As Long
+    SetTextColor hdc, l.col
+    If hFont <> 0 Then DeleteObject hFont
+    If l.negrita Then grosor = FW_BOLD Else grosor = FW_NORMAL
+    nHeight = -MulDiv(l.tam, GetDeviceCaps(hdc, LOGPIXELSY) * mZoom, 72)
+    If nHeight = 0 Then nHeight = -1        //limita tamaño a un mínimo
+    hFont = CreateFont(nHeight, _
+        0, l.inclinacion * 10, 0, grosor, l.cursiva, l.subrayado, False, DEFAULT_CHARSET, _
+        OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, DEFAULT_PITCH, l.tipo)
+    SelectObject hdc, hFont                 //queda pendiente eliminarlo
+End;
+
+Public Sub FijaAlineamiento(Optional alineac As Long = TA_LEFT)
+    SetTextAlign hdc, alineac
+End;
+
 Public Sub ftexto(ByVal x1 As Single, ByVal y1 As Single, _
                  txt As String, Optional alineac As Long = MVW_CEN_CEN, _
                  Optional ByVal Ang As Single = 0)
@@ -466,6 +408,57 @@ Dim rc As RECT
     DrawText hdc, cad, Len(cad), rc, DT_WORDBREAK + DT_EDITCONTROL //+ DT_END_ELLIPSIS
 End;
 *)
+procedure TMotGraf.Linea(x1, y1, x2, y2: Single);
+//Dibuja una línea
+begin
+   Canvas.Line(XPant(x1), YPant(y1), XPant(x2), YPant(y2));
+End;
+procedure TMotGraf.Linea0(x1, y1, x2, y2: Integer);
+//Dibuja una línea , sin transformación
+begin
+   Canvas.Line(x1, y1, x2, y2);
+End;
+
+(*
+Public Sub Circulo(x1 As Single, y1 As Single, radio As Single)
+//Dibuja un círculo relleno
+Dim x1c As Single, y1c As Single  //coordenadas corregidas
+Dim rc As Single
+    x1c = (x1 - x_cam) * mZoom + x_des
+    y1c = (y1 - y_cam) * mZoom + y_des
+    rc = radio * mZoom
+    Ellipse hdc, (x1c - rc), (y1c - rc), (x1c + rc), (y1c + rc)
+End;
+
+Public Sub circulo0(x1 As Single, y1 As Single, radio As Single)
+//Dibuja un círculo relleno, "sin transformación"
+Dim x1c As Single, y1c As Single  //coordenadas corregidas
+Dim rc As Single
+    x1c = x1
+    y1c = y1
+    rc = radio
+    Ellipse hdc, (x1c - rc), (y1c - rc), (x1c + rc), (y1c + rc)
+End;
+
+Public Sub Arco(x1 As Single, y1 As Single, radio As Single, _
+                AngIni As Single, Ang As Single)
+Dim x1c As Single, y1c As Single  //coordenadas corregidas
+Dim rc As Single
+Dim PT As POINTAPI
+    x1c = (x1 - x_cam) * mZoom + x_des
+    y1c = (y1 - y_cam) * mZoom + y_des
+    rc = radio * mZoom
+    BeginPath hdc
+    MoveToEx hdc, x1c, y1c, ret_pt
+    AngleArc hdc, x1c, y1c, rc, AngIni, Ang
+    LineTo hdc, x1c, y1c
+    EndPath hdc
+    StrokeAndFillPath hdc
+    //arc hdc,  (x1c - rc), (y1c - rc), (x1c + rc), (y1c + rc),
+End;
+
+*)
+
 procedure TMotGraf.rectang(x1, y1, x2, y2: Single);
 //Dibuja un rectángulo
 begin

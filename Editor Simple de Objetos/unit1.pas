@@ -31,11 +31,11 @@ implementation
 
 procedure TMiObjeto.Dibujar();
 begin
-  v2d.FijaTexto(clBlack, 11,'', true);
+  v2d.SetText(clBlack, 11,'', true);
   v2d.Texto(X + 2, Y -20, 'Objeto');
   v2d.FijaLapiz(psSolid, 1, clBlack);
   v2d.FijaRelleno(TColor($D5D5D5));
-  v2d.RectangR(x, y, x+ancho, y+alto);
+  v2d.RectangR(x, y, x+width, y+height);
   inherited;
 end;
 

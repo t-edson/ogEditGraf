@@ -1,13 +1,7 @@
-{Unidad ogMotEdicion 1.3
+{Unidad ogMotEdicion 1.4b
 =========================
-Por Tito Hinostroza 16/09/2014
-* Se modifica método MouseUp(), para que verifique la bandera "Erased", de los objetos
-gráficos y aliminarlos de ser el caso.
-* Se cambia de nombre a diversas rutinas.
-* Se agrega el evento para procesar la rueda del ratón.
-* Se crean los métodos ElimSeleccion(), PrimerVisible(), UltimoVisible(),
-SiguienteVisible() , AnteriorVisible() y NumeroVisibles().
-* Se crea el método KeyDown() para procesar teclado.
+Por Tito Hinostroza 24/09/2014
+*
 
 Descripción
 ============
@@ -45,6 +39,7 @@ type
   TlistObjGraf = specialize TFPGObjectList<TObjGraf>;   //Lista de "TObjTabla"
 
   TOnClickDer = procedure(x,y:integer) of object;
+  TOnObjetosElim = procedure of object;
 
   { TModEdicion }
 
@@ -78,7 +73,7 @@ type
     PB: TPaintBox;    //Control de Salida
     v2d: TMotGraf;    //salida gráfica
     OnClickDer: TOnClickDer;
-
+    OnObjetosElim: TOnObjetosElim;   //cuando se elminan uno o más objetos
     procedure AgregarObjGrafico(og: TObjGraf; AutoPos: boolean=true);
     procedure EliminarTodosObj;
     procedure ElimSeleccion;
@@ -178,7 +173,7 @@ begin
       begin
         If objetos.Count > 100 Then  begin  //Necesita actualizar porque la selección múltiple es diferente
             For o In objetos do
-                If enRecSeleccion(o.XCent, o.YCent) And Not o.Seleccionado Then o.Selec;
+                If enRecSeleccion(o.XCent, o.YCent) And Not o.Selected Then o.Selec;
         End;
         BorraRecSeleccion;                 //borra marca
         EstPuntero := EP_NORMAL;
@@ -249,7 +244,7 @@ begin
             InicRecSeleccion(x_pulso, y_pulso);
         end else begin //Selecciona a uno, pueden haber otros seleccionados
 //msgbox('Lo selecciona');
-            If ogs.Seleccionado Then  begin  //Se marcó sobre un seleccionado
+            If ogs.Selected Then  begin  //Se marcó sobre un seleccionado
  //                If ogs.TieneBoleta Then ;  //Verifica, No se pueden seleccionar múltiples boletas
  //                    If ogs.Boleta.LoSelecciona(xr, yr) Then Call DeseleccionarTodos
  //                End If
@@ -276,7 +271,7 @@ begin
             EstPuntero := EP_SELECMULT;  //inicia seleccion multiple
             InicRecSeleccion(x_pulso, y_pulso);
         end Else begin     //selecciona a uno, pueden haber otros seleccionados
-            If ogs.Seleccionado Then begin //Se marcó sobre un seleccionado
+            If ogs.Selected Then begin //Se marcó sobre un seleccionado
                 //No se quita la selección porque puede que se quiera mover
                 //varios objetos seleccionados. Si no se mueve, se quitará la
                 //selección en MouseUp
@@ -313,11 +308,11 @@ begin
         //verifica los que se encuentran seleccionados
         If objetos.Count < 100 Then begin//sólo anima para pocos objetos
             For s In objetos do begin
-                If enRecSeleccion(s.XCent, s.YCent) And Not s.Seleccionado Then begin
+                If enRecSeleccion(s.XCent, s.YCent) And Not s.Selected Then begin
                   s.Selec;
                   si_refrescar := True;  //para indicar que luego debe refrescar pantalla
                 End;
-                If Not enRecSeleccion(s.XCent, s.YCent) And s.Seleccionado Then begin
+                If Not enRecSeleccion(s.XCent, s.YCent) And s.Selected Then begin
                   s.Deselec;
                   si_refrescar := True;  //para indicar que luego debe refrescar pantalla
                 End;
@@ -363,19 +358,13 @@ begin
     //debe desplazar la pantalla
   end else begin
     //lo selecciona, pero debe ver si está seleccionado
-    if ogs.Seleccionado then begin
+    if ogs.Selected then begin
        ogs.MouseWheel(Sender, Shift, WheelDelta, MousePos, Handled);
     end else begin
 
     end;
   end;
 end;
-
-
-
-
-
-
 
 constructor TModEdicion.Create(PB0: TPaintBox);
 //Metodo de inicialización de la clase Editor. Debe indicarse el
@@ -392,7 +381,7 @@ begin
   //inicia motor
   ColorRelleno := clWhite  ;  //Color por defecto
   v2d := TMotGraf.IniMotGraf(PB.Canvas);   //Inicia motor gráfico
-  v2d.FijaLetra('MS Sans Serif');   //define tipo de letra
+  v2d.SetFont('MS Sans Serif');   //define tipo de letra
   objetos := TlistObjGraf.Create(TRUE);   //crea lista con "posesión" de objetos
   seleccion := TlistObjGraf.Create(FALSE);   //crea lista sin posesión", porque la
                                         //administración la hará "objetos".
@@ -488,7 +477,7 @@ procedure TModEdicion.VerificarParaMover(xp, yp: Integer);
 var s: TObjGraf;
 begin
     For s In seleccion  do begin  //da prioridad a los elementos seleccionados
-        s.InicMover(xp, yp);      //llama al evento inic_mover para cada objeto
+        s.StartMove(xp, yp);      //llama al evento inic_mover para cada objeto
         If s.Proceso Then  begin  //este objeto proceso el evento
             CapturoEvento := s;
             if s.Dimensionando then EstPuntero := EP_DIMEN_OBJ else EstPuntero := EP_NORMAL;
@@ -497,7 +486,7 @@ begin
         End;
     end;
     For s In objetos do begin
-        s.InicMover(xp, yp);    //llama al evento inic_mover para cada objeto
+        s.StartMove(xp, yp);    //llama al evento inic_mover para cada objeto
         If s.Proceso Then begin   //este objeto proceso el evento
             CapturoEvento := s;
             if s.Dimensionando then EstPuntero := EP_DIMEN_OBJ else EstPuntero := EP_NORMAL;
@@ -763,10 +752,11 @@ begin
 end;
 procedure TModEdicion.EliminarObjGrafico(obj: TObjGraf);  //elimina un objeto grafico
 begin
-    Modif := True;  //Marca documento como modificado
-    obj.Deselec;  //por si acaso
-    objetos.Remove(obj);
-    obj := nil;
+  Modif := True;  //Marca documento como modificado
+  obj.Deselec;  //por si acaso
+  objetos.Remove(obj);
+  obj := nil;
+  if OnObjetosElim<>nil then OnObjetosElim;
 End;
 procedure TModEdicion.EliminarTodosObj;
 //Elimina todos los objetos gráficos existentes
@@ -782,15 +772,21 @@ begin
   Modif := true;    //indica que se modificó
 //    EliminarObjGrafico(o);
   PB.Cursor := CUR_DEFEC;        //define cursor
+  if OnObjetosElim<>nil then OnObjetosElim;
 End;
 procedure TModEdicion.ElimSeleccion;
 //Elimina la selección.
 var
   v: TObjGraf;
+  tmp: TOnObjetosElim;
 begin
-    For v In seleccion  do  //explora todos
-      EliminarObjGrafico(v);
-    Refrescar;
+  tmp := OnObjetosElim;  //guarda evento
+  OnObjetosElim := nil; //para evitar llamar muchas veces
+  For v In seleccion  do  //explora todos
+    EliminarObjGrafico(v);
+  Refrescar;
+  OnObjetosElim := tmp;  //restaura
+  if OnObjetosElim<>nil then OnObjetosElim;  //llama evento
 end;
 //******************* Funciones de visualización **********************
 procedure TModEdicion.AmpliarClick(factor: real = FACTOR_AMPLIA_ZOOM;
@@ -829,7 +825,7 @@ procedure TModEdicion.DeseleccionarTodos();
 var s: TObjGraf;
 begin
   For s In objetos do //no se explora "seleccion" porque se modifica con "s.Deselec"
-    if s.Seleccionado then s.Deselec;
+    if s.Selected then s.Deselec;
 //  seleccion.Clear; //No se puede limpiar simplemente la lista. Se debe llamar a s.Deselec
 End;
 function  TModEdicion.Seleccionado: TObjGraf;
