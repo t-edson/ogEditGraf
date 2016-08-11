@@ -1,11 +1,8 @@
 unit ogMotGraf2D;
 {
-ogMotGraf2D 1.4b
-================
+ogMotGraf2D
+===========
 Por Tito Hinostroza 24/09/2014
-* Se cambia el nombre de FijaLetra(), por SetFont().
-* Se cambia el nombre de FijaTexto(), por SetText().
-* Se reordena el código.
 
 Descripción
 ===========
@@ -789,6 +786,7 @@ procedure TMotGraf.DibujarImagen(im: TGraphic; x1, y1, dx, dy: Single);
 //
 var r:TRect;
 begin
+   if im = nil then exit;
     r.Left:=XPant(x1);
     r.Top :=YPant(y1);
     r.Right :=r.Left + round(dx * Zoom);
@@ -799,17 +797,19 @@ procedure TMotGraf.DibujarImagenN(im: TGraphic; x1, y1: Single);
 //Igual a DibujarImagen() pero no hace escalamiento de la imagen, solo por el Zoom.
 var r:TRect;
 begin
+  if im = nil then exit;
 //   Canvas.Draw(XPant(x1), YPant(y1),im);
-   r.Left:=XPant(x1);
-   r.Top :=YPant(y1);
-   r.Right :=r.Left + round(im.Width * Zoom); //se probó quitándole 1, pero así cuadra mejor
-   r.Bottom:=r.Top + round(im.Height * Zoom);
-   Canvas.StretchDraw(r,im);
+  r.Left:=XPant(x1);
+  r.Top :=YPant(y1);
+  r.Right :=r.Left + round(im.Width * Zoom); //se probó quitándole 1, pero así cuadra mejor
+  r.Bottom:=r.Top + round(im.Height * Zoom);
+  Canvas.StretchDraw(r,im);
 End;
 procedure TMotGraf.DibujarImagen0(im: TGraphic; x1, y1, dx, dy: Integer);
 //Dibuja imagen sin transformación
 var r:TRect;
 begin
+  if im = nil then exit;
 //    Canvas.Draw(x1, y1,im);
    r.Left:=x1;
    r.Top :=y1;

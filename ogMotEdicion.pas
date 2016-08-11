@@ -1,7 +1,6 @@
-{Unidad ogMotEdicion 1.4b
-=========================
+{Unidad ogMotEdicion
+====================
 Por Tito Hinostroza 24/09/2014
-*
 
 Descripción
 ============
@@ -26,7 +25,7 @@ const
   ZOOM_MIN_CONSULT = 0.1;  //Define el zoom mínimo que se permite en un diagrama
 
   FACTOR_AMPLIA_ZOOM = 1.15;  //Factor de ampliación del zoom
-
+  DESPLAZ_MENOR = 10;
 type
   EstadosPuntero = (
       EP_NORMAL,      //No se está realizando ninguna operación
@@ -59,25 +58,25 @@ type
     seleccion: TlistObjGraf;
 //  Public tablas: New Collection
 //  Public botones: New Collection    ;  //Botones
-  //------------------ Eventos ------------------
-//  Public Event ClickDerDiag()         ;  //Evento cuando se pulsa Click Derecho en el diagrama
-  //Public Event ObjSelec(o: og)      ;  //Evento cuando se selecciona un objeto
-//  Public Event ClickDerSel()          ;  //Evento cuando se pulsa Click Derecho en seleción
-//  Public Event DblClickObj(o: TObjGraf)   ;  //Doble Click en objeto
   //-----------------------------------------------------------
     Modif: Boolean;  //bandera para indicar Diagrama Modificado
 //  Public MostrarEtiquetas: Boolean     ;  //bandera que indica si se deben mostrar las etiquetas de los símbolos
 
     ColorRelleno: TGraphicsColor;
 
-    PB: TPaintBox;    //Control de Salida
-    v2d: TMotGraf;    //salida gráfica
+    PB   : TPaintBox;    //Control de Salida
+    v2d  : TMotGraf;    //salida gráfica
     OnClickDer: TOnClickDer;
     OnObjetosElim: TOnObjetosElim;   //cuando se elminan uno o más objetos
+    OnMouseUp: TMouseEvent;          //cuando se suelta el botón
+    OnMouseDown: TMouseEvent;
+    OnMouseMove: TMouseMoveEvent;
+    OnDblClick: TNotifyEvent;
     procedure AgregarObjGrafico(og: TObjGraf; AutoPos: boolean=true);
     procedure EliminarTodosObj;
     procedure ElimSeleccion;
     procedure EliminarObjGrafico(obj: TObjGraf);
+    procedure PBDblClick(Sender: TObject);
     function Seleccionado: TObjGraf;
     procedure KeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     function ObjPorNombre(nom: string): TObjGraf;
@@ -85,20 +84,19 @@ type
     procedure SeleccionarTodos;
     procedure DeseleccionarTodos();
   private
-    x1Sel        : integer;
-    y1Sel        : integer;
-    x2Sel        : integer;
-    y2Sel        : integer;
-    x1Sel_a: integer;
-    y1Sel_a: integer;
-    x2Sel_a: integer;
-    y2Sel_a: integer;
+    x1Sel    : integer;
+    y1Sel    : integer;
+    x2Sel    : integer;
+    y2Sel    : integer;
+    x1Sel_a  : integer;
+    y1Sel_a  : integer;
+    x2Sel_a  : integer;
+    y2Sel_a  : integer;
     //coordenadas del raton
     x_pulso: integer;
     y_pulso: integer;
     //perspectivas
     PFinal: TPerspectiva;  //almacena la perspectiva a la que se quiere llegar
-    PAnter: TPerspectiva;  //perspectiva temporal
     (*
       ;  //Variables para el control de la búsqueda
       Private CadBus: String    ;  //Cadena de búsqueda
@@ -114,19 +112,25 @@ type
     procedure AmpliarClick(factor: real=FACTOR_AMPLIA_ZOOM; xr: integer=0;
       yr: integer=0);
     function AnteriorVisible(c: TObjGraf): TObjGraf;
-    procedure BorraRecSeleccion;
+    procedure Desplazar(dx, dy: integer);
     procedure DibujRecSeleccion;
 
     function enRecSeleccion(X, Y: Single): Boolean;
     procedure InicMover;
     procedure InicRecSeleccion(X, Y: Integer);
+    procedure moverAbajo(desp: Double=DESPLAZ_MENOR);
+    procedure moverArriba(desp: Double=DESPLAZ_MENOR);
+    procedure moverDerecha(desp: Double=DESPLAZ_MENOR);
     procedure MoverDesp(dx, dy: integer);
+    procedure moverIzquierda(desp: Double=DESPLAZ_MENOR);
     function NumeroVisibles: Integer;
     function PrimerVisible: TObjGraf;
     function RecSeleccionNulo: Boolean;
     procedure ReducirClick(factor: Real=FACTOR_AMPLIA_ZOOM; x_zoom: Real=0;
       y_zoom: Real=0);
     function SeleccionaAlguno(xp, yp: Integer): TObjGraf;
+    procedure SeleccionarAnterior;
+    procedure SeleccionarSiguiente;
     function SiguienteVisible(c: TObjGraf): TObjGraf;
     function UltimoVisible: TObjGraf;
     function VerificarMovimientoRaton(X, Y: Integer): TObjGraf;
@@ -153,11 +157,11 @@ begin
       begin
         If Button = mbLeft Then AmpliarClick(1.2, xp, yp) ;  //<Shift> + <Ctrl> + click izquierdo
         If Button = mbRight Then ReducirClick(1.2, xp, yp) ;  //<Shift> + <Ctrl> + click derecho
-//        EstPuntero = EP_NORMAL   //Legalmente debería ponerse a normal. Pero si se
-                                  //hace, es posible que un click consecutivo muy
-                                  //rápido, no dispare el evento MouseDown (dispara
-                                  //el DblClick en su lugar), y se desactivaría el
-                                  //modo ZOOM lo que es molesto.
+//      EstPuntero = EP_NORMAL   //Legalmente debería ponerse a normal. Pero si se
+                                 //hace, es posible que un click consecutivo muy
+                                 //rápido, no dispare el evento MouseDown (dispara
+                                 //el DblClick en su lugar), y se desactivaría el
+                                 //modo ZOOM lo que es molesto.
       end;
     EP_DESP_PANT:     //------ Desplazamiento de Pantalla ------
         EstPuntero := EP_NORMAL;
@@ -171,11 +175,10 @@ begin
       end;
     EP_SELECMULT :  //------ En selección múltiple, Botón izquierdo o derecho
       begin
-        If objetos.Count > 100 Then  begin  //Necesita actualizar porque la selección múltiple es diferente
-            For o In objetos do
-                If enRecSeleccion(o.XCent, o.YCent) And Not o.Selected Then o.Selec;
-        End;
-        BorraRecSeleccion;                 //borra marca
+        if objetos.Count > 100 Then begin  //Necesita actualizar porque la selección múltiple es diferente
+          for o in objetos do
+            if enRecSeleccion(o.XCent, o.YCent) And Not o.Selected Then o.Selec;
+        end;
         EstPuntero := EP_NORMAL;
       end;
     EP_NORMAL:  //------ En modo normal
@@ -220,51 +223,47 @@ begin
     End;
     if Button = mbRight then
       if OnClickDer<> nil then OnClickDer(xp,yp);  //evento
+    if OnMouseUp<>nil then OnMouseUp(Sender, Button, Shift, xp, yp);
 End;
 procedure TModEdicion.MouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
-var ogs: TObjGraf;  //objeto seleccionado
+var
+  ogs: TObjGraf;  //objeto seleccionado
 begin
+    if OnMouseDown<>nil then OnMouseDown(Sender, Button, Shift, Xp, Yp);
     x_pulso := xp;
     y_pulso := yp;
     InicMover;   //por si acaso, para iniciar movimiento
-    If Shift >= [ssCtrl, ssShift]  Then begin   //Contiene Shift+Ctrl
+    if Shift >= [ssCtrl, ssShift]  Then begin   //Contiene Shift+Ctrl
         //Inicia estado de ZOOM. Puede convertirse en EP_DESP_PANT
         //si luego se genera el evento Move()
         EstPuntero := EP_RAT_ZOOM;
         Exit;  //Ya no se necesita procesar
-    End;
+    end;
     ogs := SeleccionaAlguno(xp, yp);  //verifica si selecciona a un objeto
-    If Button = mbRight Then
+    if Button = mbRight then
       begin  //pulso derecho-------------------
-        If ogs = NIL Then begin  //Ninguno seleccionado
+        if ogs = nil Then begin  //Ninguno seleccionado
             DeseleccionarTodos;
             Refrescar;
             EstPuntero := EP_SELECMULT;  //inicia seleccion multiple
             InicRecSeleccion(x_pulso, y_pulso);
         end else begin //Selecciona a uno, pueden haber otros seleccionados
 //msgbox('Lo selecciona');
-            If ogs.Selected Then  begin  //Se marcó sobre un seleccionado
- //                If ogs.TieneBoleta Then ;  //Verifica, No se pueden seleccionar múltiples boletas
- //                    If ogs.Boleta.LoSelecciona(xr, yr) Then Call DeseleccionarTodos
- //                End If
+            if ogs.Selected Then  begin  //Se marcó sobre un seleccionado
+//                if Shift = [] Then DeseleccionarTodos;
                 ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
-
-                Exit;
-            End;
-            //Se selecciona a uno que no tenía selección
-            If Shift = []  Then  begin
-                DeseleccionarTodos;
+                exit;
             end;
- //            If ogs.TieneBoleta Then ;  //Verifica, No se pueden seleccionar múltiples boletas
- //                If ogs.Boleta.LoSelecciona(xr, yr) Then Call DeseleccionarTodos
- //            End If
+            //Se selecciona a uno que no tenía selección
+            if Shift = [ssRight] Then  //Sin Control ni Shift
+              DeseleccionarTodos;
             ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
             Refrescar;
              //ParaMover = True       ;  //listo para mover
-        End;
+        end;
       end
-    Else If Button = mbLeft Then begin   //pulso izquierdo-----------------
+    else If Button = mbLeft Then begin   //pulso izquierdo-----------------
         If ogs = NIL Then  begin  //No selecciona a ninguno
             DeseleccionarTodos;
             Refrescar;
@@ -290,63 +289,68 @@ begin
 End;
 procedure TModEdicion.MouseMove(Sender: TObject; Shift: TShiftState;
   X,  Y: Integer);
-var s: TObjGraf;
-    si_refrescar: Boolean;
+var
+  s: TObjGraf;
 begin
-    If Shift = [ssCtrl, ssShift, ssRight] Then  //<Shift>+<Ctrl> + <Botón derecho>
-       begin
-        EstPuntero := EP_DESP_PANT;
-        MoverDesp(x_pulso - X, y_pulso - Y);
-        Refrescar;
-        Exit;
-       End;
-    If ParaMover = True Then VerificarParaMover(X, Y);
-    If EstPuntero = EP_SELECMULT Then begin  //modo seleccionando multiples formas
-        x2Sel := X;
-        y2Sel := Y;
-        si_refrescar := False;
-        //verifica los que se encuentran seleccionados
-        If objetos.Count < 100 Then begin//sólo anima para pocos objetos
-            For s In objetos do begin
-                If enRecSeleccion(s.XCent, s.YCent) And Not s.Selected Then begin
-                  s.Selec;
-                  si_refrescar := True;  //para indicar que luego debe refrescar pantalla
-                End;
-                If Not enRecSeleccion(s.XCent, s.YCent) And s.Selected Then begin
-                  s.Deselec;
-                  si_refrescar := True;  //para indicar que luego debe refrescar pantalla
-                End;
+  if OnMouseMove<>nil then OnMouseMove(Sender, Shift, X, Y);
+  If Shift = [ssCtrl, ssShift, ssRight] Then  //<Shift>+<Ctrl> + <Botón derecho>
+     begin
+      EstPuntero := EP_DESP_PANT;
+      MoverDesp(x_pulso - X, y_pulso - Y);
+      Refrescar;
+      Exit;
+     End;
+  If ParaMover = True Then VerificarParaMover(X, Y);
+  If EstPuntero = EP_SELECMULT Then begin  //modo seleccionando multiples formas
+      x2Sel := X;
+      y2Sel := Y;
+      //verifica los que se encuentran seleccionados
+      if objetos.Count < 100 Then begin//sólo anima para pocos objetos
+          for s In objetos do begin
+            if s.SelLocked then continue;
+            if enRecSeleccion(s.XCent, s.YCent) And Not s.Selected Then begin
+              s.Selec;
+            End;
+            if Not enRecSeleccion(s.XCent, s.YCent) And s.Selected Then begin
+              s.Deselec;
             end;
-        End;
-        If si_refrescar Then   //redibuja para mostrar elementos seleccionados, cuidando la marca de seleccion
-            Refrescar
-        Else begin
-            BorraRecSeleccion;
-            DibujRecSeleccion;
-        End;
-    end Else If EstPuntero = EP_MOV_OBJS Then begin  //mueve la selección
+          end;
+      End;
+      Refrescar
+  end Else If EstPuntero = EP_MOV_OBJS Then begin  //mueve la selección
 //        If perfil = PER_OPER Then Exit;  //No permite mover
-        Modif := True;
-        for s in seleccion do
-            s.Mover(x,y, seleccion.Count);
-        Refrescar;
-    end Else If EstPuntero = EP_DIMEN_OBJ Then begin
-        //se está dimensionando un objeto
-        CapturoEvento.Mover(X, Y, seleccion.Count);
-        Refrescar;
-    end Else
-        If CapturoEvento <> NIL Then begin
-           CapturoEvento.Mover(X, Y, seleccion.Count);
-           Refrescar;
-        end Else begin  //Movimiento simple
-            s := VerificarMovimientoRaton(X, Y);
-            if s <> NIL then s.MouseMove(Sender, Shift, X, Y);  //pasa el evento
-        end;
-End;
+      Modif := True;
+      for s in seleccion do
+          s.Mover(x,y, seleccion.Count);
+      Refrescar;
+  end Else If EstPuntero = EP_DIMEN_OBJ Then begin
+      //se está dimensionando un objeto
+      CapturoEvento.Mover(X, Y, seleccion.Count);
+      Refrescar;
+  end Else
+      If CapturoEvento <> NIL Then begin
+         CapturoEvento.Mover(X, Y, seleccion.Count);
+         Refrescar;
+      end Else begin  //Movimiento simple
+          s := VerificarMovimientoRaton(X, Y);
+          if s <> NIL then s.MouseMove(Sender, Shift, X, Y);  //pasa el evento
+      end;
+end;
 
 procedure TModEdicion.Paint(Sender: TObject);
+var
+  o:TObjGraf;
 begin
-  Refrescar;
+//  If s = NIL Then
+    PB.canvas.Brush.Color := clWhite; //rgb(255,255,255);
+    PB.canvas.FillRect(PB.ClientRect); //fondo
+    If EstPuntero = EP_SELECMULT Then DibujRecSeleccion;
+      //Dibuja objetos
+      for o In objetos do
+        o.Dibujar;
+//  Else
+//      s.Dibujar
+//  End If
 end;
 procedure TModEdicion.PBMouseWheel(Sender: TObject; Shift: TShiftState;
   WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
@@ -376,6 +380,7 @@ begin
   PB.OnMouseDown:=@MouseDown;
   PB.OnMouseMove:=@MouseMove;
   PB.OnMouseWheel:=@PBMouseWheel;
+  PB.OnDblClick:=@PBDblClick;
   PB.OnPaint:=@Paint;
 
   //inicia motor
@@ -406,23 +411,8 @@ begin
   inherited;     //llama al destructor
 end;
 procedure TModEdicion.Refrescar();  //   Optional s: TObjGraf = Nothing
-var o:TObjGraf;
 begin
-  If EstPuntero = EP_SELECMULT Then BorraRecSeleccion;
-//  If s = NIL Then
-
-    PB.canvas.Brush.Color := clWhite; //rgb(255,255,255);
-    PB.canvas.FillRect(PB.ClientRect); //fondo
-      //Dibuja objetos
-      For o In objetos do
-          o.Dibujar;
-
-//  Else
-//      s.Dibujar
-//  End If
-  If EstPuntero = EP_SELECMULT Then DibujRecSeleccion;
-//pb.Canvas.TextOut(0,0,'x_cam=' + FloatToStr(v2d.x_cam) + '  ');
-//pb.Canvas.TextOut(0,15,'x_des=' + FloatToStr(v2d.x_des) + '  ');
+  PB.Invalidate;
 end;
 procedure TModEdicion.InicMover;
 //Procedimiento que inicia un desplazamiento de la pantalla. Se debe llamar cada vez que se puede
@@ -447,15 +437,15 @@ function TModEdicion.SeleccionaAlguno(xp, yp: Integer): TObjGraf;
 //Rutina principal para determinar la selección de objetos. Si (xp,yp)
 //selecciona a algún objeto, devuelve la referencia, sino devuelve "NIL"
 var
-i: Integer;
-s: TObjGraf;
+  i: Integer;
+  s: TObjGraf;
 begin
   //Verifica primero entre los que están seleccionados
   Result := NIL; //valor por defecto
   //Explora objetos priorizando los que están encima
   For i := seleccion.Count-1 downTo 0 do begin
     s := seleccion[i];
-    If s.LoSelecciona(xp, yp) Then begin
+    If not s.SelLocked and s.LoSelecciona(xp, yp) Then begin
         Result:= s;
         Exit;
     End;
@@ -463,43 +453,45 @@ begin
   //Explora objetos priorizando los que están encima
   For i := objetos.Count-1 downTo 0 do begin
     s := objetos[i];
-    If s.LoSelecciona(xp, yp) Then begin
+    If not s.SelLocked and s.LoSelecciona(xp, yp) Then begin
         Result := s;
         Exit;
     End;
   end;
 End;
 procedure TModEdicion.VerificarParaMover(xp, yp: Integer);
-//Si se empieza el movimiento, selecciona primero algun elemento que
-//pudiera estar debajo del puntero y actualiza "EstPuntero".
-//Solo se debe ejecutar una vez al inicio del movimiento, para ello se
-//usa la bandera ParaMover, que debe ponerse a FALSE aquí.
+{Si se empieza el movimiento, selecciona primero algun elemento que
+pudiera estar debajo del puntero y actualiza "EstPuntero".
+Solo se debe ejecutar una vez al inicio del movimiento, para ello se
+usa la bandera ParaMover, que debe ponerse a FALSE aquí.}
 var s: TObjGraf;
 begin
-    For s In seleccion  do begin  //da prioridad a los elementos seleccionados
-        s.StartMove(xp, yp);      //llama al evento inic_mover para cada objeto
-        If s.Proceso Then  begin  //este objeto proceso el evento
-            CapturoEvento := s;
-            if s.Dimensionando then EstPuntero := EP_DIMEN_OBJ else EstPuntero := EP_NORMAL;
-            ParaMover := False;    //para que ya no se llame otra vez
-            Exit;
-        End;
+    for s In seleccion  do begin  //da prioridad a los elementos seleccionados
+      if s.PosLocked then continue;
+      s.StartMove(xp, yp);      //llama al evento inic_mover para cada objeto
+      if s.Proceso Then begin  //este objeto proceso el evento
+          CapturoEvento := s;
+          if s.Resizing then EstPuntero := EP_DIMEN_OBJ else EstPuntero := EP_NORMAL;
+          ParaMover := False;    //para que ya no se llame otra vez
+          Exit;
+      end;
     end;
-    For s In objetos do begin
-        s.StartMove(xp, yp);    //llama al evento inic_mover para cada objeto
-        If s.Proceso Then begin   //este objeto proceso el evento
-            CapturoEvento := s;
-            if s.Dimensionando then EstPuntero := EP_DIMEN_OBJ else EstPuntero := EP_NORMAL;
-            EstPuntero := EP_NORMAL;
-            ParaMover := False;   //para que ya no se llame otra vez
-            Exit;
-        End;
+    for s In objetos do begin
+      if s.PosLocked then continue;
+      s.StartMove(xp, yp);    //llama al evento inic_mover para cada objeto
+      if s.Proceso Then begin   //este objeto proceso el evento
+          CapturoEvento := s;
+          if s.Resizing then EstPuntero := EP_DIMEN_OBJ else EstPuntero := EP_NORMAL;
+          EstPuntero := EP_NORMAL;
+          ParaMover := False;   //para que ya no se llame otra vez
+          exit;
+      end;
     end;
     //Ningún objeto ha capturado, el evento, asumimos que se debe realizar
     //el desplazamiento simple de los objetos seleccionados
 //Debug.Print "   VerifParaMover: EP_MOV_OBJS"
     EstPuntero := EP_MOV_OBJS;
-    CapturoEvento := NIL;      //ningún objeto capturo el evento
+    CapturoEvento := nil;      //ningún objeto capturo el evento
     ParaMover := False;        //para que ya no se llame otra vez
 End;
 function TModEdicion.VerificarMovimientoRaton(X, Y: Integer): TObjGraf;
@@ -633,96 +625,100 @@ begin
     //selecciona el siguiente visible
     Result := objetos[i];
 End;
-(*
-Public Sub SeleccionarSiguiente()
-;  //Selecciona el siguiente elemento visible en el orden de creación.
-;  //Si no hay ninguno seleccionado, selecciona el primero
-Dim s: TObjGraf
-Dim i: Integer
-    If NumeroVisibles() = 0 Then Exit Sub
-    If seleccion.Count = 1 Then     ;  //hay uno seleccionado
-        Set s = seleccion(1)    ;  //toma el seleccionado
-        Set s = SiguienteVisible(s)
-        Call DeseleccionarTodos
-        Seleccionar s
-    Else               ;  //hay cero o más de uno seleccionado
-        Set s = PrimerVisible          ;  //selecciona el primero
-        Call DeseleccionarTodos
-        Seleccionar s
-    End If
-    Call Refrescar
-End Sub
 
-Public Sub SeleccionarAnterior()
-;  //Selecciona el anterior elemento visible en el orden de creación.
-;  //Si no hay ninguno seleccionado, selecciona el ultimo
-Dim s: TObjGraf
-Dim i: Integer
-    If NumeroVisibles() = 0 Then Exit Sub
-    If seleccion.Count = 1 Then     ;  //hay uno seleccionado
-        Set s = seleccion(1)    ;  //toma el seleccionado
-        Set s = AnteriorVisible(s)
-        Call DeseleccionarTodos
-        Seleccionar s
-    Else               ;  //hay cero o más de uno seleccionado
-        Set s = UltimoVisible()          ;  //selecciona el ultimo
-        Call DeseleccionarTodos
-        Seleccionar s
-    End If
-    Call Refrescar
-End Sub
-*)
+procedure TModEdicion.SeleccionarSiguiente;
+//Selecciona el siguiente elemento visible en el orden de creación.
+//Si no hay ninguno seleccionado, selecciona el primero
+var
+  s: TObjGraf;
+begin
+    if NumeroVisibles() = 0 Then exit;
+    if seleccion.Count = 1 Then begin  //hay uno seleccionado
+        s := seleccion[0];   //toma el seleccionado
+        s := SiguienteVisible(s);
+        DeseleccionarTodos;
+        s.Selec;
+    end else begin     //hay cero o más de uno seleccionado
+        s := PrimerVisible;  //selecciona el primero
+        DeseleccionarTodos;
+        s.Selec;
+    end;
+    Refrescar;
+end;
+procedure TModEdicion.SeleccionarAnterior;
+//Selecciona el anterior elemento visible en el orden de creación.
+//Si no hay ninguno seleccionado, selecciona el ultimo
+var
+  s: TObjGraf;
+begin
+    if NumeroVisibles() = 0 Then exit;
+    if seleccion.Count = 1 then begin     //hay uno seleccionado
+        s := seleccion[0];    //toma el seleccionado
+        s := AnteriorVisible(s);
+        DeseleccionarTodos;
+        s.Selec;
+    end else begin               //hay cero o más de uno seleccionado
+        s := UltimoVisible;   //selecciona el ultimo
+        DeseleccionarTodos;
+        s.Selec;
+    end;
+    Refrescar;
+end;
+
 procedure TModEdicion.KeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 //Procesa el evento KeyDown()
-var
-  v: TObjGraf;
+//var
+//  v: TObjGraf;
 begin
 {  If Shift = [] Then begin  //********************* Teclas normales ***********************
       //If tec = 13 Then PropiedSeleccion ;  //Debe procesarlo el diagrama
-      If tec = VK_DELETE Then ElimSeleccion;  //DELETE
-      If tec = 9 Then Call SeleccionarSiguiente                 ;  //TAB
-      If tec = 27 Then Call DeseleccionarTodos: Call Refrescar  ;  //ESCAPE
+      If Key = VK_DELETE Then ElimSeleccion;  //DELETE
+      If Key = 9 Then SeleccionarSiguiente;  //TAB
+      If Key = 27 Then begin  //ESCAPE
+          DeseleccionarTodos;
+          Refrescar;
+      end;
       If seleccion.Count = 0 Then     ;  //si no hay objetos seleccionados
-          If tec = 37 Then Call moverDerecha(DESPLAZ_MENOR)        ;  //derecha
-          If tec = 39 Then Call moverIzquierda(DESPLAZ_MENOR)      ;  //izquierda
-          If tec = 40 Then Call moverArriba(DESPLAZ_MENOR)         ;  //arriba
-          If tec = 38 Then Call moverAbajo(DESPLAZ_MENOR)          ;  //abajo
+          If Key = 37 Then Call moverDerecha(DESPLAZ_MENOR)        ;  //derecha
+          If Key = 39 Then Call moverIzquierda(DESPLAZ_MENOR)      ;  //izquierda
+          If Key = 40 Then Call moverArriba(DESPLAZ_MENOR)         ;  //arriba
+          If Key = 38 Then Call moverAbajo(DESPLAZ_MENOR)          ;  //abajo
       Else        ;  //hay seleccionados
-          If tec = 37 Then ;  //derecha
+          If Key = 37 Then ;  //derecha
               For Each v In seleccion
                   If Not v.Bloqueado Then v.X = v.X - DESPLAZ_MENOR
               Next
               Call Refrescar
           End If
-          If tec = 39 Then ;  //izquierda
+          If Key = 39 Then ;  //izquierda
               For Each v In seleccion
                   If Not v.Bloqueado Then v.X = v.X + DESPLAZ_MENOR
               Next
               Call Refrescar
           End If
-          If tec = 40 Then ;  //arriba
+          If Key = 40 Then ;  //arriba
               For Each v In seleccion
                   If Not v.Bloqueado Then v.Y = v.Y + DESPLAZ_MENOR
               Next
               Call Refrescar
           End If
-          If tec = 38 Then ;  //abajo
+          If Key = 38 Then ;  //abajo
               For Each v In seleccion
                   If Not v.Bloqueado Then v.Y = v.Y - DESPLAZ_MENOR
               Next
               Call Refrescar
           End If
-      End If
+      end If
   end else If Shift = [ssShift] Then begin //**********************Shift + ************************
-      If tec = 9 Then Call SeleccionarAnterior              ;  //TAB
+      If Key = 9 Then Call SeleccionarAnterior              ;  //TAB
   end else If Shift = [ssCtrl] Then begin  //**********************Ctrl + ************************
-      If tec = 107 Then Call AmpliarClick      ;  //+
-      If tec = 109 Then Call ReducirClick      ;  //-
-      If tec = 37 Then Call moverDerecha(DESPLAZ_MAYOR)   ;  //derecha
-      If tec = 39 Then Call moverIzquierda(DESPLAZ_MAYOR) ;  //izquierda
-      If tec = 40 Then Call moverArriba(DESPLAZ_MAYOR)    ;  //arriba
-      If tec = 38 Then Call moverAbajo(DESPLAZ_MAYOR)     ;  //abajo
+      If Key = 107 Then Call AmpliarClick      ;  //+
+      If Key = 109 Then Call ReducirClick      ;  //-
+      If Key = 37 Then Call moverDerecha(DESPLAZ_MAYOR)   ;  //derecha
+      If Key = 39 Then Call moverIzquierda(DESPLAZ_MAYOR) ;  //izquierda
+      If Key = 40 Then Call moverArriba(DESPLAZ_MAYOR)    ;  //arriba
+      If Key = 38 Then Call moverAbajo(DESPLAZ_MAYOR)     ;  //abajo
   end else If Shift = [ssShift, ssCtrl] Then  begin  //******************Shift + Ctrl*************************
     picSal.MousePointer := vbSizeAll;  //indica modo Zoom + desplazamiento
   end;}
@@ -730,7 +726,7 @@ end;
 
 procedure TModEdicion.AgregarObjGrafico(og: TObjGraf; AutoPos: boolean = true);
 //Agrega un objeto grafico al editor. El objeto gráfico debe haberse creado previamente,
-//y ser de tipo TObjGraf o un descendiente. "AutoPos", permite posiciionar automáticamente
+//y ser de tipo TObjGraf o un descendiente. "AutoPos", permite posicionar automáticamente
 //al objeto en pantalla, de modo que se evite ponerlo siempre en la misma posición.
 var
   x: single;
@@ -758,6 +754,10 @@ begin
   obj := nil;
   if OnObjetosElim<>nil then OnObjetosElim;
 End;
+procedure TModEdicion.PBDblClick(Sender: TObject);
+begin
+  if OnDblClick<>nil then OnDblClick(Sender);
+end;
 procedure TModEdicion.EliminarTodosObj;
 //Elimina todos los objetos gráficos existentes
 begin
@@ -848,68 +848,65 @@ begin
        break;
     end;
 End;
-(*
-Public Sub moverAbajo(Optional desp: Single = DESPLAZ_MENOR) ;  //abajo
-;  //Genera un desplazamiento en la pantalla haciendolo independiente del
-;  //factor de ampliación actual
-Dim z: Single ;  //zoom
-    z = v2d.zoom
-    Call Desplazar(0, desp / z)
-    Call Refrescar
-End Sub
 
-Public Sub moverArriba(Optional desp: Single = DESPLAZ_MENOR) ;  //arriba
-;  //Genera un desplazamiento en la pantalla haciendolo independiente del
-;  //factor de ampliación actual
-Dim z: Single ;  //zoom
-    z = v2d.zoom
-    Call Desplazar(0, -desp / z)
-    Call Refrescar
-End Sub
-
-Public Sub moverDerecha(Optional desp: Single = DESPLAZ_MENOR) ;  //derecha
-;  //Genera un desplazamiento en la pantalla haciendolo independiente del
-;  //factor de ampliación actual
-Dim z: Single ;  //zoom
-    z = v2d.zoom
-    Call Desplazar(desp / z, 0)
-    Call Refrescar
-End Sub
-
-Public Sub moverIzquierda(Optional desp: Single = DESPLAZ_MENOR) ;  //izquierda
-;  //Genera un desplazamiento en la pantalla haciendolo independiente del
-;  //factor de ampliación actual
-Dim z: Single ;  //zoom
-    z = v2d.zoom
-    Call Desplazar(-desp / z, 0)
-    Call Refrescar
-End Sub
-
-Private Sub Desplazar(dx: Single, dy: Single)
-;  //Procedimiento "estandar" para hacer un desplazamiento de la pantalla
-;  //Varía los parámetros de la perspectiva "x_cam" e "y_cam"
-    Call v2d.Desplazar(dx, dy)
-    Call v2d.GuardarPerspectivaEn(Pfinal)  ;  //para que no se regrese al valor inicial
-End Sub
-*)
-/////////////////////////   Funciones del Rectángulo de Selección /////////////////////////
-procedure TModEdicion.BorraRecSeleccion();
-//BORRA por métodos gráficos el rectángulo de selección en pantalla
+procedure TModEdicion.moverAbajo(desp: Double = DESPLAZ_MENOR) ;  //abajo
+//Genera un desplazamiento en la pantalla haciendolo independiente del
+//factor de ampliación actual
+var
+    z: Single ;  //zoom
 begin
-    v2d.FijaLapiz(psDot, 1, clGreen);
-    v2d.FijaModoEscrit(pmNOTXOR);
-    v2d.rectang0(x1Sel_a, y1Sel_a, x2Sel_a, y2Sel_a);
-    v2d.FijaModoEscrit(pmCopy);
-//    If USAR_BMP Then CopiarBMP;
-End;
+    z := v2d.zoom;
+    Desplazar(0, round(desp / z));
+    Refrescar;
+end;
+
+procedure TModEdicion.moverArriba(desp: Double = DESPLAZ_MENOR) ;  //arriba
+//Genera un desplazamiento en la pantalla haciendolo independiente del
+//factor de ampliación actual
+var
+    z: Single ;  //zoom
+begin
+    z := v2d.zoom;
+    Desplazar(0, round(-desp / z));
+    Refrescar;
+end;
+
+procedure TModEdicion.moverDerecha(desp: Double = DESPLAZ_MENOR) ;  //derecha
+//Genera un desplazamiento en la pantalla haciendolo independiente del
+//factor de ampliación actual
+var
+    z: Single ;  //zoom
+begin
+    z := v2d.zoom;
+    Desplazar(round(desp / z), 0);
+    Refrescar;
+end;
+
+procedure TModEdicion.moverIzquierda(desp: Double = DESPLAZ_MENOR) ;  //izquierda
+//Genera un desplazamiento en la pantalla haciendolo independiente del
+//factor de ampliación actual
+var
+    z: Single ;  //zoom
+begin
+    z := v2d.zoom;
+    Desplazar(round(-desp / z), 0);
+    Refrescar;
+end;
+
+procedure TModEdicion.Desplazar(dx, dy: integer);
+begin
+//Procedimiento "estandar" para hacer un desplazamiento de la pantalla
+//Varía los parámetros de la perspectiva "x_cam" e "y_cam"
+    v2d.Desplazar(dx, dy);
+    v2d.GuardarPerspectivaEn(Pfinal);  //para que no se regrese al valor inicial
+end;
+
+/////////////////////////   Funciones del Rectángulo de Selección /////////////////////////
 procedure TModEdicion.DibujRecSeleccion();
 //Dibuja por métodos gráficos el rectángulo de selección en pantalla
 begin
     v2d.FijaLapiz(psDot, 1, clGreen);
-    v2d.FijaModoEscrit(pmNOTXOR);
     v2d.rectang0(x1Sel, y1Sel, x2Sel, y2Sel);
-    v2d.FijaModoEscrit(pmCopy);
-//    If USAR_BMP Then CopiarBMP;
 
     x1Sel_a := x1Sel; y1Sel_a := y1Sel;
     x2Sel_a := x2Sel; y2Sel_a := y2Sel;
@@ -923,8 +920,6 @@ begin
     y1Sel_a := y1Sel;
     x2Sel_a := x2Sel;
     y2Sel_a := y2Sel;
-    //Realiza el primer dibujo
-    DibujRecSeleccion;
 End;
 function TModEdicion.RecSeleccionNulo: Boolean;
  //Indica si el rectángulo de selección es de tamaño NULO o despreciable

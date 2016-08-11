@@ -1,13 +1,6 @@
-{Unidad ogDefObjGraf 1.4b
-======================
+{Unidad ogDefObjGraf
+====================
 Por Tito Hinostroza 24/09/2014
-* Se cambia los nombres de TObjVsible ancho y alto, por width y height.
-* Se agrega la propeidad "Highlight" para controlar el remarcado de TOBjjGraf,
-* Se elimina "NombreObj" de TObjGraf.
-* Se cambia el nombre de "Seleccionado", por "Selected".
-* Se cambia el nombre de los métodos "InicMover" por "StartMove"
-* Se elimina el método "LeePropiedades", de TObjGraf.
-
 
 Descripcion
 ===========
@@ -52,7 +45,7 @@ type
     v2d       : TMotGraf;  //motor gráfico
     Xant,Yant : Integer;   //coordenadas anteriores
   public
-    Id        : Integer;   //identificador del objeto
+    Id        : Integer;   //Identificador del Objeto. No usado por la clase. Se deja para facilidad de identificación.
     Width     : Single;    //ancho
     Height    : Single;    //alto
     Selected  : Boolean;   //indica si el objeto está seleccionado
@@ -137,12 +130,11 @@ type
   { TogCheckBox }   //////////No implementado
   TogCheckBox = class(TObjVsible)
     estado     : Boolean;   //Permite ver el estado del botón o el check
-    constructor Create(mGraf: TMotGraf; ancho0,alto0: Integer; tipo0: TTipBot; EvenBTclk0: TEvenBTclk);
     procedure Dibujar;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
   private
     tipo     : TTipBot;
-    OnClick  : TEvenBTclk
+    //OnClick  : TEvenBTclk
   end;
 
   { TogScrollBar }
@@ -203,16 +195,19 @@ type
     procedure ReConstGeom; virtual; //Reconstruye la geometría del objeto
     function SelecPtoControl(xp, yp: integer): TPtoCtrl;
   public
-    nombre      : String;    //Identificación del objeto
+    Nombre      : String;    //Identificación del objeto
     Marcado     : Boolean;   //Indica que está marcado, porque el ratón pasa por encima
     DibSimplif  : Boolean;   //indica que se está en modo de dibujo simplificado
     Highlight   : Boolean;   //indica si permite el resaltado del objeto
-    TamBloqueado: boolean;   //protege al objeto de redimensionado
-//  Bloqueado   : Boolean;   //Indica si el objeto está bloqueado
-    tipo        : Integer;   //Tipo de objeto
+    SizeLocked  : boolean;   //protege al objeto de redimensionado
+    PosLocked   : Boolean;   //Indica si el objeto está bloqueado para movimiento
+    SelLocked   : Boolean;   //Indica si el objeto está bloqueado para selección
+    Tipo        : Integer;   //Tipo de objeto. No usado por la librería. Queda para el usuario.
+    Data        : string;    //Dato adicional. No usado por la librería. Queda para el usuario.
+    Obj         : pointer;   //Dato adicional. No usado por la librería. Queda para el usuario.
     Relleno     : TColor;    //Color de relleno
     Proceso     : Boolean;   //Bandera
-    Dimensionando: boolean;  //indica que el objeto está dimensionándose
+    Resizing    : boolean;  //indica que el objeto está dimensionándose
     Erased      : boolean;   //bandera para eliminar al objeto
     //Eventos de la clase
     OnSelec  : TEventSelec;
@@ -290,11 +285,6 @@ begin
 end;
 
 { TogCheckBox }
-constructor TogCheckBox.Create(mGraf: TMotGraf; ancho0, alto0: Integer;
-  tipo0: TTipBot; EvenBTclk0: TEvenBTclk);
-begin
-
-end;
 procedure TogCheckBox.Dibujar;
 //Dibuja el botón de acuerdo a su tipo y estado
 begin
@@ -609,7 +599,7 @@ begin
            begin
               if pcx <> NIL then begin
                  //hay un punto de control procesando el evento MouseMove
-                 if not TamBloqueado then
+                 if not SizeLocked then
                    pcx.Mover(xr, yr);   //permite dimensionar el objeto
               end;
 //              Proceso := True;  'ya alguien ha capturado el evento
@@ -673,7 +663,7 @@ begin
       pcx.StartMove(xr, yr, fx, fy,width,height);     //prepara para movimiento fy dimensionamiento
       Proceso := True;      //Marcar para indicar al editor fy a Mover() que este objeto procesará
                             //el evento fy no se lo pasé a los demás que pueden estar seleccionados.
-      Dimensionando := True; //Marca bandera
+      Resizing := True; //Marca bandera
    end;
   { TODO : Verificar por qué, a veces se puede iniciar el movimiento del objeto cuando el puntero está en modo de dimensionamiento. }
 end;
@@ -710,10 +700,10 @@ begin
             Proceso := True;
     end;
     //Restaura puntero si estaba dimensionándose por si acaso
-    if Dimensionando then begin
+    if Resizing then begin
        if not pcx.LoSelec(xp,yp) then //se salio del foco
           if Assigned(OnCamPunt) then OnCamPunt(crDefault);  //pide retomar el puntero
-       Dimensionando := False;    //quita bandera, por si estaba dimensionando
+       Resizing := False;    //quita bandera, por si estaba Resizing
        exit;
     end;
 end;

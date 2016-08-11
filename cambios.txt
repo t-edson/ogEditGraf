@@ -1,0 +1,9 @@
+* Se cambia el modo de refresco para evitar el parpadeo. Ahora se pinta en el método Paint,
+redibujando todo.
+* Se cambia el nombre de la propiead "Dimensionando" a "Resizing".
+* Se elimina el campo "TMotEdicion.PAnter"
+* Se crean las porpiedades "TObjGraf.SizeLocked" "TObjGraf.SelLocked" y "TObjGraf.PosLocked"
+* Se modifica TModEdicion.MouseDown(), para quitarle el comportamiento de mantener los objetos 
+seleccionados, cuandos e pulsa CLick derecho.
+* Se agrega el campo "Data" a la clase TobjGraf, como campo adicional para el usuario.
+* Se agrega el campo "Obj" a la clase TobjGraf, como campo adicional para el usuario.
