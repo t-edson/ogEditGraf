@@ -7,3 +7,4 @@ redibujando todo.
 seleccionados, cuandos e pulsa CLick derecho.
 * Se agrega el campo "Data" a la clase TobjGraf, como campo adicional para el usuario.
 * Se agrega el campo "Obj" a la clase TobjGraf, como campo adicional para el usuario.
+* Se agrega el evento OnObjectsMoved al Motor de edición.

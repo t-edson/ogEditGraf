@@ -49,6 +49,14 @@ type
     procedure Paint(Sender: TObject);
     procedure PBMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+  public  //eventos
+    OnClickDer: TOnClickDer;
+    OnObjetosElim: TOnObjetosElim;   //cuando se elminan uno o más objetos
+    OnMouseUp: TMouseEvent;          //cuando se suelta el botón
+    OnMouseDown: TMouseEvent;
+    OnMouseMove: TMouseMoveEvent;
+    OnDblClick: TNotifyEvent;
+    OnObjectsMoved: procedure of object;
   public
     EstPuntero   : EstadosPuntero; //Estado del puntero
     ParaMover    : Boolean; //bandera de control para el inicio del movimiento
@@ -66,12 +74,6 @@ type
 
     PB   : TPaintBox;    //Control de Salida
     v2d  : TMotGraf;    //salida gráfica
-    OnClickDer: TOnClickDer;
-    OnObjetosElim: TOnObjetosElim;   //cuando se elminan uno o más objetos
-    OnMouseUp: TMouseEvent;          //cuando se suelta el botón
-    OnMouseDown: TMouseEvent;
-    OnMouseMove: TMouseMoveEvent;
-    OnDblClick: TNotifyEvent;
     procedure AgregarObjGrafico(og: TObjGraf; AutoPos: boolean=true);
     procedure EliminarTodosObj;
     procedure ElimSeleccion;
@@ -172,6 +174,8 @@ begin
             o.MouseUp(Sender, Button, Shift, xp, yp, EstPuntero = EP_MOV_OBJS);
         EstPuntero := EP_NORMAL;  //fin de movimiento
         Refrescar;
+        //Genera eventos. Los objetos movidos se pueden determinar a partir de la selección.
+        if OnObjectsMoved<>nil then OnObjectsMoved;
       end;
     EP_SELECMULT :  //------ En selección múltiple, Botón izquierdo o derecho
       begin
