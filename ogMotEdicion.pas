@@ -43,9 +43,11 @@ type
   { TModEdicion }
 
   TModEdicion = class
-    procedure MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
+  protected
+    procedure MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState;
+                        xp, yp: Integer); virtual;
     procedure MouseUp(Sender: TObject; Button: TMouseButton;Shift: TShiftState; xp, yp: Integer);
-    procedure MouseMove(Sender: TObject; Shift: TShiftState; X,  Y: Integer);
+    procedure MouseMove(Sender: TObject; Shift: TShiftState; X,  Y: Integer); virtual;
     procedure Paint(Sender: TObject);
     procedure PBMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
@@ -85,7 +87,7 @@ type
     procedure Refrescar;
     procedure SeleccionarTodos;
     procedure DeseleccionarTodos();
-  private
+  protected
     x1Sel    : integer;
     y1Sel    : integer;
     x2Sel    : integer;
@@ -147,6 +149,68 @@ type
 
 implementation
 
+procedure TModEdicion.MouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
+var
+  ogs: TObjGraf;  //objeto seleccionado
+begin
+    if OnMouseDown<>nil then OnMouseDown(Sender, Button, Shift, Xp, Yp);
+    x_pulso := xp;
+    y_pulso := yp;
+    InicMover;   //por si acaso, para iniciar movimiento
+    if Shift >= [ssCtrl, ssShift]  Then begin   //Contiene Shift+Ctrl
+        //Inicia estado de ZOOM. Puede convertirse en EP_DESP_PANT
+        //si luego se genera el evento Move()
+        EstPuntero := EP_RAT_ZOOM;
+        Exit;  //Ya no se necesita procesar
+    end;
+    ogs := SeleccionaAlguno(xp, yp);  //verifica si selecciona a un objeto
+    if Button = mbRight then
+      begin  //pulso derecho-------------------
+        if ogs = nil Then begin  //Ninguno seleccionado
+            DeseleccionarTodos;
+            Refrescar;
+            EstPuntero := EP_SELECMULT;  //inicia seleccion multiple
+            InicRecSeleccion(x_pulso, y_pulso);
+        end else begin //Selecciona a uno, pueden haber otros seleccionados
+//msgbox('Lo selecciona');
+            if ogs.Selected Then  begin  //Se marcó sobre un seleccionado
+//                if Shift = [] Then DeseleccionarTodos;
+                ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
+                exit;
+            end;
+            //Se selecciona a uno que no tenía selección
+            if Shift = [ssRight] Then  //Sin Control ni Shift
+              DeseleccionarTodos;
+            ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
+            Refrescar;
+             //ParaMover = True       ;  //listo para mover
+        end;
+      end
+    else If Button = mbLeft Then begin   //pulso izquierdo-----------------
+        If ogs = NIL Then  begin  //No selecciona a ninguno
+            DeseleccionarTodos;
+            Refrescar;
+            EstPuntero := EP_SELECMULT;  //inicia seleccion multiple
+            InicRecSeleccion(x_pulso, y_pulso);
+        end Else begin     //selecciona a uno, pueden haber otros seleccionados
+            If ogs.Selected Then begin //Se marcó sobre un seleccionado
+                //No se quita la selección porque puede que se quiera mover
+                //varios objetos seleccionados. Si no se mueve, se quitará la
+                //selección en MouseUp
+                //If Shift = 0 Then Call DeseleccionarTodos
+                ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
+                ParaMover := True;  //listo para mover
+                Exit;               //Se sale sin desmarcar
+            End;
+            //Se selecciona a uno que no tenía selección
+            If Shift = [ssLeft] Then  //Sin Control ni Shift
+               DeseleccionarTodos;
+            ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
+            ParaMover := True;            //listo para mover
+        End;
+    End;
+End;
 procedure  TModEdicion.MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; xp, yp: Integer);
 var o: TObjGraf;
@@ -229,68 +293,6 @@ begin
       if OnClickDer<> nil then OnClickDer(xp,yp);  //evento
     if OnMouseUp<>nil then OnMouseUp(Sender, Button, Shift, xp, yp);
 End;
-procedure TModEdicion.MouseDown(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
-var
-  ogs: TObjGraf;  //objeto seleccionado
-begin
-    if OnMouseDown<>nil then OnMouseDown(Sender, Button, Shift, Xp, Yp);
-    x_pulso := xp;
-    y_pulso := yp;
-    InicMover;   //por si acaso, para iniciar movimiento
-    if Shift >= [ssCtrl, ssShift]  Then begin   //Contiene Shift+Ctrl
-        //Inicia estado de ZOOM. Puede convertirse en EP_DESP_PANT
-        //si luego se genera el evento Move()
-        EstPuntero := EP_RAT_ZOOM;
-        Exit;  //Ya no se necesita procesar
-    end;
-    ogs := SeleccionaAlguno(xp, yp);  //verifica si selecciona a un objeto
-    if Button = mbRight then
-      begin  //pulso derecho-------------------
-        if ogs = nil Then begin  //Ninguno seleccionado
-            DeseleccionarTodos;
-            Refrescar;
-            EstPuntero := EP_SELECMULT;  //inicia seleccion multiple
-            InicRecSeleccion(x_pulso, y_pulso);
-        end else begin //Selecciona a uno, pueden haber otros seleccionados
-//msgbox('Lo selecciona');
-            if ogs.Selected Then  begin  //Se marcó sobre un seleccionado
-//                if Shift = [] Then DeseleccionarTodos;
-                ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
-                exit;
-            end;
-            //Se selecciona a uno que no tenía selección
-            if Shift = [ssRight] Then  //Sin Control ni Shift
-              DeseleccionarTodos;
-            ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
-            Refrescar;
-             //ParaMover = True       ;  //listo para mover
-        end;
-      end
-    else If Button = mbLeft Then begin   //pulso izquierdo-----------------
-        If ogs = NIL Then  begin  //No selecciona a ninguno
-            DeseleccionarTodos;
-            Refrescar;
-            EstPuntero := EP_SELECMULT;  //inicia seleccion multiple
-            InicRecSeleccion(x_pulso, y_pulso);
-        end Else begin     //selecciona a uno, pueden haber otros seleccionados
-            If ogs.Selected Then begin //Se marcó sobre un seleccionado
-                //No se quita la selección porque puede que se quiera mover
-                //varios objetos seleccionados. Si no se mueve, se quitará la
-                //selección en MouseUp
-                //If Shift = 0 Then Call DeseleccionarTodos
-                ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
-                ParaMover := True;  //listo para mover
-                Exit;               //Se sale sin desmarcar
-            End;
-            //Se selecciona a uno que no tenía selección
-            If Shift = [ssLeft] Then  //Sin Control ni Shift
-               DeseleccionarTodos;
-            ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
-            ParaMover := True;            //listo para mover
-        End;
-    End;
-End;
 procedure TModEdicion.MouseMove(Sender: TObject; Shift: TShiftState;
   X,  Y: Integer);
 var
@@ -322,7 +324,6 @@ begin
       End;
       Refrescar
   end Else If EstPuntero = EP_MOV_OBJS Then begin  //mueve la selección
-//        If perfil = PER_OPER Then Exit;  //No permite mover
       Modif := True;
       for s in seleccion do
           s.Mover(x,y, seleccion.Count);
@@ -349,12 +350,10 @@ begin
     PB.canvas.Brush.Color := clWhite; //rgb(255,255,255);
     PB.canvas.FillRect(PB.ClientRect); //fondo
     If EstPuntero = EP_SELECMULT Then DibujRecSeleccion;
-      //Dibuja objetos
-      for o In objetos do
-        o.Dibujar;
-//  Else
-//      s.Dibujar
-//  End If
+    //Dibuja objetos
+    for o In objetos do begin
+      o.Dibujar;
+    end;
 end;
 procedure TModEdicion.PBMouseWheel(Sender: TObject; Shift: TShiftState;
   WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
