@@ -40,6 +40,9 @@ type
   { TObjVsible }
   //Clase base para todos los objetos visibles
   TObjVsible = class
+  private
+    procedure Setx(AValue: Single);
+    procedure Sety(AValue: Single);
   protected
     fx,fy     : Single;    //coordenadas virtuales
     v2d       : TMotGraf;  //motor gráfico
@@ -54,8 +57,8 @@ type
     procedure Ubicar(x0, y0: Single);  //Fija posición
     function LoSelec(xr, yr: Integer): Boolean;
     function StartMove(xr, yr: Integer): Boolean;
-    property x: Single read fx;
-    property y: Single read fy;
+    property x: Single read fx write Setx;
+    property y: Single read fy write Sety;
     constructor Create; virtual;
     destructor Destroy; override;
   end;
@@ -194,6 +197,10 @@ type
     procedure ReubicElemen; virtual;
     procedure ReConstGeom; virtual; //Reconstruye la geometría del objeto
     function SelecPtoControl(xp, yp: integer): TPtoCtrl;
+    function GetXCent: Single;  //Coordenada X central del objeto.
+    procedure SetXcent(AValue: Single);
+    function GetYCent: Single;  //Coordenada Ycentral del objeto
+    procedure SetYCent(AValue: Single);
   public
     Nombre      : String;    //Identificación del objeto
     Marcado     : Boolean;   //Indica que está marcado, porque el ratón pasa por encima
@@ -213,8 +220,8 @@ type
     OnSelec  : TEventSelec;
     OnDeselec: TEventSelec;
     OnCamPunt: TEventCPunt;
-    function XCent: Single;  //Coordenada Xcentral del objeto
-    function YCent: Single;  //Coordenada Ycentral del objeto
+    property Xcent: Single read GetXCent write SetXcent;
+    property YCent: Single read GetYCent write SetYCent;
     procedure Ubicar(x0, y0: Single);
     procedure Selec;         //Método único para seleccionar al objeto
     procedure Deselec;       //Método único para quitar la selección del objeto
@@ -251,6 +258,16 @@ begin
   width:=ancho0;
   height :=alto0;
   visible := true;
+end;
+procedure TObjVsible.Setx(AValue: Single);
+begin
+  if fx=AValue then Exit;
+  fx:=AValue;
+end;
+procedure TObjVsible.Sety(AValue: Single);
+begin
+  if fy=AValue then Exit;
+  fy:=AValue;
 end;
 procedure TObjVsible.Ubicar(x0, y0: Single);
 begin
@@ -547,7 +564,6 @@ begin
   butDown.MouseUp(Button, Shift, xp, yp);
   butDown.estado:=false;  //para que no cambie el ícono
 end;
-
 { TObjGraf }
 function TObjGraf.SelecPtoControl(xp, yp:integer): TPtoCtrl;
 //Indica si selecciona a algún punto de control y devuelve la referencia.
@@ -557,13 +573,21 @@ begin
   for pdc in PtosControl do
       if pdc.LoSelec(xp,yp) then begin SelecPtoControl := pdc; Exit; end;
 end;
-function TObjGraf.XCent: Single;
+function TObjGraf.GetXCent: Single;
 begin
    Result := fx + width / 2;
 end;
-function TObjGraf.YCent: Single;
+procedure TObjGraf.SetXcent(AValue: Single);
+begin
+  Ubicar(AValue-width/2, y);
+end;
+function TObjGraf.GetYCent: Single;
 begin
    Result := fy + height / 2;
+end;
+procedure TObjGraf.SetYCent(AValue: Single);
+begin
+  Ubicar(x, AValue-height/2);
 end;
 procedure TObjGraf.Selec;
 begin
@@ -733,6 +757,7 @@ begin
   inherited Create;
   erased := false;
   v2d := mGraf;   //asigna motor gráfico
+  visible := true;
   width := 100;   //width por defecto
   height := 100;    //height por defecto
   fx := 100;
@@ -843,7 +868,6 @@ begin
   end;
   ReConstGeom;       //reconstruye la geometría
 end;
-
  //////////////////////////////  TPtoCtrl  //////////////////////////////
 procedure TPtoCtrl.SetTipDesplaz(AValue: TPosicPCtrol);
 //CAmbiando el tipo de desplazamiento se define el tipo de puntero

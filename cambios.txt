@@ -1,3 +1,11 @@
+1.6
+===
+Se convierte las funciones XCent, YCent en propiedades, y se les da la posibilidad de ser
+asignadas.
+Se permite escribir directamente a las propiedades X e Y de los objetos TObjVisible.
+
+1.5
+===
 * Se cambia el modo de refresco para evitar el parpadeo. Ahora se pinta en el método Paint,
 redibujando todo.
 * Se cambia el nombre de la propiead "Dimensionando" a "Resizing".
