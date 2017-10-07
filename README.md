@@ -42,7 +42,7 @@ implementation
 procedure TMiObjeto.Dibujar();
 begin
   v2d.FijaLapiz(psSolid, 1, clBlack);
-  v2d.RectangR(x, y, x+ancho, y+alto);
+  v2d.RectangR(x, y, x+width, y+height);
   inherited;
 end;
 
