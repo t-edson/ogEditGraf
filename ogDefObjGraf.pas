@@ -175,8 +175,8 @@ type
   TEventCPunt = procedure(TipPunt: Integer) of object; //Procedimiento-evento para cambiar puntero
 
   { TObjGraf }
-  {Este es el Objeto padre de todos los objetos gráficos visibles que son administrados por el
-   motor de edición}
+  {Este es el Objeto padre de todos los objetos gráficos visibles que son administrados por
+   el motor de edición}
   TObjGraf = class(TObjVsible)
   private
     procedure ProcPCdim(x0, y0, ancho0, alto0: Single);
