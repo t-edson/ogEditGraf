@@ -1,3 +1,13 @@
+1.7
+===
+Se modifica TModEdicion.MouseDown() separando el código en dos procedimientos individuales.
+Se modifica el punto en el que se llama al evento OnMouseDown(). Ahora se llama despues del 
+procesamiento.
+Se crean los eventos TModEdicion.OnMouseDownRight y TModEdicion.OnMouseDownLeft.
+Se cambia de nombre la declaración del evento OnClickDer.
+Se cambia de nombre al evento OnClickDer por OnMouseUpRight y se crea OnMouseUpLeft.
+Se cambia el nombre del tipo TOnClickDer por TEvMouse y se agrega un parámetro.
+
 1.6
 ===
 Se convierte las funciones XCent, YCent en propiedades, y se les da la posibilidad de ser
