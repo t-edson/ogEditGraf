@@ -18,7 +18,7 @@ TMiObjeto = class(TObjGraf)  //objeto gráfico que dibujaremos
   constructor Create(mGraf: TMotGraf); override;
 private
   Bot1   : TogButton;          //Botón
-  procedure ReubicElemen; override;
+  procedure Relocate(newX, newY: Single); override;
 end;
 
 implementation
@@ -28,18 +28,18 @@ begin
   inherited;
   Bot1 := AddButton(24,24,BOT_REPROD, @ProcDesac);
   pc_SUP_IZQ.tipDesplaz:=TD_CEN_IZQ;
-  ReConstGeom;     //Se debe llamar después de crear los puntos de control para poder ubicarlos
+//  Resize;             //Se debe llamar después de crear los puntos de control para poder ubicarlos
   ProcDesac(False);   //Desactivado := False
-  nombre := 'Objeto';
+  name := 'Objeto';
 end;
 
-procedure TMiObjeto.Dibujar();
+procedure TMiObjeto.Dibujar;
 var s: String;
 begin
   //Dibuja etiqueta
   v2d.FijaLapiz(psSolid, 1, COL_GRIS);
   v2d.SetText(clBlack, 11,'', true);
-  v2d.Texto(X + 2, Y -20, nombre);
+  v2d.Texto(X + 2, Y -20, name);
   //muestra un rectángulo
   v2d.FijaLapiz(psSolid, 1, clBlack);
   v2d.FijaRelleno(TColor($D5D5D5));
@@ -48,14 +48,14 @@ begin
   inherited;
 end;
 
-procedure TMiObjeto.ReubicElemen;
+procedure TMiObjeto.Relocate(newX, newY: Single);
 //Reubica elementos, del objeto. Es llamado cuando se cambia la posición del objeto, con
 //o sin cambio de las dimensiones.
 var x2: Single;
 begin
   inherited;
   x2 := x + width;
-  Buttons[0].Ubicar(x2 - 24, y + 1);
+  Buttons[0].Locate(x2 - 24, y + 1);
 end;
 
 procedure TMiObjeto.ProcDesac(estado0: Boolean);
