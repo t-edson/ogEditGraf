@@ -1,7 +1,9 @@
-ogEditGraf 1.7
+ogEditGraf 2.0
 ==============
 
 Librería en Lazarus, para la creación de editores simples de objetos gráficos.
+
+![SynFacilCompletion](http://blog.pucp.edu.pe/blog/tito/wp-content/uploads/sites/610/2018/04/Sin-título-12.png "Título de la imagen")
 
 Esta librería permite implementar fácilmente un editor de objetos gráficos en dos dimensiones. Los objetos gráficos se crean a partir de una clase base, que incluye las funciones básicas para poder ser manipulados por un editor, con opciones de seleccionar, mover, y redimensionar los objetos. 
 
