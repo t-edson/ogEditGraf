@@ -16,7 +16,7 @@ unit ogMotEdicion;
 INTERFACE
 uses
   Classes, Forms, Controls, ExtCtrls, SysUtils, Graphics, Fgl, LCLIntf,
-  LCLType, GraphType, Dialogs, ogMotGraf2D, ogDefObjGraf;
+  LCLType, GraphType, Dialogs, LCLProc, ogMotGraf2D, ogDefObjGraf;
 
 const
   CUR_DEFEC = crDefault;          //cursor por defecto
@@ -120,8 +120,8 @@ type
     x_cam_a: Single;  //coordenadas anteriores de x_cam
     y_cam_a: Single;
 
-    procedure AmpliarClick(factor: real=FACTOR_AMPLIA_ZOOM; xr: integer=0;
-      yr: integer=0);
+    procedure AmpliarClick(factor: single=FACTOR_AMPLIA_ZOOM; xrZoom: integer=0;
+      yrZoom: integer=0);
     function AnteriorVisible(c: TObjGraf): TObjGraf;
     procedure Desplazar(dx, dy: integer);
     procedure DibujRecSeleccion;
@@ -137,8 +137,8 @@ type
     function NumeroVisibles: Integer;
     function PrimerVisible: TObjGraf;
     function RecSeleccionNulo: Boolean;
-    procedure ReducirClick(factor: Real=FACTOR_AMPLIA_ZOOM; x_zoom: Real=0;
-      y_zoom: Real=0);
+    procedure ReducirClick(factor: Real=FACTOR_AMPLIA_ZOOM; xrZoom: integer=0;
+      yrZoom: integer=0);
     function SeleccionaAlguno(xp, yp: Integer): TObjGraf;
     procedure SeleccionarAnterior;
     procedure SeleccionarSiguiente;
@@ -381,7 +381,7 @@ begin
     If EstPuntero = EP_SELECMULT Then DibujRecSeleccion;
     //Dibuja objetos
     for o In objetos do begin
-      o.Dibujar;
+      o.Draw;
     end;
 end;
 procedure TModEdicion.PBMouseWheel(Sender: TObject; Shift: TShiftState;
@@ -455,11 +455,11 @@ end;
 procedure TModEdicion.MoverDesp(dx, dy: integer);
 //Desplazamiento de la pantalla
 begin
-pb.Canvas.TextOut(0,30,'dx=' + FloatToStr(dx) + '  ');
-//    v2d.x_cam := round(x_cam_a + dx / v2d.zoom);
-//    v2d.y_cam := round(y_cam_a + dy / v2d.zoom);
-    v2d.x_cam := x_cam_a + dx ;
-    v2d.y_cam := y_cam_a + dy ;
+//pb.Canvas.TextOut(0,30,'dx=' + FloatToStr(dx) + '  ');
+    v2d.x_cam := round(x_cam_a + dx / v2d.zoom);
+    v2d.y_cam := round(y_cam_a + dy / v2d.zoom);
+//    v2d.x_cam := x_cam_a + dx ;
+//    v2d.y_cam := y_cam_a + dy ;
     //v2d.z_cam = z_cam_a + dz
     v2d.GuardarPerspectivaEn(Pfinal);  //para que no se regrese al valor inicial
 End;
@@ -772,7 +772,7 @@ begin
   if AutoPos Then begin  //Se calcula posición
     x := v2d.Xvirt(100, 100) + 30 * objetos.Count Mod 400;
     y := v2d.Yvirt(100, 100) + 30 * objetos.Count Mod 400;
-    og.Ubicar(x,y);
+    og.ReLocate(x,y);
   end;
   //configura eventos para ser controlado por este editor
   og.OnSelec   := @ObjGraf_Select;    //referencia a procedimiento de selección
@@ -824,31 +824,43 @@ begin
   if OnObjetosElim<>nil then OnObjetosElim;  //llama evento
 end;
 //******************* Funciones de visualización **********************
-procedure TModEdicion.AmpliarClick(factor: real = FACTOR_AMPLIA_ZOOM;
-                        xr: integer = 0; yr: integer = 0);
-var anc_p: Real ;  //ancho de pantalla
-    alt_p: Real ;  //alto de pantalla
-    x_zoom, y_zoom: Single;
+procedure TModEdicion.AmpliarClick(factor: single = FACTOR_AMPLIA_ZOOM;
+                        xrZoom: integer = 0; yrZoom: integer = 0);
+var
+  xv0, yv0, xv1, yv1: Single;
 begin
-    If v2d.zoom < ZOOM_MAX_CONSULT Then
-        v2d.zoom := v2d.zoom * factor;
-    If (xr <> 0) Or (yr <> 0) Then begin  //se ha especificado una coordenada central
-        anc_p := PB.width / v2d.zoom;
-        alt_p := PB.Height / v2d.zoom;
-        v2d.XYvirt(xr, yr, x_zoom, y_zoom);     //convierte
-        v2d.FijarVentana(PB.Width, PB.Height,
-                x_zoom - anc_p / 2, x_zoom + anc_p / 2, y_zoom - alt_p / 2, y_zoom + alt_p / 2);
-    End;
-    v2d.GuardarPerspectivaEn(Pfinal);  //para que no se regrese al ángulo inicial
-    Refrescar;
+  //Calcula coordenadas virtuales del punto donde se pide ampliar
+  v2d.XYvirt(xrZoom, yrZoom, xv0, yv0);     //convierte
+  if v2d.zoom < ZOOM_MAX_CONSULT then
+      v2d.zoom := v2d.zoom * factor;
+  if (xrZoom <> 0) Or (yrZoom <> 0) then begin  //se ha especificado una coordenada central
+      //Calcula coordenadas virtuales del mismo (xrZoom, yrZoom) punto después de la ampliaicón
+      v2d.XYvirt(xrZoom, yrZoom, xv1, yv1);
+      //Corrige posición para que se mantenga la misma coordenada virtual
+      v2d.x_cam -= (xv1-xv0);
+      v2d.y_cam -= (yv1-yv0);
+  end;
+  v2d.GuardarPerspectivaEn(Pfinal);  //para que no se regrese al ángulo inicial
+  Refrescar;
 End;
 procedure TModEdicion.ReducirClick(factor: Real = FACTOR_AMPLIA_ZOOM;
-                        x_zoom: Real = 0; y_zoom: Real = 0);
+                        xrZoom: integer = 0; yrZoom: integer = 0);
+var
+  xv1, yv1, xv0, yv0: Single;
 begin
-    If v2d.zoom > ZOOM_MIN_CONSULT Then
-        v2d.zoom := v2d.zoom / factor;
-    v2d.GuardarPerspectivaEn(Pfinal)  ;  //para que no se regrese al ángulo inicial
-    Refrescar;
+  //Calcula coordenadas virtuales del punto donde se pide reducir
+  v2d.XYvirt(xrZoom, yrZoom, xv0, yv0);     //convierte
+  if v2d.zoom > ZOOM_MIN_CONSULT then
+      v2d.zoom := v2d.zoom / factor;
+  if (xrZoom <> 0) Or (yrZoom <> 0) then begin  //se ha especificado una coordenada central
+      //Calcula coordenadas virtuales del mismo (xrZoom, yrZoom) punto después de la ampliaicón
+      v2d.XYvirt(xrZoom, yrZoom, xv1, yv1);
+      //Corrige posición para que se mantenga la misma coordenada virtual
+      v2d.x_cam -= (xv1-xv0);
+      v2d.y_cam -= (yv1-yv0);
+  end;
+  v2d.GuardarPerspectivaEn(Pfinal)  ;  //para que no se regrese al ángulo inicial
+  Refrescar;
 End;
 /////////////////////////  Funciones de selección /////////////////////////////
 procedure TModEdicion.SeleccionarTodos;
@@ -878,12 +890,11 @@ begin
   Result := nil;   //valor por defecto
   if nom = '' then exit;
   For s In objetos do
-    if s.nombre = nom then begin
+    if s.Name = nom then begin
        Result := s;
        break;
     end;
 End;
-
 procedure TModEdicion.moverAbajo(desp: Double = DESPLAZ_MENOR) ;  //abajo
 //Genera un desplazamiento en la pantalla haciendolo independiente del
 //factor de ampliación actual
@@ -894,7 +905,6 @@ begin
     Desplazar(0, round(desp / z));
     Refrescar;
 end;
-
 procedure TModEdicion.moverArriba(desp: Double = DESPLAZ_MENOR) ;  //arriba
 //Genera un desplazamiento en la pantalla haciendolo independiente del
 //factor de ampliación actual
@@ -905,7 +915,6 @@ begin
     Desplazar(0, round(-desp / z));
     Refrescar;
 end;
-
 procedure TModEdicion.moverDerecha(desp: Double = DESPLAZ_MENOR) ;  //derecha
 //Genera un desplazamiento en la pantalla haciendolo independiente del
 //factor de ampliación actual
@@ -916,7 +925,6 @@ begin
     Desplazar(round(desp / z), 0);
     Refrescar;
 end;
-
 procedure TModEdicion.moverIzquierda(desp: Double = DESPLAZ_MENOR) ;  //izquierda
 //Genera un desplazamiento en la pantalla haciendolo independiente del
 //factor de ampliación actual
@@ -927,7 +935,6 @@ begin
     Desplazar(round(-desp / z), 0);
     Refrescar;
 end;
-
 procedure TModEdicion.Desplazar(dx, dy: integer);
 begin
 //Procedimiento "estandar" para hacer un desplazamiento de la pantalla

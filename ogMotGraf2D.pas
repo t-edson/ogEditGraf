@@ -46,10 +46,10 @@ end;
 { TMotGraf }
 TMotGraf = class
   //Parámetros de la cámara (perspectiva)
-  x_cam      : Single;  //coordenadas de la camara
+  x_cam      : Single;  //Coordenadas de la camara
   y_cam      : Single;
-  Zoom       : Single;     //factor de ampliación
-  //coordenadas de desplazamiento para ubicar el centro de la pantalla
+  Zoom       : Single;  //Factor de ampliación
+  //Coordenadas de desplazamiento para ubicar el centro de la pantalla
   x_des      : integer;
   y_des      : Integer;
 
@@ -57,8 +57,9 @@ TMotGraf = class
   constructor IniMotGraf(canvas0: Tcanvas);
   procedure FijaModoEscrit(modo:TFPPenMode);
   procedure FijaLapiz(estilo:TFPPenStyle; ancho:Integer; color:Tcolor);
-  procedure FijaRelleno(ColorR:TColor);
-  procedure FijaColor(colLin,colRel:TColor; ancho: Integer = 1); //Fija colorde línea y relleno
+  procedure SetBrush(ColorR:TColor);
+  procedure SetColor(colLin,colRel:TColor; ancho: Integer = 1); //Fija colorde línea y relleno
+  procedure SetLine(colLin:TColor; width: Integer = 1); //Fija características de línea
 
   procedure Linea(x1, y1, x2, y2:Single);
   procedure Linea0(x1, y1, x2, y2: Integer);
@@ -96,21 +97,21 @@ TMotGraf = class
   procedure DibujarImagen(im: TGraphic; x1, y1, dx, dy: Single);
   procedure DibujarImagenN(im: TGraphic; x1, y1: Single);
   procedure DibujarImagen0(im: TGraphic; x1, y1, dx, dy: Integer);
-
-  procedure XYvirt(xp, yp: Integer; var xv, yv: Single);
-  procedure XYpant(xv, yv: Single; var xp, yp: Integer);
-  function Xvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
-  function Yvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
+public  //Funciones de transformación
   function XPant(x: Single): Integer;    //INLINE Para acelerar las llamadas
   function YPant(y: Single): Integer;    //INLINE Para acelerar las llamadas
-  //funciones básicas para dibujo de Controles
+  procedure XYpant(xv, yv: Single; out xp, yp: Integer);
+  procedure XYvirt(xp, yp: Integer; out xv, yv: Single);
+  function Xvirt(xr, {%H-}yr: Integer): Single;  //INLINE Para acelerar las llamadas
+  function Yvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
+public  //funciones básicas para dibujo de Controles
   procedure DibBorBoton(x1,y1:Single; ancho,alto: Single);
   procedure DibFonBotonOsc(x1, y1: Single; ancho, alto: Single);
   procedure DibCheck(px, py: Single; ancho, alto: Single);
   procedure DibVnormal(x1, y1: Single; ancho, alto: Single);
   procedure DrawTrianUp(x1,y1:Single; ancho,alto: Single);
   procedure DrawTrianDown(x1,y1:Single; ancho,alto: Single);
-private
+public
   Canvas    : Tcanvas;                 //referencia al lienzo
 end;
 
@@ -160,14 +161,14 @@ procedure TEdGrafOQ.FijaRellenoTransparente()
     SelectObject hdc, hBrush                //queda pendiente eliminarlo
 End;
 *)
-procedure TMotGraf.FijaRelleno(ColorR:TColor);
+procedure TMotGraf.SetBrush(ColorR:TColor);
 //Establece el relleno actual
 begin
    Canvas.Brush.Style := bsSolid;  //estilo sólido
    Canvas.Brush.Color:=ColorR;
 End;
 
-procedure TMotGraf.FijaColor(colLin, colRel: TColor; ancho: Integer = 1);
+procedure TMotGraf.SetColor(colLin, colRel: TColor; ancho: Integer = 1);
 //Fija un color de línea y un color de relleno. La línea se fija a estilo sólido
 //y el relleno también
 begin
@@ -177,6 +178,12 @@ begin
 
     Canvas.Brush.Style:=bsSolid;
     Canvas.Brush.Color:=colRel;
+end;
+procedure TMotGraf.SetLine(colLin: TColor; width: Integer);
+begin
+  Canvas.Pen.Style := psSolid;
+  Canvas.pen.Width := width;
+  Canvas.pen.Color := colLin;
 end;
 //funciones para texto
 procedure TMotGraf.SetFont(Letra: string);
@@ -640,24 +647,6 @@ End;
 //Las siguientes funciones son por así decirlo, "estandar".
 //Cuando se creen otras clases de dispositivo interfase gráfica deberían tener también estas
 //funciones que son siempre necesarias.
-function TMotGraf.Xvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
-//Obtiene la coordenada X virtual (del punto X,Y,Z ) a partir de unas coordenadas de pantalla
-begin
-    Xvirt := (xr - x_des) / Zoom + x_cam;
-End;
-function TMotGraf.Yvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
-//Obtiene la coordenada Y virtual (del punto X,Y,Z ) a partir de unas coordenadas de pantalla
-begin
-    Yvirt := (yr - y_des) / Zoom + y_cam;
-End;
-procedure TMotGraf.XYvirt(xp, yp: Integer; var xv, yv: Single);
-//Devuelve las coordenadas virtuales xv,yv a partir de unas coordenadas de pantalla
-//(o del ratón). Equivale a intersecar un plano
-//paralelo al plano XY con la línea de mira del ratón en pantalla.
-begin
-    xv := Xvirt(xp, yp);
-    yv := Yvirt(yp, yp);
-End;
 function TMotGraf.XPant(x:Single): Integer; INLINE;    //INLINE Para acelerar las llamadas
 //Función de la geometría del motor. Da la transformación lineal de la coordenada x.
 begin
@@ -668,14 +657,30 @@ function TMotGraf.YPant(y:Single): Integer; INLINE;    //INLINE Para acelerar la
 begin
    YPant := Round((y - y_cam) * Zoom + y_des);
 end;
-
-procedure TMotGraf.XYpant(xv, yv: Single; var xp, yp: Integer);
+procedure TMotGraf.XYpant(xv, yv: Single; out xp, yp: Integer);
 //Devuelve las coordenadas de pantalla para un punto virtual (x,y,z).
 begin
     xp := Xpant(xv);
     yp := Ypant(yv);
 End;
-
+function TMotGraf.Xvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
+//Obtiene la coordenada X virtual (del punto X,Y,Z ) a partir de unas coordenadas de pantalla
+begin
+    Xvirt := (xr - x_des) / Zoom + x_cam;
+End;
+function TMotGraf.Yvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
+//Obtiene la coordenada Y virtual (del punto X,Y,Z ) a partir de unas coordenadas de pantalla
+begin
+    Yvirt := (yr - y_des) / Zoom + y_cam;
+End;
+procedure TMotGraf.XYvirt(xp, yp: Integer; out xv, yv: Single);
+//Devuelve las coordenadas virtuales xv,yv a partir de unas coordenadas de pantalla
+//(o del ratón). Equivale a intersecar un plano
+//paralelo al plano XY con la línea de mira del ratón en pantalla.
+begin
+    xv := Xvirt(xp, yp);
+    yv := Yvirt(yp, yp);
+End;
 procedure TMotGraf.FijarVentana(ScaleWidth, ScaleHeight: Real;
                xMin, xMax, yMin, yMax: Real);
 //Fija las coordenadas de pantalla de manera que se ajusten a las nuevas que se dan
@@ -708,14 +713,12 @@ begin
    x_cam := xMin + x_des / Zoom - dxcen;
    y_cam := yMin + y_des / Zoom - dycen;
 End;
-
 procedure TMotGraf.Desplazar(dx, dy: Integer);
 //Desplaza el escenario (el punto de rotación siempre está en el centro de la pantalla)
 begin
   y_cam := y_cam - dy;
   x_cam := x_cam - dx;
 End;
-
 procedure TMotGraf.ObtenerDesplaz2(xr, yr: Integer; Xant, Yant: Integer;
   var dx, dy: Single);
 //Obtiene los desplazamientos dx, dy para los objetos gráficos en base a
@@ -725,7 +728,6 @@ begin
     dx := (xr - Xant) / Zoom;
     dy := (yr - Yant) / Zoom;
 End;
-
 (*
 Public Function LeeGeomTextoZ(cad As String, ancho As Single, alto As Single)
 //Devuelve el ancho y alto del texto. El ancho y alto del texto debe ser independiente
@@ -823,14 +825,14 @@ End;
 procedure TMotGraf.DibBorBoton(x1, y1: Single; ancho, alto: Single);
 //Dibuja el borde de los botones
 begin
-   FijaColor(clGray, clWhite, 1);
+   SetColor(clGray, clWhite, 1);
    Canvas.RoundRect(XPant(x1), YPant(y1), XPant(x1+ancho), YPant(y1+alto),
                     round(6 * Zoom), Round(6 * Zoom));
 end;
 procedure TMotGraf.DibFonBotonOsc(x1, y1: Single; ancho, alto: Single);
 //Dibuja el fondo de los botones
 begin
-   FijaColor(clGray, clScrollBar, 1);
+   SetColor(clGray, clScrollBar, 1);
    Canvas.RoundRect(XPant(x1), YPant(y1), XPant(x1+ancho), YPant(y1+alto),
                     round(6 * Zoom), Round(6 * Zoom));
 end;
@@ -877,7 +879,6 @@ begin
   Ptos[2].x := XPant(x1+ancho/2); Ptos[2].y := YPant(y1+alto);
   Canvas.Polygon(Ptos);   //dibuja
 end;
-
 
 end.
 
