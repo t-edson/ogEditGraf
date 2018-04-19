@@ -1,3 +1,22 @@
+2.2
+===
+Se implementa finalmente el dimensionamiento de formas en 1D.
+Se cambia de nombre a algunos métodos de las clases, para hacerlos más consistentes con
+la terminología inglesa.
+Se cambia de nombre a TMotEdicion.AgregarObjGrafico por TMotEdicion.AddGraphObject
+Se cambia de nombre a TMotEdicion.EliminarTodosObj por TMotEdicion.DeleteAll
+Se cambia de nombre a TMotEdicion.ElimSeleccion por TMotEdicion.DeleteSelected
+Se cambia de nombre a TMotEdicion.EliminarObjGrafico por TMotEdicion.DeleteGraphObject
+Se cambia de nombre a TMotEdicion.Seleccionado por TMotEdicion.Selected
+Se cambia de nombre a TMotEdicion.SeleccionarTodos por TMotEdicion.SelectAll
+Se cambia de nombre a TMotEdicion.DeseleccionarTodos por TMotEdicion.UnselectAll
+Se cambia de nombre a TMotEdicion.moverAbajo por TMotEdicion.ScrollDown
+Se cambia de nombre a TMotEdicion.moverArriba por TMotEdicion.ScrollUp
+Se cambia de nombre a TMotEdicion.moverDerecha por TMotEdicion.ScrollRight
+Se cambia de nombre a TMotEdicion.moverIzquierda por TMotEdicion.ScrollLeft
+Se cambia de nombre a TMotEdicion.MoverDesp por TMotEdicion.ScrollDesp
+
+
 2.1
 ===
 Se mueve las funcionalidades de manejo de controles a una nueva unidad: ogControls.pas 
