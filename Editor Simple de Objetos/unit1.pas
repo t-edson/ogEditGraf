@@ -8,9 +8,11 @@ uses
   Classes, Forms, Controls, Graphics, ExtCtrls, ogMotEdicion, ogDefObjGraf;
 
 type
+
+  { TMiObjeto }
   //define el tipo de objeto a dibujar
   TMiObjeto = class(TObjGraf)
-    procedure Dibujar; override;
+    procedure Draw; override;
   end;
 
   { TForm1 }
@@ -29,12 +31,12 @@ var
 implementation
 {$R *.lfm}
 
-procedure TMiObjeto.Dibujar();
+procedure TMiObjeto.Draw;
 begin
   v2d.SetText(clBlack, 11,'', true);
   v2d.Texto(X + 2, Y -20, 'Objeto');
   v2d.FijaLapiz(psSolid, 1, clBlack);
-  v2d.FijaRelleno(TColor($D5D5D5));
+  v2d.SetBrush(TColor($D5D5D5));
   v2d.RectangR(x, y, x+width, y+height);
   inherited;
 end;
@@ -48,9 +50,9 @@ begin
   motEdi := TModEdicion.Create(PaintBox1);
   //agrega objetos
   og := TMiObjeto.Create(motEdi.v2d);
-  motEdi.AgregarObjGrafico(og);
+  motEdi.AddGraphObject(og);
   og := TMiObjeto.Create(motEdi.v2d);
-  motEdi.AgregarObjGrafico(og);
+  motEdi.AddGraphObject(og);
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);

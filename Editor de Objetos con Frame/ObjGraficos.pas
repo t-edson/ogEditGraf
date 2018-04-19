@@ -7,18 +7,18 @@ unit ObjGraficos;
 interface
 uses
   Controls, Classes, SysUtils, Graphics, GraphType, LCLIntf, Dialogs,
-  ogMotGraf2D, ogDefObjGraf;
+  ogMotGraf2D, ogDefObjGraf, ogControls;
 
 type
 
 { TMiObjeto }
-TMiObjeto = class(TObjGraf)  //objeto gráfico que dibujaremos
-  procedure Dibujar; override;  //Dibuja el objeto gráfico
+TMiObjeto = class(TObjGrafCtrls)  //objeto gráfico que dibujaremos
+  procedure Draw; override;  //Dibuja el objeto gráfico
   procedure ProcDesac(estado0: Boolean);   //Para responder a evento del botón
   constructor Create(mGraf: TMotGraf); override;
 private
   Bot1   : TogButton;          //Botón
-  procedure Relocate(newX, newY: Single); override;
+  procedure ReLocate(newX, newY: Single; UpdatePCtrls: boolean=true); virtual;
 end;
 
 implementation
@@ -27,13 +27,13 @@ constructor TMiObjeto.Create(mGraf: TMotGraf);
 begin
   inherited;
   Bot1 := AddButton(24,24,BOT_REPROD, @ProcDesac);
-  pc_SUP_IZQ.tipDesplaz:=TD_CEN_IZQ;
+  pcTOP_LEF.posicion := TD_CEN_IZQ;
 //  Resize;             //Se debe llamar después de crear los puntos de control para poder ubicarlos
   ProcDesac(False);   //Desactivado := False
   name := 'Objeto';
 end;
 
-procedure TMiObjeto.Dibujar;
+procedure TMiObjeto.Draw;
 var s: String;
 begin
   //Dibuja etiqueta
@@ -42,13 +42,13 @@ begin
   v2d.Texto(X + 2, Y -20, name);
   //muestra un rectángulo
   v2d.FijaLapiz(psSolid, 1, clBlack);
-  v2d.FijaRelleno(TColor($D5D5D5));
+  v2d.SetBrush(TColor($D5D5D5));
   v2d.RectangR(x, y+10, x+width, y+height);
   Bot1.estado:= false;
   inherited;
 end;
 
-procedure TMiObjeto.Relocate(newX, newY: Single);
+procedure TMiObjeto.ReLocate(newX, newY: Single; UpdatePCtrls: boolean);
 //Reubica elementos, del objeto. Es llamado cuando se cambia la posición del objeto, con
 //o sin cambio de las dimensiones.
 var x2: Single;

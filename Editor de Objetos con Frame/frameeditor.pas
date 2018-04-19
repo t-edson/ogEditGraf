@@ -39,7 +39,7 @@ function TfraEditor.AgregaObjeto: TMiObjeto;
 var o: TMiObjeto;
 begin
   o := TMiObjeto.Create(motEdi.v2d);
-  motEdi.AgregarObjGrafico(o);
+  motEdi.AddGraphObject(o);
   Result := o;
 end;
 

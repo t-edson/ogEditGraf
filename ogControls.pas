@@ -295,7 +295,7 @@ begin
     end;
   SB_VERTICAL: begin
       v2d.FijaLapiz(psSolid, 1, clScrollBar);
-      v2d.FijaRelleno(clMenu);
+      v2d.SetBrush(clMenu);
       v2d.rectangR(x,y,x+width,y+height);  //fondo
 
       butUp.x:=x+1;
@@ -314,7 +314,7 @@ begin
       yIni := y+altBot;
       yFin := y2-altBot;
       v2d.FijaLapiz(psSolid, 1, clScrollBar);
-      v2d.FijaRelleno(clScrollBar);
+      v2d.SetBrush(clScrollBar);
       v2d.Linea(x,yIni,x+width,yIni);
       v2d.Linea(x,yFin,x+width,yFin);
       //dibuja cursor
