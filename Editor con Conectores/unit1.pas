@@ -41,7 +41,7 @@ procedure TMiObjeto.Draw;
 begin
   v2d.SetText(clBlack, 11,'', true);
   v2d.Texto(X + 2, Y -20, 'Objeto');
-  v2d.FijaLapiz(psSolid, 1, clBlack);
+  v2d.SetPen(psSolid, 1, clBlack);
   v2d.SetBrush(TColor($D5D5D5));
   v2d.RectangR(x, y, x+width, y+height);
   inherited;
@@ -62,7 +62,7 @@ procedure TMiConector.Draw;
 begin
   v2d.SetText(clBlack, 11,'', true);
   v2d.Texto(X + 2, Y -20, 'Conector');
-  v2d.FijaLapiz(psSolid, 1, clBlack);
+  v2d.SetPen(psSolid, 1, clBlack);
   //v2d.SetBrush(TColor($D5D5D5));
   //v2d.RectangR(x, y, x+width, y+height);
   v2d.Linea(pcBEGIN.x, pcBEGIN.y, pcEND.x, pcEND.y);
@@ -78,24 +78,27 @@ var
 begin
   //crea motor de edición
   motEdi := TModEdicion.Create(PaintBox1);
-  //agrega objetos
+  //Agrega objetos
   og := TMiObjeto.Create(motEdi.v2d);
   //og.Highlight:=false;
   og.ReLocate(50,50);
   motEdi.AddGraphObject(og);
-
+  //Agrega punto de conexión
   og.AddPtoConex(0,50);
-  og.AddPtoConex(100,50);  //Agrega punto de conexión
+  og.AddPtoConex(100,50);
   og.ShowPtosConex:=true;
 
-  //Otro objeto
+  //Agrega objetos
+  og := TMiObjeto.Create(motEdi.v2d);
+  og.ReLocate(250,50);
+  motEdi.AddGraphObject(og);
+
+  //Objeto de tipo conector
   oc := TMiConector.Create(motEdi.v2d);
   oc.behav:=behav1D;
-  //oc.Highlight:=false;
   motEdi.AddGraphObject(oc);
 
-  //Aún no se han definido los objetos de tipo conector, en esta verisón.
-  //Solo se han implementado los puntos de control
+
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
