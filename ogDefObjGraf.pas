@@ -64,7 +64,7 @@ type
     Selected  : Boolean;   //indica si el objeto está seleccionado
     Visible   : boolean;   //indica si el objeto es visible
     procedure Crear(mGraf: TMotGraf; ancho0, alto0: Integer);  //no es constructor
-    procedure Locate(x0, y0: Single);  //Fija posición  ¿Realmente es útil?
+    procedure Locate(x0, y0: Single); virtual; //Fija posición  ¿Realmente es útil?
     function LoSelec(xr, yr: Integer): Boolean;
     function StartMove(xr, yr: Integer): Boolean;
     property x: Single read fx write Setx;
@@ -92,10 +92,11 @@ type
   TPtoCtrl = class;
   //Eventos para dimensionar forma
   TEvReqDimen2D = procedure(newX, newY, newWidth, newHeight: Single) of object;
-  TEvPCReqPosiiton = procedure(target: TPtoCtrl; dx, dy: Single; xr, yr: integer) of object;
+  TEvPCReqPosiiton = procedure(target: TPtoCtrl; dx, dy: Single; wishX, wishY: Single) of object;
 
   TPtoCtrlIco = (pciSquare, pciCircle);
   TObjGraf = class;
+  TPtoConx = class;
 
   { TPtoCtrl }
   {Define al objeto Punto de Control.}
@@ -110,10 +111,12 @@ type
     mousePtr  : TCursor;       //Tipo de puntero del mouse
     Parent    : TObjGraf;      //Referencia al objeto contenedor
     OnChangePosition: TEvPCReqPosiiton;  //Requiere dimensionamiento en modo 1D
+    ConnectedTo: TPtoConx;     //Punto de conexión al cual se encuentra conectado
+    procedure Disconnect;
     property Quadrant: byte read GetQuadrant write SetQuadrant;
     procedure Draw();
     procedure StartMove(xr, yr: Integer; xIni, yIni, widthIni, heighIni: Single);
-    procedure Mover(xr, yr: Integer);  //Dimensiona las variables indicadas
+    procedure MouseMove(xr, yr: Integer);  //Dimensiona las variables indicadas
     function LoSelec(xp, yp: Integer):boolean;
     procedure LocateInParent;
   public //Inicialización
@@ -133,11 +136,17 @@ type
     procedure StartMove(xr, yr: Integer; xIni, yIni, widthIni, heightIni: Single);
     procedure Mover(xr, yr: Integer);  //Dimensiona las variables indicadas
     function LoSelec(xp, yp: Integer; accuracy: integer=0): boolean;
+    procedure Locate(x0, y0: Single); override;
   private
     tipPuntero : Integer;  //Tipo de puntero
+  public
+    ptosControl: TPtosControl;  //Puntos de control a los que se encuentar enganchado.
+    procedure ConnectTo(pCtl: TPtoCtrl);
+    procedure DisconnectFrom(pCtl: TPtoCtrl);
   public //Inicialización
     x0, y0, width0, height0: Single;  //valores objetivo para las dimensiones
     constructor Create(mGraf: TMotGraf; EvenPCdim0: TEvReqDimen2D);
+    destructor Destroy; override;
   end;
   TPtosConex = specialize TFPGObjectList<TPtoConx>;  //Lista para gestionar los puntos de control
 
@@ -154,9 +163,9 @@ type
     function GetYCent: Single;  //Coordenada Ycentral del objeto
     procedure SetYCent(AValue: Single);
   private
-    pCtl        : TPtoCtrl;      //variable para Punto de Control
     procedure ProcPCnxMov(x0, y0, ancho0, alto0: Single);
-    procedure ReqDimen1D(target: TPtoCtrl; dx, dy: Single; xr, yr: integer);
+    procedure PtoCtl_ChangePosition(target: TPtoCtrl; dx, dy: Single; wishX,
+      wishY: Single);
   public
     behav : TBehave;  //Indica si la forma es de 1D o 2D.
     Name        : String;    //Identificación del objeto
@@ -178,15 +187,15 @@ type
     procedure Selec;         //Método único para seleccionar al objeto
     procedure Deselec;       //Método único para quitar la selección del objeto
     procedure Delete;        //Método para eliminar el objeto
-    procedure Mover(xr, yr : Integer; nobjetos : Integer); virtual;
     function LoSelecciona(xr, yr:integer): Boolean; virtual;
     procedure Draw; virtual;  //Dibuja el objeto gráfico
     procedure StartMove(xr, yr : Integer);
+    procedure MouseMove(xr, yr : Integer; nobjetos : Integer); virtual;
     procedure MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState;
        xp, yp: Integer); virtual;  //Metodo que funciona como evento mouse_down
     procedure MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState;
        xp, yp: Integer; solto_objeto: Boolean); virtual;
-    procedure MouseMove(Sender: TObject; Shift: TShiftState; xp, yp: Integer); virtual;
+    procedure MouseOver(Sender: TObject; Shift: TShiftState; xp, yp: Integer); virtual;
     procedure MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer;
                  MousePos: TPoint; var Handled: Boolean); virtual;
   public //Posición y Tamaño
@@ -201,7 +210,9 @@ type
     OnSelec   : TEventSelec;
     OnDeselec : TEventSelec;
     OnCamPunt : TEventCPunt;
-  protected //Puntos de Control
+  public //Puntos de Control
+    curPntCtl   : TPtoCtrl;  //Punto de Control actual
+  protected
     {Los puntos de control son los que se pueden mover independientemente y tienen
     efecto sobre la posición y/o el tamaño de la forma.}
     //Puntos de control por defecto
@@ -347,6 +358,7 @@ destructor TObjVsible.Destroy;
 begin
   inherited Destroy;
 end;
+// TPtoCtrl
 function TPtoCtrl.GetQuadrant: byte;
 {Devuelve el cuadrante, en el sentido geométrico, de la posición del Putno de Control con respecto al centro de
 su objeto contenedor :
@@ -383,7 +395,15 @@ begin
   4: posicion := TD_INF_DER;
   end
 end;
-//////////////////////////////  TPtoCtrl //////////////////////////////
+procedure TPtoCtrl.Disconnect;
+{Desconecta la el punto de control al punto de conexión que pudiera estar ligado.}
+begin
+  if ConnectedTo<>nil then begin
+debugln('unhook');
+     ConnectedTo.DisconnectFrom(self);
+     ConnectedTo := nil;
+  end;
+end;
 procedure TPtoCtrl.Draw();
 //Dibuja el Punto de control en la posición definida
 var xp, yp: Integer;
@@ -411,18 +431,21 @@ begin
    y0 := yIni;
    width0 := widthIni;
    height0 := heighIni;
+   Disconnect;
 end;
-procedure TPtoCtrl.Mover(xr, yr: Integer);
+procedure TPtoCtrl.MouseMove(xr, yr: Integer);
 //Realiza el cambio de las variables indicadas de acuerdo al tipo de control y a
 //las variaciones indicadas (dx, dy)
-var dx, dy: Single;
+var
+  dx, dy, wishX, wishY: Single;
 begin
-   if not visible then exit;    //validación
-   dx := (xr - Xant) / v2d.Zoom;     //obtiene desplazamiento absoluto
-   dy := (yr - Yant) / v2d.Zoom;     //obtiene desplazamiento absoluto
-   {Comunica que se requiere cambiar la posición del punto de control, para que el
-   objeto gráfico padre tome la decisión sobre el cambio}
-   OnChangePosition(Self, dx, dy, xr, yr);
+  if not visible then exit;    //validación
+  dx := (xr - Xant) / v2d.Zoom;     //obtiene desplazamiento absoluto
+  dy := (yr - Yant) / v2d.Zoom;     //obtiene desplazamiento absoluto
+  {Comunica que se requiere cambiar la posición del punto de control, para que el
+  objeto gráfico padre tome la decisión sobre el cambio}
+  v2d.XYvirt(xr, yr, wishX, wishY);
+  OnChangePosition(Self, dx, dy, wishX, wishY);
 end;
 function TPtoCtrl.LoSelec(xp, yp: Integer): boolean;
 //Indica si las coordenadas lo selecciona
@@ -502,9 +525,9 @@ procedure TPtoConx.Mover(xr, yr: Integer);
 var
  dx, dy: Single;
 begin
- if not visible then exit;    //validación
- dx := (xr - Xant) / v2d.Zoom;     //obtiene desplazamiento absoluto
- dy := (yr - Yant) / v2d.Zoom;     //obtiene desplazamiento absoluto
+  if not visible then exit;    //validación
+  dx := (xr - Xant) / v2d.Zoom;     //obtiene desplazamiento absoluto
+  dy := (yr - Yant) / v2d.Zoom;     //obtiene desplazamiento absoluto
 
 //  Xant := xr; Yant := yr;   //actualiza coordenadas
 end;
@@ -520,14 +543,55 @@ begin
      (yp >= yp0 - ANC_PCN2-accuracy) and (yp <= yp0 + ANC_PCN2+accuracy) then
        LoSelec := True;
 end;
+procedure TPtoConx.Locate(x0, y0: Single);
+var
+  pctl: TPtoCtrl;
+begin
+  inherited Locate(x0, y0);
+  //Mueve puntos de control enganchados
+  for pctl in ptosControl do begin
+     {Se llama al evento simulando un movimiento por Ratón. Esto solo funcioanará en
+     Puntos de Control 1D.
+     Se pudo haber hecho solo: pctl.x := x; pctl.y := y;
+     Pero esto no actualizaría la geometría de la forma}
+     pctl.OnChangePosition(pctl, 0, 0, x, y);
+  end;
+end;
+procedure TPtoConx.ConnectTo(pCtl: TPtoCtrl);
+begin
+  ptosControl.Add(pCtl);
+  pCtl.ConnectedTo := self;
+end;
+procedure TPtoConx.DisconnectFrom(pCtl: TPtoCtrl);
+begin
+  pCtl.ConnectedTo := nil;
+  ptosControl.Remove(pCtl);
+end;
 constructor TPtoConx.Create(mGraf: TMotGraf; EvenPCdim0: TEvReqDimen2D);
 begin
- inherited Crear(mGraf, 2*ANC_PCT2, 2*ANC_PCT2);    //crea
- visible := true;             //lo hace visible
- fx :=0;
- fy :=0;
- tipPuntero := crSizeNW;  //No se usa
+  inherited Crear(mGraf, 2*ANC_PCT2, 2*ANC_PCT2);    //crea
+  visible := true;             //lo hace visible
+  fx :=0;
+  fy :=0;
+  tipPuntero := crSizeNW;  //No se usa
+  {Crea lista para los puntos de control 1D que engancha. Pero solo gaurdará referencias
+   no eliminará los objetos.}
+  ptosControl:= TPtosControl.Create(false);
 end;
+destructor TPtoConx.Destroy;
+var
+  pctl: TPtoCtrl;
+begin
+  //Se desconecta de todos los puntos de control que pudieran estar conectados a
+  //este punto de conexión.
+  for pctl in ptosControl do begin
+    pCtl.ConnectedTo := nil;
+    //Hacer DisconnectFrom(pctl) no es necesario y generará error por la forma como se explora a la lista
+  end;
+  ptosControl.Destroy;
+  inherited Destroy;
+end;
+
 { TObjGraf }
 function TObjGraf.GetXCent: Single;
 begin
@@ -566,8 +630,30 @@ begin
   //Marca para eliminarse
   Erased := true;
 end;
-procedure TObjGraf.Mover(xr, yr: Integer; nobjetos: Integer);
-{Metodo que funciona como evento movimiento al objeto
+procedure TObjGraf.StartMove(xr, yr: Integer);
+//Procedimiento para procesar el evento StartMove de los objetos gráficos
+//Se ejecuta al inicio de movimiento al objeto
+begin
+  Xant := xr; Yant := yr;
+  Proceso := False;
+  if not Selected then exit;   //para evitar que responda antes de seleccionarse
+  //Busca si algún punto de control lo procesa
+  curPntCtl := SelecPtoControl(xr,yr);
+  if curPntCtl <> NIL  then begin
+      curPntCtl.StartMove(xr, yr, fx, fy, width, height);     //prepara para movimiento fy dimensionamiento
+      Proceso := True;      //Marcar para indicar al editor fy a Mover() que este objeto procesará
+                            //el evento fy no se lo pasé a los demás que pueden estar seleccionados.
+      Resizing := True; //Marca bandera
+   end else begin
+     //No se mueve ningún punto de control
+     //Desconecta Puntos de Control 1D, por si estaban ligados.
+     pcBEGIN.Disconnect;
+     pcEND.Disconnect;
+   end;
+  { TODO : Verificar por qué, a veces se puede iniciar el movimiento del objeto cuando el puntero está en modo de dimensionamiento. }
+end;
+procedure TObjGraf.MouseMove(xr, yr: Integer; nobjetos: Integer);
+{Metodo que funciona como evento MouseMove al objeto.
 "nobjetos" es la cantidad de objetos que se mueven. Ususalmente es sólo uno}
 var dx , dy: Single;
 begin
@@ -575,20 +661,17 @@ begin
 //     If ArrastFila Then Exit;        //Arrastrando botón  { TODO : Revisar }
      If Selected Then begin
         v2d.ObtenerDesplaz2( xr, yr, Xant, Yant, dx, dy);
-        if Proceso then   //algún elemento del objeto ha procesado el evento de movimiento
-           begin
-              if pCtl <> NIL then begin
-                 //hay un punto de control procesando el evento MouseMove
-                 if not SizeLocked then
-                   pCtl.Mover(xr, yr);   //permite dimensionar el objeto
-              end;
-//              Proceso := True;  'ya alguien ha capturado el evento
-           end
-        else  //ningún elemento del objeto lo ha procesado, pasamos a mover todo el objeto
-           begin
-              ReLocate(fx + dx, fy + dy);  //reubica los elementos
-              Proceso := False;
-           End;
+        if Proceso then begin
+            //Algún elemento del objeto ha procesado el evento de movimiento
+            if curPntCtl <> nil then begin
+               //Hay un punto de control procesando el evento MouseMove
+               if not SizeLocked then
+                 curPntCtl.MouseMove(xr, yr);   //permite dimensionar el objeto
+            end;
+        end else begin //ningún elemento del objeto lo ha procesado, pasamos a mover todo el objeto
+            ReLocate(fx + dx, fy + dy);  //reubica los elementos
+            Proceso := False;
+        end;
         Xant := xr; Yant := yr;
      End;
 end;
@@ -615,7 +698,7 @@ var
 begin
   //---------------dibuja remarcado --------------
   if Marcado and Highlight then begin
-    v2d.FijaLapiz(psSolid, 2, clBlue);   //RGB(128, 128, 255)
+    v2d.SetPen(psSolid, 2, clBlue);   //RGB(128, 128, 255)
     v2d.rectang(fx - tm, fy - tm, fx + width + tm, fy + height + tm);
   end;
   //---------------dibuja marca de seleccion--------------
@@ -630,23 +713,6 @@ begin
   if ShowPtosConex then begin
      for pcn in PtosConex do pcn.Draw;
   end;
-end;
-procedure TObjGraf.StartMove(xr, yr: Integer);
-//Procedimiento para procesar el evento StartMove de los objetos gráficos
-//Se ejecuta al inicio de movimiento al objeto
-begin
-  Xant := xr; Yant := yr;
-  Proceso := False;
-  if not Selected then exit;   //para evitar que responda antes de seleccionarse
-  //Busca si algún punto de control lo procesa
-  pCtl := SelecPtoControl(xr,yr);
-  if pCtl <> NIL  then begin
-      pCtl.StartMove(xr, yr, fx, fy, width, height);     //prepara para movimiento fy dimensionamiento
-      Proceso := True;      //Marcar para indicar al editor fy a Mover() que este objeto procesará
-                            //el evento fy no se lo pasé a los demás que pueden estar seleccionados.
-      Resizing := True; //Marca bandera
-   end;
-  { TODO : Verificar por qué, a veces se puede iniciar el movimiento del objeto cuando el puntero está en modo de dimensionamiento. }
 end;
 procedure TObjGraf.MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
 //Metodo que funciona como evento "MouseDown"
@@ -676,13 +742,13 @@ begin
     end;
     //Restaura puntero si estaba dimensionándose por si acaso
     if Resizing then begin
-       if not pCtl.LoSelec(xp,yp) then //se salio del foco
+       if not curPntCtl.LoSelec(xp,yp) then //se salio del foco
           if Assigned(OnCamPunt) then OnCamPunt(crDefault);  //pide retomar el puntero
        Resizing := False;    //quita bandera, por si estaba Resizing
        exit;
     end;
 end;
-procedure TObjGraf.MouseMove(Sender: TObject; Shift: TShiftState; xp, yp: Integer);
+procedure TObjGraf.MouseOver(Sender: TObject; Shift: TShiftState; xp, yp: Integer);
 //Respuesta al evento MouseMove. Se debe recibir cuando el Mouse pasa por encima del objeto
 var pc: TPtoCtrl;
 begin
@@ -706,7 +772,7 @@ end;
 procedure TObjGraf.ReLocate(newX, newY: Single; UpdatePCtrls: boolean = true);
 {Se usa para cambiar SOLAMENTE la ubicación del objeto}
 var
-  pcn: TPtoConx;
+  pCnx: TPtoConx;
 begin
   fx := newX;
   fy := newY;
@@ -724,16 +790,16 @@ begin
     pcEND.LocateInParent;
   end;
   //Reubica todos los puntos de conexión
-  for pcn in PtosConex do begin
-    pcn.x := x + width * pcn.xFac*v2d.Zoom;
-    pcn.y := y + height * pcn.yFac*v2d.Zoom;
+  for pCnx in PtosConex do begin
+    pCnx.Locate(x + width * pCnx.xFac,
+                y + height * pCnx.yFac);
   end;
   if OnRelocate<>nil then OnRelocate;
 end;
 procedure TObjGraf.ReSize(newWidth, newHeight: Single; UpdatePCtrls: boolean = true);
 {Se usa para cambiar SOLAMENTE el tamaño del objeto}
 var
-  pcn: TPtoConx;
+  pCnx: TPtoConx;
 begin
   //Protección
   if newWidth < ANCHO_MIN then begin
@@ -772,9 +838,9 @@ begin
   end;
   //Posiciona proporcionalmente a los puntos de conexión
   //debugln('fdx=%f fdy=%f', [fdx, fdy]);
-  for pcn in PtosConex do begin
-    pcn.x := x + width * pcn.xFac;
-    pcn.y := y + height * pcn.yFac;
+  for pCnx in PtosConex do begin
+    pCnx.Locate(x + width * pCnx.xFac,
+                y + height * pCnx.yFac);
   end;
   if OnResize<>nil then OnResize;
 end;
@@ -804,7 +870,7 @@ begin
      ReSize(newWidth, newHeight, UpdatePCtrls);       //Reubica
   end;
 end;
-procedure TObjGraf.ReqDimen1D(target: TPtoCtrl; dx, dy: Single; xr, yr: integer
+procedure TObjGraf.PtoCtl_ChangePosition(target: TPtoCtrl; dx, dy: Single; wishX, wishY: Single
   );
 {Un punto de control está solicitando reposicionamiento, lo que se suponse afecta
 a la posición o el dimensionameinto de la forma.}
@@ -825,12 +891,11 @@ a la posición o el dimensionameinto de la forma.}
     end;
   end;
 var
-  newX, newY, newWidth, newHeight, wishX, wishY: Single;
+  newX, newY, newWidth, newHeight: Single;
 begin
   case behav of
   behav1D: begin
     //Desplazamiento en una dimensión
-    v2d.XYvirt(xr, yr, wishX, wishY);  //Convierte coordenadas de pantalla
     //Ubica el cuadrante del punto de control
     if target = pcBEGIN then begin
       //Se mueve el punto de inicio
@@ -868,13 +933,13 @@ end;
 function TObjGraf.AddPtoControl1D(PosicPCtrol: TPosicPCtrol; mousePtr: TCursor): TPtoCtrl;
 //Agrega un punto de control, que trabajará en formas 1D
 begin
-  Result := TPtoCtrl.Create(self, PosicPCtrol, mousePtr, @ReqDimen1D);
+  Result := TPtoCtrl.Create(self, PosicPCtrol, mousePtr, @PtoCtl_ChangePosition);
   PtosControl1.Add(Result);
 end;
 function TObjGraf.AddPtoControl2D(PosicPCtrol: TPosicPCtrol; mousePtr: TCursor): TPtoCtrl;
 //Agrega un punto de control, que trabajará en formas 2D
 begin
-  Result := TPtoCtrl.Create(self, PosicPCtrol, mousePtr, @ReqDimen1D);
+  Result := TPtoCtrl.Create(self, PosicPCtrol, mousePtr, @PtoCtl_ChangePosition);
   PtosControl2.Add(Result);
 end;
 function TObjGraf.SelecPtoControl(xp, yp:integer): TPtoCtrl;
@@ -921,7 +986,7 @@ var
 begin
   Result := Nil;      //valor por defecto
   for pcnx in PtosConex do begin
-      if pcnx.LoSelec(xp,yp, accuracy) then begin
+      if pcnx.LoSelec(xp, yp, accuracy) then begin
           Result := pcnx;
           exit;
       end;
@@ -968,6 +1033,10 @@ begin
 end;
 destructor TObjGraf.Destroy;
 begin
+  //Se desconecta los Ptos de Control 1D.
+  pcBEGIN.Disconnect;
+  pcEND.Disconnect;
+  //Elimina Puntos de control
   PtosControl1.Free;
   PtosControl2.Free;
   PtosConex.Free;

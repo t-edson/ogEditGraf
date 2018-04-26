@@ -56,7 +56,7 @@ TMotGraf = class
   ImageList  : TImageList;
   constructor IniMotGraf(canvas0: Tcanvas);
   procedure FijaModoEscrit(modo:TFPPenMode);
-  procedure FijaLapiz(estilo:TFPPenStyle; ancho:Integer; color:Tcolor);
+  procedure SetPen(estilo:TFPPenStyle; ancho:Integer; color:Tcolor);
   procedure SetBrush(ColorR:TColor);
   procedure SetColor(colLin,colRel:TColor; ancho: Integer = 1); //Fija colorde línea y relleno
   procedure SetLine(colLin:TColor; width: Integer = 1); //Fija características de línea
@@ -92,7 +92,8 @@ TMotGraf = class
 
   procedure FijarVentana(ScaleWidth, ScaleHeight: Real; xMin, xMax, yMin, yMax: Real);
   procedure Desplazar(dx, dy: Integer);
-  procedure ObtenerDesplaz2(xr, yr: Integer; Xant, Yant: Integer; var dx,dy: Single);
+  procedure ObtenerDesplaz2(xr, yr: Integer; Xant, Yant: Integer; out dx,
+    dy: Single);
   procedure DibujarIcono(x1, y1: Single; idx: integer);
   procedure DibujarImagen(im: TGraphic; x1, y1, dx, dy: Single);
   procedure DibujarImagenN(im: TGraphic; x1, y1: Single);
@@ -139,7 +140,7 @@ procedure TMotGraf.FijaModoEscrit(modo: TFPPenMode);
 begin
     Canvas.Pen.Mode := modo;
 End;
-procedure TMotGraf.FijaLapiz(estilo:TFPPenStyle; ancho:Integer; color:Tcolor);
+procedure TMotGraf.SetPen(estilo:TFPPenStyle; ancho:Integer; color:Tcolor);
 //Establece el lápiz actual de dibujo
 begin
    Canvas.Pen.Style := estilo;
@@ -720,7 +721,7 @@ begin
   x_cam := x_cam - dx;
 End;
 procedure TMotGraf.ObtenerDesplaz2(xr, yr: Integer; Xant, Yant: Integer;
-  var dx, dy: Single);
+  out dx, dy: Single);
 //Obtiene los desplazamientos dx, dy para los objetos gráficos en base a
 //los movimientos del ratón. Sólo desplaza en 2D
 begin
@@ -840,7 +841,7 @@ procedure TMotGraf.DibVnormal(x1, y1: Single; ancho, alto: Single);
 //Dibuja una V en modo normal. Usado para dibujar el ícono de los botones
 var xm: Single;
 begin
-    FijaLapiz(psSolid,2,clGray);
+    SetPen(psSolid,2,clGray);
     xm := x1 + round(ancho/2);  //se redondea antes (ancho/2), para evitar vavriación en la
                                 //posición, al dibujar en diferentes posiciones.
     Linea(x1, y1, xm, y1+alto);
@@ -850,7 +851,7 @@ procedure TMotGraf.DibCheck(px, py: Single; ancho, alto: Single);
 //Dibuja una marca de tipo "Check". Útil para implementar el control "Check"
 var xm: Single;
 begin
-    FijaLapiz(psSolid,2,clGray);
+    SetPen(psSolid,2,clGray);
     xm := round(ancho/4);
     Linea(px     , py + 3, px + xm, py + alto);
     Linea(px + xm, py + alto, px + ancho, py );

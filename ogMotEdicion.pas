@@ -50,8 +50,9 @@ type
                         xp, yp: Integer); virtual;
     procedure MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState;
                         xp, yp: Integer); virtual;
+    procedure VerificarParaMover(xp, yp: Integer);
+    procedure MouseMove(Sender: TObject; Shift: TShiftState; xp,  yp: Integer); virtual;
     procedure MouseUp(Sender: TObject; Button: TMouseButton;Shift: TShiftState; xp, yp: Integer);
-    procedure MouseMove(Sender: TObject; Shift: TShiftState; X,  Y: Integer); virtual;
     procedure Paint(Sender: TObject);
     procedure PBMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
@@ -70,8 +71,9 @@ type
     EstPuntero   : EstadosPuntero; //Estado del puntero
     ParaMover    : Boolean;       //Bandera de control para el inicio del movimiento
     CapturoEvento: TObjGraf;      //Referencia a objeto que capturo el movimiento
-    objetos  : TlistObjGraf;
-    seleccion: TlistObjGraf;
+    objetos      : TlistObjGraf;
+    seleccion    : TlistObjGraf;
+    curPntCtl    : TPtoCtrl;      //Punto de control actual en movimiento
 //  Public tablas: New Collection
 //  Public botones: New Collection    ;  //Botones
   //-----------------------------------------------------------
@@ -107,7 +109,6 @@ type
     x_cam_a: Single;  //coordenadas anteriores de x_cam
     y_cam_a: Single;
     procedure InicMover;
-    procedure VerificarParaMover(xp, yp: Integer);
     function SeleccionaAlguno(xp, yp: Integer): TObjGraf;
     function SelectPointOfConexion(xp, yp: Integer): TPtoConx;
   protected  // Funciones para administrar los elementos visibles y seleccion por teclado
@@ -242,139 +243,6 @@ begin
     end;
     if OnMouseDown<>nil then OnMouseDown(Sender, Button, Shift, xp, xp);
 end;
-procedure  TModEdicion.MouseUp(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; xp, yp: Integer);
-var o: TObjGraf;
-begin
-    //Verifica si la selección es NULA
-    If (EstPuntero = EP_SELECMULT) And RecSeleccionNulo Then EstPuntero := EP_NORMAL;
-    //Procesa de acuerdo al estado
-    Case EstPuntero of
-    EP_RAT_ZOOM:    //------ Zoom con el Ratón ------
-      begin
-        If Button = mbLeft Then AmpliarClick(1.2, xp, yp) ;  //<Shift> + <Ctrl> + click izquierdo
-        If Button = mbRight Then ReducirClick(1.2, xp, yp) ;  //<Shift> + <Ctrl> + click derecho
-//      EstPuntero = EP_NORMAL   //Legalmente debería ponerse a normal. Pero si se
-                                 //hace, es posible que un click consecutivo muy
-                                 //rápido, no dispare el evento MouseDown (dispara
-                                 //el DblClick en su lugar), y se desactivaría el
-                                 //modo ZOOM lo que es molesto.
-      end;
-    EP_DESP_PANT:     //------ Desplazamiento de Pantalla ------
-        EstPuntero := EP_NORMAL;
-    EP_MOV_OBJS:     //------ Moviendo Objetos ------
-      begin
-//Debug.Print "Esatado EP_MOV_OBJS"
-        For o In seleccion do  //Pasa el evento a la selección
-            o.MouseUp(Sender, Button, Shift, xp, yp, EstPuntero = EP_MOV_OBJS);
-        EstPuntero := EP_NORMAL;  //fin de movimiento
-        Refrescar;
-        //Genera eventos. Los objetos movidos se pueden determinar a partir de la selección.
-        if OnObjectsMoved<>nil then OnObjectsMoved;
-      end;
-    EP_SELECMULT :  //------ En selección múltiple, Botón izquierdo o derecho
-      begin
-        if objetos.Count > 100 Then begin  //Necesita actualizar porque la selección múltiple es diferente
-          for o in objetos do
-            if enRecSeleccion(o.XCent, o.YCent) And Not o.Selected Then o.Selec;
-        end;
-        EstPuntero := EP_NORMAL;
-      end;
-    EP_NORMAL:  //------ En modo normal
-      begin
-        o := SeleccionaAlguno(xp, yp);  //verifica si selecciona a un objeto
-        If Button = mbRight Then //----- solto derecho -------------------
-          begin
-(*            If o = NIL Then  //Ninguno Selected
-                RaiseEvent ClickDerDiag    //Genera evento
-            Else    ;  //Hay uno que lo selecciona, o más???
-                If Not o.Seleccionado Then Call o.SoltoRaton(Button, Shift, xr, yr)    ;  //Pasa el evento
-                RaiseEvent ClickDerSel     //Genera evento
-            End If*)
-          end
-        else If Button = mbLeft Then begin //----- solto izquierdo -----------
-            If o = NIL Then    //No selecciona a ninguno
-//                Call UnselectAll
-            else begin         //Selecciona a alguno
-                If Shift = [] Then UnselectAll;
-                o.Selec;   //selecciona
-                o.MouseUp(Sender, Button, Shift, xp, yp, false);
-                Refrescar;
-                //verifica si el objeto está piddiendo que lo eliminen
-                if o.Erased then begin
-                  DeleteGraphObject(o);
-                  Refrescar;
-                end;
-            End;
-            CapturoEvento := NIL;      //inicia bandera de captura de evento
-            ParaMover := False;        //por si aca
-        end;
-      end;
-    EP_DIMEN_OBJ:  //Se soltó mientras se estaba dimensionado un objeto
-      begin
-        //pasa evento a objeto que se estaba dimensionando
-        CapturoEvento.MouseUp(Sender, Button, Shift, xp, yp, false);
-        //termina estado
-        EstPuntero := EP_NORMAL;
-        CapturoEvento := NIL;      //inicia bandera de captura de evento
-        ParaMover := False;        //por si aca
-      end;
-    End;
-    if OnMouseUp<>nil then OnMouseUp(Sender, Button, Shift, xp, yp);
-    if Button = mbRight then
-      if OnMouseUpRight<> nil then OnMouseUpRight(Shift, xp,yp);  //evento
-    if Button = mbLeft then
-      if OnMouseUpLeft<> nil then OnMouseUpLeft(Shift, xp,yp);  //evento
-End;
-procedure TModEdicion.MouseMove(Sender: TObject; Shift: TShiftState;
-  X,  Y: Integer);
-var
-  s: TObjGraf;
-begin
-  if OnMouseMove<>nil then OnMouseMove(Sender, Shift, X, Y);
-  If Shift = [ssCtrl, ssShift, ssRight] Then  //<Shift>+<Ctrl> + <Botón derecho>
-     begin
-      EstPuntero := EP_DESP_PANT;
-      ScrollDesp(x_pulso - X, y_pulso - Y);
-      Refrescar;
-      Exit;
-     End;
-  If ParaMover = True Then VerificarParaMover(X, Y);
-  If EstPuntero = EP_SELECMULT then begin  //modo seleccionando multiples formas
-      x2Sel := X;
-      y2Sel := Y;
-      //verifica los que se encuentran seleccionados
-      if objetos.Count < 100 Then begin//sólo anima para pocos objetos
-          for s In objetos do begin
-            if s.SelLocked then continue;
-            if enRecSeleccion(s.XCent, s.YCent) And Not s.Selected Then begin
-              s.Selec;
-            End;
-            if Not enRecSeleccion(s.XCent, s.YCent) And s.Selected Then begin
-              s.Deselec;
-            end;
-          end;
-      End;
-      Refrescar
-  end Else If EstPuntero = EP_MOV_OBJS then begin  //mueve la selección
-      Modif := True;
-      for s in seleccion do
-          s.Mover(x,y, seleccion.Count);
-      Refrescar;
-  end Else If EstPuntero = EP_DIMEN_OBJ then begin
-debugln('EP_DIMEN_OBJ');
-      //Se está dimensionando un objeto, moviendeo un punto de control
-      CapturoEvento.Mover(X, Y, seleccion.Count);
-      Refrescar;
-  end Else
-      If CapturoEvento <> NIL Then begin
-         CapturoEvento.Mover(X, Y, seleccion.Count);
-         Refrescar;
-      end Else begin  //Movimiento simple
-          s := VerificarMovimientoRaton(X, Y);
-          if s <> NIL then s.MouseMove(Sender, Shift, X, Y);  //pasa el evento
-      end;
-end;
 procedure TModEdicion.Paint(Sender: TObject);
 var
   o:TObjGraf;
@@ -470,7 +338,8 @@ begin
       if s.Proceso Then begin  //este objeto proceso el evento
           CapturoEvento := s;
           if s.Resizing then begin
-            EstPuntero := EP_DIMEN_OBJ
+            EstPuntero := EP_DIMEN_OBJ;
+            curPntCtl := s.curPntCtl;
           end else begin
             EstPuntero := EP_NORMAL;
           end;
@@ -495,6 +364,150 @@ begin
     EstPuntero := EP_MOV_OBJS;
     CapturoEvento := nil;      //ningún objeto capturo el evento
     ParaMover := False;        //para que ya no se llame otra vez
+end;
+procedure TModEdicion.MouseMove(Sender: TObject; Shift: TShiftState;
+  xp,  yp: Integer);
+var
+  s: TObjGraf;
+  selPntCnx: TPtoConx;
+begin
+  if OnMouseMove<>nil then OnMouseMove(Sender, Shift, xp, yp);
+  If Shift = [ssCtrl, ssShift, ssRight] Then  //<Shift>+<Ctrl> + <Botón derecho>
+     begin
+      EstPuntero := EP_DESP_PANT;
+      ScrollDesp(x_pulso - xp, y_pulso - yp);
+      Refrescar;
+      Exit;
+     End;
+  If ParaMover = True Then VerificarParaMover(xp, yp);
+  If EstPuntero = EP_SELECMULT then begin  //modo seleccionando multiples formas
+      x2Sel := xp;
+      y2Sel := yp;
+      //verifica los que se encuentran seleccionados
+      if objetos.Count < 100 Then begin//sólo anima para pocos objetos
+          for s In objetos do begin
+            if s.SelLocked then continue;
+            if enRecSeleccion(s.XCent, s.YCent) And Not s.Selected Then begin
+              s.Selec;
+            End;
+            if Not enRecSeleccion(s.XCent, s.YCent) And s.Selected Then begin
+              s.Deselec;
+            end;
+          end;
+      End;
+      Refrescar
+  end Else If EstPuntero = EP_MOV_OBJS then begin  //mueve la selección
+      Modif := True;
+      for s in seleccion do
+          s.MouseMove(xp,yp, seleccion.Count);
+      Refrescar;
+  end Else If EstPuntero = EP_DIMEN_OBJ then begin
+      selPntCnx := SelectPointOfConexion(xp, yp);
+      if selPntCnx <> nil then begin
+         //Engancha la coordenada de pantalla al punto de control
+         v2d.XYpant(selPntCnx.x, selPntCnx.y, xp, yp);
+      end;
+      //Se está dimensionando un objeto, moviendo un punto de control
+      CapturoEvento.MouseMove(xp, yp, seleccion.Count);
+      Refrescar;
+  end else begin
+      if CapturoEvento <> NIL then begin
+         CapturoEvento.MouseMove(xp, yp, seleccion.Count);
+         Refrescar;
+      end else begin  //Movimiento simple
+          s := VerificarMovimientoRaton(xp, yp);
+          if s <> NIL then s.MouseOver(Sender, Shift, xp, yp);  //pasa el evento
+      end;
+  end;
+end;
+procedure TModEdicion.MouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; xp, yp: Integer);
+var o: TObjGraf;
+  selPntCnx: TPtoConx;
+begin
+    //Verifica si la selección es NULA
+    If (EstPuntero = EP_SELECMULT) And RecSeleccionNulo Then EstPuntero := EP_NORMAL;
+    //Procesa de acuerdo al estado
+    Case EstPuntero of
+    EP_RAT_ZOOM  : begin   //------ Zoom con el Ratón ------
+        If Button = mbLeft Then AmpliarClick(1.2, xp, yp) ;  //<Shift> + <Ctrl> + click izquierdo
+        If Button = mbRight Then ReducirClick(1.2, xp, yp) ;  //<Shift> + <Ctrl> + click derecho
+//      EstPuntero = EP_NORMAL   //Legalmente debería ponerse a normal. Pero si se
+                                 //hace, es posible que un click consecutivo muy
+                                 //rápido, no dispare el evento MouseDown (dispara
+                                 //el DblClick en su lugar), y se desactivaría el
+                                 //modo ZOOM lo que es molesto.
+      end;
+    EP_DESP_PANT : begin    //------ Desplazamiento de Pantalla ------
+        EstPuntero := EP_NORMAL;
+      end;
+    EP_MOV_OBJS  : begin    //------ Moviendo Objetos ------
+//Debug.Print "Esatado EP_MOV_OBJS"
+        For o In seleccion do  //Pasa el evento a la selección
+            o.MouseUp(Sender, Button, Shift, xp, yp, EstPuntero = EP_MOV_OBJS);
+        EstPuntero := EP_NORMAL;  //fin de movimiento
+        Refrescar;
+        //Genera eventos. Los objetos movidos se pueden determinar a partir de la selección.
+        if OnObjectsMoved<>nil then OnObjectsMoved;
+      end;
+    EP_SELECMULT : begin //------ En selección múltiple, Botón izquierdo o derecho
+        if objetos.Count > 100 Then begin  //Necesita actualizar porque la selección múltiple es diferente
+          for o in objetos do
+            if enRecSeleccion(o.XCent, o.YCent) And Not o.Selected Then o.Selec;
+        end;
+        EstPuntero := EP_NORMAL;
+      end;
+    EP_NORMAL    : begin //------ En modo normal
+        o := SeleccionaAlguno(xp, yp);  //verifica si selecciona a un objeto
+        If Button = mbRight Then //----- solto derecho -------------------
+          begin
+(*            If o = NIL Then  //Ninguno Selected
+                RaiseEvent ClickDerDiag    //Genera evento
+            Else    ;  //Hay uno que lo selecciona, o más???
+                If Not o.Seleccionado Then Call o.SoltoRaton(Button, Shift, xr, yr)    ;  //Pasa el evento
+                RaiseEvent ClickDerSel     //Genera evento
+            End If*)
+          end
+        else If Button = mbLeft Then begin //----- solto izquierdo -----------
+            If o = NIL Then    //No selecciona a ninguno
+//                Call UnselectAll
+            else begin         //Selecciona a alguno
+                If Shift = [] Then UnselectAll;
+                o.Selec;   //selecciona
+                o.MouseUp(Sender, Button, Shift, xp, yp, false);
+                Refrescar;
+                //verifica si el objeto está piddiendo que lo eliminen
+                if o.Erased then begin
+                  DeleteGraphObject(o);
+                  Refrescar;
+                end;
+            End;
+            CapturoEvento := NIL;      //inicia bandera de captura de evento
+            ParaMover := False;        //por si aca
+        end;
+      end;
+    EP_DIMEN_OBJ : begin  //Se soltó mientras se estaba dimensionado un objeto
+        //Pasa evento a objeto que se estaba dimensionando
+        CapturoEvento.MouseUp(Sender, Button, Shift, xp, yp, false);
+        //termina estado
+        EstPuntero := EP_NORMAL;
+        CapturoEvento := NIL;      //inicia bandera de captura de evento
+        ParaMover := False;        //por si aca
+        //Verifica el enganche de los puntos de conexión
+        selPntCnx := SelectPointOfConexion(xp, yp);
+        if selPntCnx <> nil then begin
+           //Engancha la coordenada de pantalla al punto de control
+           //v2d.XYpant(selPntCnx.x, selPntCnx.y, x, y);
+debugln('hooked');
+          selPntCnx.ConnectTo(curPntCtl);
+        end;
+      end;
+    End;
+    if OnMouseUp<>nil then OnMouseUp(Sender, Button, Shift, xp, yp);
+    if Button = mbRight then
+      if OnMouseUpRight<> nil then OnMouseUpRight(Shift, xp,yp);  //evento
+    if Button = mbLeft then
+      if OnMouseUpLeft<> nil then OnMouseUpLeft(Shift, xp,yp);  //evento
 End;
 procedure TModEdicion.KeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
@@ -924,7 +937,7 @@ End;
 procedure TModEdicion.DibujRecSeleccion;
 //Dibuja por métodos gráficos el rectángulo de selección en pantalla
 begin
-    v2d.FijaLapiz(psDot, 1, clGreen);
+    v2d.SetPen(psDot, 1, clGreen);
     v2d.rectang0(x1Sel, y1Sel, x2Sel, y2Sel);
 
     x1Sel_a := x1Sel; y1Sel_a := y1Sel;

@@ -43,7 +43,7 @@ implementation
 
 procedure TMiObjeto.Dibujar();
 begin
-  v2d.FijaLapiz(psSolid, 1, clBlack);
+  v2d.SetPen(psSolid, 1, clBlack);
   v2d.RectangR(x, y, x+width, y+height);
   inherited;
 end;
@@ -55,7 +55,7 @@ begin
   motEdi := TModEdicion.Create(PaintBox1);
   //agrega objeto
   og := TMiObjeto.Create(motEdi.v2d);
-  motEdi.AgregarObjGrafico(og);
+  motEdi.AddGraphObject(og);
 end;
 
 end.

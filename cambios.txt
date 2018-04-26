@@ -1,3 +1,11 @@
+2.3
+===
+Se cambia de nombre a TObjGraf.pCtl por TObjGraf.curPntCtl.
+Se cambia de nombre a TObjGraf.MouseMove() por TObjGraf.MouseOver()
+Se cambia de nombre a TObjGraf.Mover() por TObjGraf.MouseMove()
+Se implementa el autoenganche de los puntos de control 1D a los puntos de conexión.
+Se implementa el desenganche cuando se mueve el punto de control 1D, o se mueve el objeto.
+
 2.2
 ===
 Se implementa finalmente el dimensionamiento de formas en 1D.
