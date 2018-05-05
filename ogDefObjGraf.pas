@@ -256,7 +256,6 @@ Las coordenadas son de pantalla.}
 const
   DSEL = 5;
 var
-  a, b: Single;
   dx, dy: Int16;
    //tolerancia en pixeles
 begin
@@ -522,13 +521,10 @@ end;
 procedure TPtoConx.Mover(xr, yr: Integer);
 //Realiza el cambio de las variables indicadas de acuerdo al tipo de control y a
 //las variaciones indicadas (dx, dy)
-var
- dx, dy: Single;
 begin
   if not visible then exit;    //validación
-  dx := (xr - Xant) / v2d.Zoom;     //obtiene desplazamiento absoluto
-  dy := (yr - Yant) / v2d.Zoom;     //obtiene desplazamiento absoluto
-
+//  dx := (xr - Xant) / v2d.Zoom;     //obtiene desplazamiento absoluto
+//  dy := (yr - Yant) / v2d.Zoom;     //obtiene desplazamiento absoluto
 //  Xant := xr; Yant := yr;   //actualiza coordenadas
 end;
 function TPtoConx.LoSelec(xp, yp: Integer; accuracy: integer = 0): boolean;
