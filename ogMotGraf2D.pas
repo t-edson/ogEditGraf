@@ -90,7 +90,7 @@ TMotGraf = class
   procedure GuardarPerspectivaEn(var p: TPerspectiva);
   procedure LeePerspectivaDe(p: TPerspectiva);
 
-  procedure FijarVentana(ScaleWidth, ScaleHeight: Real; xMin, xMax, yMin, yMax: Real);
+  procedure SetWindow(ScaleWidth, ScaleHeight: Real; xMin, xMax, yMin, yMax: Real);
   procedure Desplazar(dx, dy: Integer);
   procedure ObtenerDesplaz2(xr, yr: Integer; Xant, Yant: Integer; out dx,
     dy: Single);
@@ -682,7 +682,7 @@ begin
     xv := Xvirt(xp, yp);
     yv := Yvirt(yp, yp);
 End;
-procedure TMotGraf.FijarVentana(ScaleWidth, ScaleHeight: Real;
+procedure TMotGraf.SetWindow(ScaleWidth, ScaleHeight: Real;
                xMin, xMax, yMin, yMax: Real);
 //Fija las coordenadas de pantalla de manera que se ajusten a las nuevas que se dan
 //Recibe coordenadas virtuales

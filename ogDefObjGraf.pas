@@ -141,6 +141,7 @@ type
     tipPuntero : Integer;  //Tipo de puntero
   public
     ptosControl: TPtosControl;  //Puntos de control a los que se encuentar enganchado.
+    data     : TObject;         //Unused field. Can be used for teh user.
     procedure ConnectTo(pCtl: TPtoCtrl);
     procedure DisconnectFrom(pCtl: TPtoCtrl);
   public //Inicialización

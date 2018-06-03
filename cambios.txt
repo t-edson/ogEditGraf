@@ -1,3 +1,8 @@
+2.4
+===
+Se crea el campo TPtoConx.data, como campopara el usuario.
+Se cambai el nombre de TMotGraf.FijarVentana por TMotGraf.SetWindow.
+
 2.3
 ===
 Se cambia de nombre a TObjGraf.pCtl por TObjGraf.curPntCtl.
