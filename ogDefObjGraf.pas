@@ -132,16 +132,18 @@ type
   TPtoConx = class(TObjVsible)
   public
     xFac, yFac: Single;  //Posición con respecto al objeto contenedor (procentaje de ancho y alto)
-    procedure Draw();
+    procedure Draw;
+    procedure Mark;
     procedure StartMove(xr, yr: Integer; xIni, yIni, widthIni, heightIni: Single);
     procedure Mover(xr, yr: Integer);  //Dimensiona las variables indicadas
     function LoSelec(xp, yp: Integer; accuracy: integer=0): boolean;
     procedure Locate(x0, y0: Single); override;
   private
-    tipPuntero : Integer;  //Tipo de puntero
+    pointerTyp : Integer;  //Tipo de puntero
   public
+    Marked     : boolean;  //Indica que el punto debe marcarse porqu el ratón pasó por encima
     ptosControl: TPtosControl;  //Puntos de control a los que se encuentar enganchado.
-    data     : TObject;         //Unused field. Can be used for teh user.
+    data       : TObject;         //Unused field. Can be used for teh user.
     procedure ConnectTo(pCtl: TPtoCtrl);
     procedure DisconnectFrom(pCtl: TPtoCtrl);
   public //Inicialización
@@ -170,15 +172,12 @@ type
   public
     behav : TBehave;  //Indica si la forma es de 1D o 2D.
     Name        : String;    //Identificación del objeto
-    Marcado     : Boolean;   //Indica que está marcado, porque el ratón pasa por encima
+    Marked      : Boolean;   //Indica que está marcado, porque el ratón pasa por encima
     DibSimplif  : Boolean;   //Indica que se está en modo de dibujo simplificado
     Highlight   : Boolean;   //Indica si permite el resaltado del objeto
     SizeLocked  : boolean;   //Protege al objeto de redimensionado
     PosLocked   : Boolean;   //Indica si el objeto está bloqueado para movimiento
     SelLocked   : Boolean;   //Indica si el objeto está bloqueado para selección
-    Tipo        : Integer;   //Tipo de objeto. No usado por la librería. Queda para el usuario.
-    Data        : string;    //Dato adicional. No usado por la librería. Queda para el usuario.
-    Obj         : pointer;   //Dato adicional. No usado por la librería. Queda para el usuario.
     Relleno     : TColor;    //Color de relleno
     Proceso     : Boolean;   //Bandera
     Resizing    : boolean;   //Indica que el objeto está dimensionándose
@@ -199,6 +198,10 @@ type
     procedure MouseOver(Sender: TObject; Shift: TShiftState; xp, yp: Integer); virtual;
     procedure MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer;
                  MousePos: TPoint; var Handled: Boolean); virtual;
+  public
+    Tipo        : Integer;   //Tipo de objeto. No usado por la librería. Queda para el usuario.
+    Data        : string;    //Dato adicional. No usado por la librería. Queda para el usuario.
+    Obj         : pointer;   //Dato adicional. No usado por la librería. Queda para el usuario.
   public //Posición y Tamaño
     procedure ReLocate(newX, newY: Single; UpdatePCtrls: boolean=true); virtual;
     procedure ReSize(newWidth, newHeight: Single; UpdatePCtrls: boolean=true);
@@ -236,7 +239,8 @@ type
     ShowPtosConex: boolean;   //Indica si se mostrarán los puntos de conexión
     PtosConex  : TPtosConex;  //Lista de puntos de conexión
     function AddPtoConex(xOff, yOff: Single): TPtoConx;
-    function SelecPtoConnection(xp, yp: integer; accuracy: integer=0): TPtoConx;
+    function SelectConnectionPoint(xp, yp: integer; accuracy: integer=0): TPtoConx;
+    function MarkConnectionPoint(xp, yp: integer; accuracy: integer = 0): TPtoConx;
   public //Inicialización
     constructor Create(mGraf: TMotGraf); virtual;
     destructor Destroy; override;
@@ -498,8 +502,8 @@ begin
   fy :=0;
 end;
 //////////////////////////////  TPtoConx //////////////////////////////
-procedure TPtoConx.Draw();
-//Dibuja el Punto de control en la posición definida
+procedure TPtoConx.Draw;
+//Draw the Connection point.
 var xp, yp: Integer;
 begin
   if not visible then exit;    //validación
@@ -507,6 +511,15 @@ begin
   v2d.SetLine(clBlue);
   v2d.Linea0(xp - ANC_PCN2+1, yp - ANC_PCN2+1, xp + ANC_PCN2, yp + ANC_PCN2);
   v2d.Linea0(xp - ANC_PCN2+1, yp + ANC_PCN2-1, xp + ANC_PCN2, yp - ANC_PCN2);
+end;
+procedure TPtoConx.Mark;
+{Draw a Connection point highlighted.}
+var xp, yp: Integer;
+begin
+  if not visible then exit;    //validación
+  v2d.XYpant(fx, fy, xp, yp);      //obtiene coordenadas de pantalla
+  v2d.SetLine(clBlue, 2);
+  v2d.rectang(xp - ANC_PCN2, yp - ANC_PCN2, xp + ANC_PCN2+1, yp + ANC_PCN2+1);
 end;
 procedure TPtoConx.StartMove(xr, yr: Integer; xIni, yIni, widthIni, heightIni: Single);
 //Procedimiento para procesar el evento StartMove del punto de control
@@ -570,7 +583,7 @@ begin
   visible := true;             //lo hace visible
   fx :=0;
   fy :=0;
-  tipPuntero := crSizeNW;  //No se usa
+  pointerTyp := crSizeNW;  //No se usa
   {Crea lista para los puntos de control 1D que engancha. Pero solo gaurdará referencias
    no eliminará los objetos.}
   ptosControl:= TPtosControl.Create(false);
@@ -694,7 +707,7 @@ var
   pcn : TPtoConx;
 begin
   //---------------dibuja remarcado --------------
-  if Marcado and Highlight then begin
+  if Marked and Highlight then begin
     v2d.SetPen(psSolid, 2, clBlue);   //RGB(128, 128, 255)
     v2d.rectang(fx - tm, fy - tm, fx + width + tm, fy + height + tm);
   end;
@@ -710,6 +723,9 @@ begin
   if ShowPtosConex then begin
      for pcn in PtosConex do pcn.Draw;
   end;
+  //if MarkConnectPoints then begin
+    for pcn in PtosConex do if pcn.Marked then pcn.Mark;
+  //end
 end;
 procedure TObjGraf.MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
 //Metodo que funciona como evento "MouseDown"
@@ -975,7 +991,7 @@ begin
   Result.y := x + yOff;
   PtosConex.Add(Result);
 end;
-function TObjGraf.SelecPtoConnection(xp, yp: integer; accuracy: integer = 0): TPtoConx;
+function TObjGraf.SelectConnectionPoint(xp, yp: integer; accuracy: integer = 0): TPtoConx;
 {Indica si las coordenadas de pantalla, seleccionan a un Punto de conexión. De ser así
 devuelve la referencia al punto de COnexión, de otra forma devuevlve NIL.}
 var
@@ -983,10 +999,36 @@ var
 begin
   Result := Nil;      //valor por defecto
   for pcnx in PtosConex do begin
-      if pcnx.LoSelec(xp, yp, accuracy) then begin
-          Result := pcnx;
-          exit;
-      end;
+     if pcnx.LoSelec(xp, yp, accuracy) then begin
+        Result := pcnx;
+        exit;
+     end;
+  end;
+end;
+function TObjGraf.MarkConnectionPoint(xp, yp: integer; accuracy: integer = 0): TPtoConx;
+{Explore the object and mark (set flag .Mark) the Connection point selected.
+Only one Connection point can be marked. Return the Connection point selected.}
+var
+  pcnx: TPtoConx;
+  found: Boolean;
+begin
+  Result := nil;      //valor por defecto
+  found := false;
+  for pcnx in PtosConex do begin
+     if found then begin
+       //Already found. Clear because only one point can be selected.
+       pcnx.Marked := false;
+     end else begin
+       //Find
+       if pcnx.LoSelec(xp, yp, accuracy) then begin
+         pcnx.Marked := true;
+         Result := pcnx;
+         found := true;
+       end else begin
+         //Clear flag in case it was set before
+         pcnx.Marked := false;
+       end;
+     end;
   end;
 end;
 //Inicialización
@@ -1004,7 +1046,7 @@ begin
   PtosControl2:= TPtosControl.Create(True);   //Crea lista con administración de objetos
   PtosConex  := TPtosConex.Create(true);
   Selected   := False;
-  Marcado    := False;
+  Marked    := False;
   Proceso    := false;
   DibSimplif := false;
   Highlight  := true;

@@ -109,8 +109,9 @@ type
     x_cam_a: Single;  //coordenadas anteriores de x_cam
     y_cam_a: Single;
     procedure InicMover;
-    function SeleccionaAlguno(xp, yp: Integer): TObjGraf;
+    function SelectSomeObject(xp, yp: Integer): TObjGraf;
     function SelectPointOfConexion(xp, yp: Integer): TPtoConx;
+    function MarkConnectionPoint(xp, yp: Integer): TPtoConx;
   protected  // Funciones para administrar los elementos visibles y seleccion por teclado
     function NumeroVisibles: Integer;
     function PrimerVisible: TObjGraf;
@@ -129,7 +130,8 @@ type
     procedure UnselectAll;
     function Selected: TObjGraf;
   protected  //Resaltado de Objetos
-    ultMarcado   : TObjGraf;      //Nombre del objeto marcado
+    lastMarked   : TObjGraf;      //Nombre del objeto marcado
+    lastCnxPnt   : TPtoConx;
     function VerificarMovimientoRaton(X, Y: Integer): TObjGraf;
   protected  //Desplazamiento de pantalla
     procedure Desplazar(dx, dy: integer);
@@ -169,7 +171,7 @@ procedure TModEdicion.MouseDownRight(Sender: TObject; Button: TMouseButton;
 var
   ogs: TObjGraf;
 begin
-  ogs := SeleccionaAlguno(xp, yp);  //verifica si selecciona a un objeto
+  ogs := SelectSomeObject(xp, yp);  //verifica si selecciona a un objeto
   if ogs = nil Then begin  //Ninguno Selected
       UnselectAll;
       Refrescar;
@@ -196,7 +198,7 @@ procedure TModEdicion.MouseDownLeft(Sender: TObject; Button: TMouseButton;
 var
   ogs: TObjGraf;
 begin
-  ogs := SeleccionaAlguno(xp, yp);  //verifica si selecciona a un objeto
+  ogs := SelectSomeObject(xp, yp);  //verifica si selecciona a un objeto
   if ogs = nil then  begin  //No selecciona a ninguno
       UnselectAll;
       Refrescar;
@@ -261,7 +263,7 @@ procedure TModEdicion.PBMouseWheel(Sender: TObject; Shift: TShiftState;
 var
   ogs: TObjGraf;
 begin
-  ogs := SeleccionaAlguno(MousePos.x, MousePos.y);  //verifica si selecciona a un objeto
+  ogs := SelectSomeObject(MousePos.x, MousePos.y);  //verifica si selecciona a un objeto
   if ogs=nil then begin
     //debe desplazar la pantalla
   end else begin
@@ -284,7 +286,7 @@ begin
     x_cam_a := v2d.x_cam;
     y_cam_a := v2d.y_cam;
 end;
-function TModEdicion.SeleccionaAlguno(xp, yp: Integer): TObjGraf;
+function TModEdicion.SelectSomeObject(xp, yp: Integer): TObjGraf;
 //Rutina principal para determinar la selección de objetos. Si (xp,yp)
 //selecciona a algún objeto, devuelve la referencia, sino devuelve "NIL"
 var
@@ -294,7 +296,7 @@ begin
   //Verifica primero entre los que están seleccionados
   Result := NIL; //valor por defecto
   //Explora objetos priorizando los que están encima
-  For i := seleccion.Count-1 downTo 0 do begin
+  for i := seleccion.Count-1 downTo 0 do begin
     s := seleccion[i];
     If not s.SelLocked and s.LoSelecciona(xp, yp) Then begin
         Result:= s;
@@ -302,7 +304,7 @@ begin
     End;
   end;
   //Explora objetos priorizando los que están encima
-  For i := objetos.Count-1 downTo 0 do begin
+  for i := objetos.Count-1 downTo 0 do begin
     s := objetos[i];
     If not s.SelLocked and s.LoSelecciona(xp, yp) Then begin
         Result := s;
@@ -311,17 +313,32 @@ begin
   end;
 End;
 function TModEdicion.SelectPointOfConexion(xp, yp: Integer): TPtoConx;
-{Inidca si la coordenada indicada seleciona (está cerca) a algún punto de conexión
+{Indica si la coordenada indicada seleciona (está cerca) a algún punto de conexión
 de cualquier objeto gráfico.
 Si encuentra algún Punto de Conexión cerca, devuelve la referencia.}
 var
-  s: TObjGraf;
+  og: TObjGraf;
   pcnx: TPtoConx;
 begin
   Result := nil;
-  for s In objetos do begin
-    pcnx := s.SelecPtoConnection(xp, yp, 5);
+  for og In objetos do begin
+    pcnx := og.SelectConnectionPoint(xp, yp, 5);
     if pcnx<>nil then exit(pcnx);
+  end;
+end;
+function TModEdicion.MarkConnectionPoint(xp, yp: Integer): TPtoConx;
+{Mark the Connection point selected by (X,Y) if someone is selected.
+Return the COnnection point selected if some is selected.}
+var
+  og: TObjGraf;
+  pCnx: TPtoConx;
+begin
+  Result := nil;
+  for og In objetos do begin
+    pCnx := og.MarkConnectionPoint(xp, yp, 5);
+    if pCnx<>nil then begin
+      Result := pCnx;
+    end;
   end;
 end;
 procedure TModEdicion.VerificarParaMover(xp, yp: Integer);
@@ -458,7 +475,7 @@ begin
         EstPuntero := EP_NORMAL;
       end;
     EP_NORMAL    : begin //------ En modo normal
-        o := SeleccionaAlguno(xp, yp);  //verifica si selecciona a un objeto
+        o := SelectSomeObject(xp, yp);  //verifica si selecciona a un objeto
         If Button = mbRight Then //----- solto derecho -------------------
           begin
 (*            If o = NIL Then  //Ninguno Selected
@@ -617,7 +634,7 @@ begin
   EstPuntero := EP_NORMAL;
   ParaMover := false;
   CapturoEvento := nil;
-  ultMarcado := nil;     //por si había alguno marcado
+  lastMarked := nil;     //por si había alguno marcado
   Modif := true;    //indica que se modificó
 //    DeleteGraphObject(o);
   PB.Cursor := CUR_DEFEC;        //define cursor
@@ -840,43 +857,48 @@ End;
 function TModEdicion.VerificarMovimientoRaton(X, Y: Integer): TObjGraf;
 //Anima la marcación de los objetos cuando el ratón pasa encima de ellos
 //Devuelve referencia al objeto por el que pasa el cirsor
-var s: TObjGraf;
+var sel: TObjGraf;
+  selPntCnx, pCnx: TPtoConx;
 begin
-
-    s := SeleccionaAlguno(X, Y);    //verifica si selecciona a un objeto
-    Result := s;  //devuelve referencia
-//    If Not s = NIL Then
-//        If s.Id = ID_CONECTOR Then  ;  //Or s.Seleccionado
-//            Set s = Nothing  ;  //no válido para conectores
-//        End If
-//    End If
+    sel := SelectSomeObject(X, Y);    //verifica si selecciona a un objeto
+    Result := sel;  //Devuelve referencia
     //Se refresca la pantalla optimizando
-    if s = NIL then begin  //No hay ninguno por marcar
-      if ultMarcado <> NIL then begin
-            //Si ya había uno marcado, se actualiza el dibujo y la bandera
-            ultMarcado.Marcado := False;  //se desmarca
-            ultMarcado := NIL;
-            Refrescar;
-        End;
+    if sel = NIL then begin  //No hay ninguno por marcar
+      if lastMarked <> NIL then begin
+         //Si ya había uno marcado, se actualiza el dibujo y la bandera
+         lastMarked.Marked := False;  //se desmarca
+         lastMarked := NIL;
+         Refrescar;
+      end;
       PB.Cursor := CUR_DEFEC;   //restaura cursor
     end else begin   //Hay uno por marcar
-      if ultMarcado = NIL then begin
+      if lastMarked = NIL then begin
          //No había ninguno marcado
-         ultMarcado := s;      //guarda
-         s.Marcado := True;    //lo marca
+         lastMarked := sel;      //guarda
+         sel.Marked := True;    //lo marca
          Refrescar;            //y se dibuja
       end else begin  //ya había uno marcado
-           if ultMarcado = s Then  //es el mismo
-               //no se hace nada
-           else begin    //había otro marcado
-               ultMarcado.Marcado := False;  //se desmarca
-               ultMarcado := s ;   //actualiza
-               s.Marcado := True;
-               Refrescar;          //y se dibuja
-           end;
+         if lastMarked = sel Then  //es el mismo
+            //no se hace nada
+         else begin    //había otro marcado
+            lastMarked.Marked := False;  //se desmarca
+            lastMarked := sel ;   //actualiza
+            sel.Marked := True;
+            Refrescar;          //y se dibuja
+         end;
         end;
     end;
-End;
+    {Verifica si se pasa por un Punto de Control y lo pone como "Marked = true".
+    Aquí se usa una técncia distinta. Se exploran todos los puntos de conexión y
+    se marca solo el que es seleccionado por (x,y), poniendo los demas desmarcados.
+    Tal vez se debería elegir la misma técnica para el marcado de objetos }
+    pCnx := MarkConnectionPoint(X, Y);
+    if lastCnxPnt <> pCnx then begin
+      //Refresh only when changes
+      Refrescar;
+    end;
+    lastCnxPnt := pCnx;
+end;
 //Desplazamiento de pantalla
 procedure TModEdicion.Desplazar(dx, dy: integer);
 begin
@@ -1155,7 +1177,7 @@ begin
   EstPuntero := EP_NORMAL;
   ParaMover := false;
   CapturoEvento := NIL;
-  ultMarcado := NIL;
+  lastMarked := NIL;
   Modif := False;   //Inicialmente no modificado
 
   PB.Cursor := CUR_DEFEC;        //define cursor

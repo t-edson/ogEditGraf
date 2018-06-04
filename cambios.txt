@@ -1,7 +1,9 @@
 2.4
 ===
 Se crea el campo TPtoConx.data, como campopara el usuario.
-Se cambai el nombre de TMotGraf.FijarVentana por TMotGraf.SetWindow.
+Se cambia el nombre de TMotGraf.FijarVentana por TMotGraf.SetWindow.
+Se cambia el nombre de TMotGraf.SeleccionaAlguno por TMotGraf.SelectSomeObject.
+Se cambai el nombre de TObjGraf.Marcado por TobjGraf.Marked.
 
 2.3
 ===
