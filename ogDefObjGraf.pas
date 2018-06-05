@@ -90,13 +90,14 @@ type
     );
 
   TPtoCtrl = class;
+  TPtoConx = class;
   //Eventos para dimensionar forma
   TEvReqDimen2D = procedure(newX, newY, newWidth, newHeight: Single) of object;
   TEvPCReqPosiiton = procedure(target: TPtoCtrl; dx, dy: Single; wishX, wishY: Single) of object;
+  TEvPCconnect = procedure(pCtl: TPtoCtrl; pCnx: TPtoConx) of object;
 
   TPtoCtrlIco = (pciSquare, pciCircle);
   TObjGraf = class;
-  TPtoConx = class;
 
   { TPtoCtrl }
   {Define al objeto Punto de Control.}
@@ -111,6 +112,8 @@ type
     mousePtr  : TCursor;       //Tipo de puntero del mouse
     Parent    : TObjGraf;      //Referencia al objeto contenedor
     OnChangePosition: TEvPCReqPosiiton;  //Requiere dimensionamiento en modo 1D
+    OnConnect : TEvPCconnect;  //Se conecta a un punto de conexión
+    OnDisconnect:TEvPCconnect; //Se desconecta de un punto de conexión
     ConnectedTo: TPtoConx;     //Punto de conexión al cual se encuentra conectado
     procedure Disconnect;
     property Quadrant: byte read GetQuadrant write SetQuadrant;
@@ -142,10 +145,12 @@ type
     pointerTyp : Integer;  //Tipo de puntero
   public
     Marked     : boolean;  //Indica que el punto debe marcarse porqu el ratón pasó por encima
-    ptosControl: TPtosControl;  //Puntos de control a los que se encuentar enganchado.
-    data       : TObject;         //Unused field. Can be used for teh user.
+    ptosControl: TPtosControl; //Puntos de control a los que se encuentar enganchado.
+    Parent     : TObjGraf;     //Reference to object container
+    data       : TObject;      //Unused field. Can be used for teh user.
     procedure ConnectTo(pCtl: TPtoCtrl);
     procedure DisconnectFrom(pCtl: TPtoCtrl);
+    procedure Disconnect;
   public //Inicialización
     x0, y0, width0, height0: Single;  //valores objetivo para las dimensiones
     constructor Create(mGraf: TMotGraf; EvenPCdim0: TEvReqDimen2D);
@@ -216,7 +221,7 @@ type
     OnCamPunt : TEventCPunt;
   public //Puntos de Control
     curPntCtl   : TPtoCtrl;  //Punto de Control actual
-  protected
+  public
     {Los puntos de control son los que se pueden mover independientemente y tienen
     efecto sobre la posición y/o el tamaño de la forma.}
     //Puntos de control por defecto
@@ -241,6 +246,8 @@ type
     function AddPtoConex(xOff, yOff: Single): TPtoConx;
     function SelectConnectionPoint(xp, yp: integer; accuracy: integer=0): TPtoConx;
     function MarkConnectionPoint(xp, yp: integer; accuracy: integer = 0): TPtoConx;
+    procedure ClearMarkConnectionPoints;
+    function ConnectionPointMarked: TPtoConx;
   public //Inicialización
     constructor Create(mGraf: TMotGraf); virtual;
     destructor Destroy; override;
@@ -403,7 +410,6 @@ procedure TPtoCtrl.Disconnect;
 {Desconecta la el punto de control al punto de conexión que pudiera estar ligado.}
 begin
   if ConnectedTo<>nil then begin
-debugln('unhook');
      ConnectedTo.DisconnectFrom(self);
      ConnectedTo := nil;
   end;
@@ -519,7 +525,7 @@ begin
   if not visible then exit;    //validación
   v2d.XYpant(fx, fy, xp, yp);      //obtiene coordenadas de pantalla
   v2d.SetLine(clBlue, 2);
-  v2d.rectang(xp - ANC_PCN2, yp - ANC_PCN2, xp + ANC_PCN2+1, yp + ANC_PCN2+1);
+  v2d.rectang(xp - ANC_PCN2-1, yp - ANC_PCN2-1, xp + ANC_PCN2+2, yp + ANC_PCN2+2);
 end;
 procedure TPtoConx.StartMove(xr, yr: Integer; xIni, yIni, widthIni, heightIni: Single);
 //Procedimiento para procesar el evento StartMove del punto de control
@@ -568,14 +574,29 @@ begin
   end;
 end;
 procedure TPtoConx.ConnectTo(pCtl: TPtoCtrl);
+{Conecta a un punto de control.}
 begin
   ptosControl.Add(pCtl);
   pCtl.ConnectedTo := self;
+  if pCtl.OnConnect<>nil then pCtl.OnConnect(pCtl, self);
 end;
 procedure TPtoConx.DisconnectFrom(pCtl: TPtoCtrl);
+{Se desconecta de un punto de control.}
 begin
   pCtl.ConnectedTo := nil;
   ptosControl.Remove(pCtl);
+  if pCtl.OnDisconnect<>nil then pCtl.OnDisconnect(pCtl, self);
+end;
+procedure TPtoConx.Disconnect;
+{Se desconecta de todos los puntos de control a los que se enuentra conectado.}
+var
+  pCtl: TPtoCtrl;
+begin
+  //Usa while porque va a eliminar elementor
+  while ptosControl.Count>0 do begin
+    pCtl := ptosControl[0];
+    DisconnectFrom(pCtl)
+  end;
 end;
 constructor TPtoConx.Create(mGraf: TMotGraf; EvenPCdim0: TEvReqDimen2D);
 begin
@@ -989,6 +1010,7 @@ begin
   //Actualiza coordenadas absolutas
   Result.x := x + xOff;
   Result.y := x + yOff;
+  Result.Parent := self;
   PtosConex.Add(Result);
 end;
 function TObjGraf.SelectConnectionPoint(xp, yp: integer; accuracy: integer = 0): TPtoConx;
@@ -1031,6 +1053,26 @@ begin
      end;
   end;
 end;
+procedure TObjGraf.ClearMarkConnectionPoints;
+{Clear the mark for all the Connection points of the object}
+var
+  pcnx: TPtoConx;
+begin
+  for pcnx in PtosConex do begin
+    pcnx.Marked := false;
+  end;
+end;
+function TObjGraf.ConnectionPointMarked: TPtoConx;
+{Return the Connection point marked is one exists, otherwise return NIL.}
+var
+  pcnx: TPtoConx;
+begin
+  for pcnx in PtosConex do begin
+    if pcnx.Marked then exit(pcnx);
+  end;
+  exit(nil);
+end;
+
 //Inicialización
 constructor TObjGraf.Create(mGraf: TMotGraf);
 begin

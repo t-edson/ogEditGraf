@@ -1,9 +1,21 @@
 2.4
 ===
-Se crea el campo TPtoConx.data, como campopara el usuario.
+Se crea el campo TPtoConx.data, como campo para el usuario.
 Se cambia el nombre de TMotGraf.FijarVentana por TMotGraf.SetWindow.
 Se cambia el nombre de TMotGraf.SeleccionaAlguno por TMotGraf.SelectSomeObject.
-Se cambai el nombre de TObjGraf.Marcado por TobjGraf.Marked.
+Se cambia el nombre de TObjGraf.Marcado por TobjGraf.Marked.
+Se cambia el nombre de TObjGraf.SelecPtoConnection por SelectConnectionPoint.
+Se crean los métodos TObjGraf.MarkConnectionPoint, ObjGraf.PointConnectSelected
+y TObjGraf.ClearMarkConnectionPoints.
+Se crean los métodos TModEdicion.MarkConnectionPoint y TModEdicion.ConnectionPointMarked.
+Se crea el campo TPtoConex.Parent.
+Se implementa el resaltado de los puntos de conexión, cuando se pasa el puntero del 
+mouse sobre uno de ellos.
+Se crea el método TMotGraf.Ellipse().
+Se crean los eventos TPtoControl.OnConnect y TPtoControl.OnDisconnect.
+Se corrige TModEdicion.DeleteSelected. 
+Se corrige TModEdicion.DeleteGraphObject() para que quite las conexiones de los posibles 
+puntos de control enganchados.
 
 2.3
 ===

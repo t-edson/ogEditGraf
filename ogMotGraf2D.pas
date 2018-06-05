@@ -70,6 +70,7 @@ TMotGraf = class
   procedure RectRedonR(x1, y1, x2, y2: Single);
   procedure Barra(x1, y1, x2, y2: Single; colFon: TColor=-1);
   procedure Barra0(x1, y1, x2, y2: Integer; colFon: TColor);
+  procedure Ellipse(x1, y1, x2, y2: Single);
   procedure poligono(x1, y1, x2, y2, x3, y3: Single; x4: Single=-10000;
     y4: Single=-10000; x5: Single=-10000; y5: Single=-10000; x6: Single=-10000;
     y6: Single=-10000);
@@ -508,6 +509,11 @@ begin
     Canvas.Brush.Color := colFon;
     Canvas.FillRect(x1,y1,x2,y2); //fondo
 End;
+procedure TMotGraf.Ellipse(x1, y1, x2, y2: Single);
+begin
+  Canvas.Ellipse(XPant(x1), YPant(y1), XPant(x2), YPant(y2));
+end;
+
 (*
 Public Sub polilinea(x1 As Single, y1 As Single, _
                   x2 As Single, y2 As Single, _

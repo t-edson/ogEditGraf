@@ -129,6 +129,7 @@ type
     procedure SelectAll;
     procedure UnselectAll;
     function Selected: TObjGraf;
+    function ConnectionPointMarked: TPtoConx;
   protected  //Resaltado de Objetos
     lastMarked   : TObjGraf;      //Nombre del objeto marcado
     lastCnxPnt   : TPtoConx;
@@ -327,8 +328,8 @@ begin
   end;
 end;
 function TModEdicion.MarkConnectionPoint(xp, yp: Integer): TPtoConx;
-{Mark the Connection point selected by (X,Y) if someone is selected.
-Return the COnnection point selected if some is selected.}
+{Mark the Connection point selected by (X,Y) if some is selected, in wich case
+return the Connection point selected, otherwise returns NIL.}
 var
   og: TObjGraf;
   pCnx: TPtoConx;
@@ -341,6 +342,19 @@ begin
     end;
   end;
 end;
+function TModEdicion.ConnectionPointMarked: TPtoConx;
+{Return de Connection point marked is some exists, otherwise returms NIL}
+var
+  og: TObjGraf;
+  pCnx: TPtoConx;
+begin
+  for og In objetos do begin
+    pCnx := og.ConnectionPointMarked;
+    if pCnx<>nil then exit(pCnx);
+  end;
+  exit(nil);
+end;
+
 procedure TModEdicion.VerificarParaMover(xp, yp: Integer);
 {Si se empieza el movimiento, selecciona primero algun elemento que
 pudiera estar debajo del puntero y actualiza "EstPuntero".
@@ -514,8 +528,6 @@ begin
         selPntCnx := SelectPointOfConexion(xp, yp);
         if selPntCnx <> nil then begin
            //Engancha la coordenada de pantalla al punto de control
-           //v2d.XYpant(selPntCnx.x, selPntCnx.y, x, y);
-debugln('hooked');
           selPntCnx.ConnectTo(curPntCtl);
         end;
       end;
@@ -613,9 +625,16 @@ begin
   objetos.Add(og);                //agrega elemento
 end;
 procedure TModEdicion.DeleteGraphObject(obj: TObjGraf);  //elimina un objeto grafico
+var
+  pCnx: TPtoConx;
 begin
   Modif := True;  //Marca documento como modificado
-  obj.Deselec;  //por si acaso
+  obj.Deselec;    //por si acaso
+  //Quita posibles conexiones a este objeto
+  for pCnx in obj.PtosConex do begin
+    pCnx.Disconnect;
+  end;
+  //Elimina de la lista
   objetos.Remove(obj);
   obj := nil;
   if OnObjetosElim<>nil then OnObjetosElim;
@@ -643,13 +662,17 @@ End;
 procedure TModEdicion.DeleteSelected;
 //Elimina la selección.
 var
-  v: TObjGraf;
+  og: TObjGraf;
   tmp: TOnObjetosElim;
 begin
   tmp := OnObjetosElim;  //guarda evento
   OnObjetosElim := nil; //para evitar llamar muchas veces
-  For v In seleccion  do  //explora todos
-    DeleteGraphObject(v);
+  //For og In seleccion  do  //explora todos
+  //  DeleteGraphObject(og);
+  while seleccion.Count>0 do begin
+    og := seleccion[0];
+    DeleteGraphObject(og);
+  end;
   Refrescar;
   OnObjetosElim := tmp;  //restaura
   if OnObjetosElim<>nil then OnObjetosElim;  //llama evento
