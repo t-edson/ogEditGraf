@@ -16,6 +16,10 @@ Se crean los eventos TPtoControl.OnConnect y TPtoControl.OnDisconnect.
 Se corrige TModEdicion.DeleteSelected. 
 Se corrige TModEdicion.DeleteGraphObject() para que quite las conexiones de los posibles 
 puntos de control enganchados.
+Se cambia de nombre a TModEdicion.VerificarMovimientoRaton por TModEdicion.VerifyMouseMove.
+Se cambia de nombre a TModEdicion.NumeroVisibles por TModEdicion.NumberOfVisible
+Se cambia de nombre a TModEdicion.PrimerVisible por TModEdicion.FirstVisible.
+Se cambia de nombre a TModEdicion.LastVisible por TModEdicion.LastVisible.
 
 2.3
 ===

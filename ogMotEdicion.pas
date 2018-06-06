@@ -113,9 +113,9 @@ type
     function SelectPointOfConexion(xp, yp: Integer): TPtoConx;
     function MarkConnectionPoint(xp, yp: Integer): TPtoConx;
   protected  // Funciones para administrar los elementos visibles y seleccion por teclado
-    function NumeroVisibles: Integer;
-    function PrimerVisible: TObjGraf;
-    function UltimoVisible: TObjGraf;
+    function NumberOfVisible: Integer;
+    function FirstVisible: TObjGraf;
+    function LastVisible: TObjGraf;
     function SiguienteVisible(c: TObjGraf): TObjGraf;
     function AnteriorVisible(c: TObjGraf): TObjGraf;
     procedure SeleccionarSiguiente;
@@ -133,7 +133,7 @@ type
   protected  //Resaltado de Objetos
     lastMarked   : TObjGraf;      //Nombre del objeto marcado
     lastCnxPnt   : TPtoConx;
-    function VerificarMovimientoRaton(X, Y: Integer): TObjGraf;
+    function VerifyMouseMove(X, Y: Integer): TObjGraf;
   protected  //Desplazamiento de pantalla
     procedure Desplazar(dx, dy: integer);
     procedure ScrollDown(desp: Double=DESPLAZ_MENOR);
@@ -446,7 +446,7 @@ begin
          CapturoEvento.MouseMove(xp, yp, seleccion.Count);
          Refrescar;
       end else begin  //Movimiento simple
-          s := VerificarMovimientoRaton(xp, yp);
+          s := VerifyMouseMove(xp, yp);
           if s <> NIL then s.MouseOver(Sender, Shift, xp, yp);  //pasa el evento
       end;
   end;
@@ -702,7 +702,7 @@ Dim s: TObjGraf
 End Sub
 }
 // Funciones para administrar los elementos visibles y seleccion por teclado
-function TModEdicion.NumeroVisibles: Integer;
+function TModEdicion.NumberOfVisible: Integer;
 //devuelve el número de objetos visibles
 var
   v: TObjGraf;
@@ -714,7 +714,7 @@ begin
   end;
   Result := tmp;
 end;
-function TModEdicion.PrimerVisible: TObjGraf;
+function TModEdicion.FirstVisible: TObjGraf;
  //devuelve el primer objeto visible
 var
   i: integer;
@@ -726,7 +726,7 @@ begin
     end;
   end;
 End;
-function TModEdicion.UltimoVisible: TObjGraf;
+function TModEdicion.LastVisible: TObjGraf;
  //devuelve el último objeto visible
 var
   i: Integer;
@@ -751,7 +751,7 @@ begin
     repeat
       Inc(i);
       If i >= objetos.Count Then begin  //se ha llegado al final del conjunto
-        Result := PrimerVisible;
+        Result := FirstVisible;
         Exit;
       end;
     until objetos[i].visible;
@@ -771,7 +771,7 @@ begin
     repeat
       Dec(i);
       If i < 0 Then begin  //se ha llegado al inicio
-        Result := UltimoVisible;
+        Result := LastVisible;
         Exit;
       End;
     until objetos[i].visible;
@@ -784,14 +784,14 @@ procedure TModEdicion.SeleccionarSiguiente;
 var
   s: TObjGraf;
 begin
-    if NumeroVisibles() = 0 Then exit;
+    if NumberOfVisible() = 0 Then exit;
     if seleccion.Count = 1 Then begin  //hay uno Selected
         s := seleccion[0];   //toma el Selected
         s := SiguienteVisible(s);
         UnselectAll;
         s.Selec;
     end else begin     //hay cero o más de uno Selected
-        s := PrimerVisible;  //selecciona el primero
+        s := FirstVisible;  //selecciona el primero
         UnselectAll;
         s.Selec;
     end;
@@ -803,14 +803,14 @@ procedure TModEdicion.SeleccionarAnterior;
 var
   s: TObjGraf;
 begin
-    if NumeroVisibles() = 0 Then exit;
+    if NumberOfVisible() = 0 Then exit;
     if seleccion.Count = 1 then begin     //hay uno Selected
         s := seleccion[0];    //toma el Selected
         s := AnteriorVisible(s);
         UnselectAll;
         s.Selec;
     end else begin               //hay cero o más de uno Selected
-        s := UltimoVisible;   //selecciona el ultimo
+        s := LastVisible;   //selecciona el ultimo
         UnselectAll;
         s.Selec;
     end;
@@ -877,11 +877,11 @@ begin
   Result := seleccion[seleccion.Count-1];  //devuelve el único o último
 End;
 // Resaltado de Objetos
-function TModEdicion.VerificarMovimientoRaton(X, Y: Integer): TObjGraf;
+function TModEdicion.VerifyMouseMove(X, Y: Integer): TObjGraf;
 //Anima la marcación de los objetos cuando el ratón pasa encima de ellos
 //Devuelve referencia al objeto por el que pasa el cirsor
 var sel: TObjGraf;
-  selPntCnx, pCnx: TPtoConx;
+  pCnx: TPtoConx;
 begin
     sel := SelectSomeObject(X, Y);    //verifica si selecciona a un objeto
     Result := sel;  //Devuelve referencia

@@ -243,7 +243,7 @@ type
   public //Puntos de conexión
     ShowPtosConex: boolean;   //Indica si se mostrarán los puntos de conexión
     PtosConex  : TPtosConex;  //Lista de puntos de conexión
-    function AddPtoConex(xOff, yOff: Single): TPtoConx;
+    function AddPtoConex(xOff, yOff: Single): TPtoConx; virtual;
     function SelectConnectionPoint(xp, yp: integer; accuracy: integer=0): TPtoConx;
     function MarkConnectionPoint(xp, yp: integer; accuracy: integer = 0): TPtoConx;
     procedure ClearMarkConnectionPoints;
