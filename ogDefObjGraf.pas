@@ -153,7 +153,7 @@ type
     procedure Disconnect;
   public //Inicialización
     x0, y0, width0, height0: Single;  //valores objetivo para las dimensiones
-    constructor Create(mGraf: TMotGraf; EvenPCdim0: TEvReqDimen2D);
+    constructor Create(mGraf: TMotGraf);
     destructor Destroy; override;
   end;
   TPtosConex = specialize TFPGObjectList<TPtoConx>;  //Lista para gestionar los puntos de control
@@ -171,7 +171,6 @@ type
     function GetYCent: Single;  //Coordenada Ycentral del objeto
     procedure SetYCent(AValue: Single);
   private
-    procedure ProcPCnxMov(x0, y0, ancho0, alto0: Single);
     procedure PtoCtl_ChangePosition(target: TPtoCtrl; dx, dy: Single; wishX,
       wishY: Single);
   public
@@ -598,7 +597,7 @@ begin
     DisconnectFrom(pCtl)
   end;
 end;
-constructor TPtoConx.Create(mGraf: TMotGraf; EvenPCdim0: TEvReqDimen2D);
+constructor TPtoConx.Create(mGraf: TMotGraf);
 begin
   inherited Crear(mGraf, 2*ANC_PCT2, 2*ANC_PCT2);    //crea
   visible := true;             //lo hace visible
@@ -998,13 +997,9 @@ begin
   end;
 end;
 //Puntos de conexión
-procedure TObjGraf.ProcPCnxMov(x0, y0, ancho0, alto0: Single);
-begin
-
-end;
 function TObjGraf.AddPtoConex(xOff, yOff: Single): TPtoConx;
 begin
-  Result := TPtoConx.Create(v2d, @ProcPCnxMov);
+  Result := TPtoConx.Create(v2d);
   Result.xFac := xOff/Width;
   Result.yFac := yOff/Height;
   //Actualiza coordenadas absolutas

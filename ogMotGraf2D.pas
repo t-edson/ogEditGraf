@@ -71,12 +71,15 @@ TMotGraf = class
   procedure Barra(x1, y1, x2, y2: Single; colFon: TColor=-1);
   procedure Barra0(x1, y1, x2, y2: Integer; colFon: TColor);
   procedure Ellipse(x1, y1, x2, y2: Single);
+  procedure RadialPie(x1, y1, x2, y2: Single; StartAngle16Deg,
+    Angle16DegLength: integer);
   procedure poligono(x1, y1, x2, y2, x3, y3: Single; x4: Single=-10000;
     y4: Single=-10000; x5: Single=-10000; y5: Single=-10000; x6: Single=-10000;
     y6: Single=-10000);
   procedure Polygon(const Points: array of TFPoint);
   //funciones para texto
   procedure SetFont(Letra: string);
+  procedure SetText(color: TColor);
   procedure SetText(color: TColor; tam: single);
   procedure SetText(negrita: Boolean=False; cursiva: Boolean=False;
     subrayado: Boolean=False);
@@ -193,6 +196,10 @@ procedure TMotGraf.SetFont(Letra: string);
 begin
   if Letra = '' then Canvas.Font.Name:= 'MS Sans Serif';
   //'Times New Roman'
+end;
+procedure TMotGraf.SetText(color: TColor);
+begin
+  Canvas.Font.Color := color;
 end;
 procedure TMotGraf.SetText(color: TColor; tam: single);
 //método sencillo para cambiar propiedades del texto
@@ -512,6 +519,10 @@ End;
 procedure TMotGraf.Ellipse(x1, y1, x2, y2: Single);
 begin
   Canvas.Ellipse(XPant(x1), YPant(y1), XPant(x2), YPant(y2));
+end;
+procedure TMotGraf.RadialPie(x1, y1, x2, y2: Single; StartAngle16Deg, Angle16DegLength: integer);
+begin
+  Canvas.RadialPie(XPant(x1), YPant(y1), XPant(x2), YPant(y2), StartAngle16Deg, Angle16DegLength);
 end;
 
 (*
