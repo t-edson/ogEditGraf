@@ -34,14 +34,13 @@ begin
 end;
 
 procedure TMiObjeto.Draw;
-var s: String;
 begin
   //Dibuja etiqueta
-  v2d.FijaLapiz(psSolid, 1, COL_GRIS);
+  v2d.SetPen(psSolid, 1, COL_GRIS);
   v2d.SetText(clBlack, 11,'', true);
   v2d.Texto(X + 2, Y -20, name);
   //muestra un rectángulo
-  v2d.FijaLapiz(psSolid, 1, clBlack);
+  v2d.SetPen(psSolid, 1, clBlack);
   v2d.SetBrush(TColor($D5D5D5));
   v2d.RectangR(x, y+10, x+width, y+height);
   Bot1.estado:= false;
