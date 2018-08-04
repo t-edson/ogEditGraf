@@ -19,13 +19,14 @@ uses
   LCLType, GraphType, Dialogs, LCLProc, ogMotGraf2D, ogDefObjGraf;
 
 const
-  CUR_DEFEC = crDefault;          //cursor por defecto
+  CUR_DEFEC = crDefault;   //Cursor por defecto
 
   ZOOM_MAX_CONSULT = 5  ;  //Define el zoom máximo que se permite en un diagrama
   ZOOM_MIN_CONSULT = 0.1;  //Define el zoom mínimo que se permite en un diagrama
 
-  FACTOR_AMPLIA_ZOOM = 1.15;  //Factor de ampliación del zoom
-  DESPLAZ_MENOR = 10;
+  ZOOM_INC_FACTOR = 1.15;  //Factor de ampliación del zoom
+  DESPLAZ_MENOR   = 10;
+  ACCURACY_SNAP   = 5;     //Precisión del encaje
 type
   EstadosPuntero = (
       EP_NORMAL,      //No se está realizando ninguna operación
@@ -109,8 +110,6 @@ type
     x_cam_a: Single;  //coordenadas anteriores de x_cam
     y_cam_a: Single;
     procedure InicMover;
-    function SelectSomeObject(xp, yp: Integer): TObjGraf;
-    function SelectPointOfConexion(xp, yp: Integer): TPtoConx;
     function MarkConnectionPoint(xp, yp: Integer): TPtoConx;
   protected  // Funciones para administrar los elementos visibles y seleccion por teclado
     function NumberOfVisible: Integer;
@@ -121,15 +120,18 @@ type
     procedure SeleccionarSiguiente;
     procedure SeleccionarAnterior;
   public // Funciones de visualización
-    procedure AmpliarClick(factor: single=FACTOR_AMPLIA_ZOOM; xrZoom: integer=0;
+    procedure AmpliarClick(factor: single=ZOOM_INC_FACTOR; xrZoom: integer=0;
       yrZoom: integer=0);
-    procedure ReducirClick(factor: single=FACTOR_AMPLIA_ZOOM; xrZoom: integer=0;
+    procedure ReducirClick(factor: single=ZOOM_INC_FACTOR; xrZoom: integer=0;
       yrZoom: integer=0);
   public //Funciones de selección
     procedure SelectAll;
     procedure UnselectAll;
     function Selected: TObjGraf;
     function ConnectionPointMarked: TPtoConx;
+    function SelectSomeObject(xp, yp: Integer): TObjGraf;
+    function SelectPointOfConexion(xp, yp: Integer; snap_adj: integer =
+      ACCURACY_SNAP): TPtoConx;
   protected  //Resaltado de Objetos
     lastMarked   : TObjGraf;      //Nombre del objeto marcado
     lastCnxPnt   : TPtoConx;
@@ -313,7 +315,8 @@ begin
     End;
   end;
 End;
-function TModEdicion.SelectPointOfConexion(xp, yp: Integer): TPtoConx;
+function TModEdicion.SelectPointOfConexion(xp, yp: Integer;
+                     snap_adj: integer = ACCURACY_SNAP): TPtoConx;
 {Indica si la coordenada indicada seleciona (está cerca) a algún punto de conexión
 de cualquier objeto gráfico.
 Si encuentra algún Punto de Conexión cerca, devuelve la referencia.}
@@ -323,7 +326,7 @@ var
 begin
   Result := nil;
   for og In objetos do begin
-    pcnx := og.SelectConnectionPoint(xp, yp, 5);
+    pcnx := og.SelectConnectionPoint(xp, yp, snap_adj);
     if pcnx<>nil then exit(pcnx);
   end;
 end;
@@ -817,7 +820,7 @@ begin
     Refrescar;
 end;
 // Funciones de visualización
-procedure TModEdicion.AmpliarClick(factor: single = FACTOR_AMPLIA_ZOOM;
+procedure TModEdicion.AmpliarClick(factor: single = ZOOM_INC_FACTOR;
                         xrZoom: integer = 0; yrZoom: integer = 0);
 var
   xv0, yv0, xv1, yv1: Single;
@@ -836,7 +839,7 @@ begin
   v2d.GuardarPerspectivaEn(Pfinal);  //para que no se regrese al ángulo inicial
   Refrescar;
 End;
-procedure TModEdicion.ReducirClick(factor: single = FACTOR_AMPLIA_ZOOM;
+procedure TModEdicion.ReducirClick(factor: single = ZOOM_INC_FACTOR;
                         xrZoom: integer = 0; yrZoom: integer = 0);
 var
   xv1, yv1, xv0, yv0: Single;

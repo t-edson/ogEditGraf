@@ -106,13 +106,13 @@ type
     function GetQuadrant: byte;
     procedure SetQuadrant(AValue: byte);
   public
-    idIcon    : TPtoCtrlIco;   {Forma gráfica del punto de control.}
-    posicion  : TPosicPCtrol;  {Posición del Punto de Control conrespecto a su objeto
+    idIcon     : TPtoCtrlIco;   {Forma gráfica del punto de control.}
+    relPosition: TPosicPCtrol;  {Posición del Punto de Control con respecto a su objeto
                                 contenedor.}
-    mousePtr  : TCursor;       //Tipo de puntero del mouse
-    Parent    : TObjGraf;      //Referencia al objeto contenedor
+    mousePtr   : TCursor;       //Tipo de puntero del mouse
+    Parent     : TObjGraf;      //Referencia al objeto contenedor
     OnChangePosition: TEvPCReqPosiiton;  //Requiere dimensionamiento en modo 1D
-    OnConnect : TEvPCconnect;  //Se conecta a un punto de conexión
+    OnConnect  : TEvPCconnect;  //Se conecta a un punto de conexión
     OnDisconnect:TEvPCconnect; //Se desconecta de un punto de conexión
     ConnectedTo: TPtoConx;     //Punto de conexión al cual se encuentra conectado
     procedure Disconnect;
@@ -381,7 +381,7 @@ su objeto contenedor :
              |
    }
 begin
-  case posicion of
+  case relPosition of
   TD_SUP_IZQ: exit(2);
   TD_SUP_CEN: exit(1);
   TD_SUP_DER: exit(1);
@@ -399,10 +399,10 @@ end;
 procedure TPtoCtrl.SetQuadrant(AValue: byte);
 begin
   case AValue of
-  1: posicion := TD_SUP_DER;
-  2: posicion := TD_SUP_IZQ;
-  3: posicion := TD_INF_IZQ;
-  4: posicion := TD_INF_DER;
+  1: relPosition := TD_SUP_DER;
+  2: relPosition := TD_SUP_IZQ;
+  3: relPosition := TD_INF_IZQ;
+  4: relPosition := TD_INF_DER;
   end
 end;
 procedure TPtoCtrl.Disconnect;
@@ -471,7 +471,7 @@ End;
 procedure TPtoCtrl.LocateInParent;
 {Ubica al Punto de control en su posición respectiva con respecto al objeto padre.}
 begin
- case posicion of
+ case relPosition of
  TD_SUP_IZQ:  //superior izquierda, desplaza ancho (por izquierda) y height (por arriba)
    Locate(Parent.x, Parent.y);
  TD_SUP_CEN:  //superior central, desplaza Parent.height por arriba
@@ -498,11 +498,11 @@ constructor TPtoCtrl.Create(Parent0: TObjGraf; PosicPCtrol: TPosicPCtrol;
   mousePtr0: TCursor; ChangePosition: TEvPCReqPosiiton);
 begin
   inherited Crear(Parent0.v2d, 2*ANC_PCT2, 2*ANC_PCT2);    //crea
-  Parent := Parent0;
-  posicion := PosicPCtrol;  //Dónde aparecerá en el objeto
-  mousePtr := mousePtr0;    //El puntero del mouse
+  Parent    := Parent0;
+  relPosition := PosicPCtrol;  //Dónde aparecerá en el objeto
+  mousePtr  := mousePtr0;    //El puntero del mouse
   OnChangePosition := ChangePosition;
-  visible := true;             //lo hace visible
+  visible   := true;             //lo hace visible
   fx :=0;
   fy :=0;
 end;
@@ -726,12 +726,12 @@ var
   pct  : TPtoCtrl;
   pcn : TPtoConx;
 begin
-  //---------------dibuja remarcado --------------
+  //---------------Draw mark --------------
   if Marked and Highlight then begin
     v2d.SetPen(psSolid, 2, clBlue);   //RGB(128, 128, 255)
     v2d.rectang(fx - tm, fy - tm, fx + width + tm, fy + height + tm);
   end;
-  //---------------dibuja marca de seleccion--------------
+  //--------------- Draw selection state--------------
   if Selected Then begin
     if behav = behav1D then begin
        for pct in PtosControl1 do pct.Draw;   //Dibuja puntos de control
@@ -739,7 +739,7 @@ begin
        for pct in PtosControl2 do pct.Draw;   //Dibuja puntos de control
     end;
   end;
-  //Dibuja Puntos de conexión
+  //Draw Connection Points
   if ShowPtosConex then begin
      for pcn in PtosConex do pcn.Draw;
   end;
@@ -948,7 +948,7 @@ begin
     //Desplazamiento en dos dimensiones
     {Cambia posición y tamaño, de acuerdo al tipo de desplazamiento (deducido de la
      posición) del punto de control.}
-    case target.posicion of
+    case target.relPosition of
     TD_SUP_IZQ: ReLocateSize(target.x0+dx, target.y0+dy, target.width0-dx, target.height0-dy);
     TD_SUP_CEN: ReLocateSize(target.x0   , target.y0+dy, target.width0   , target.height0-dy);
     TD_SUP_DER: ReLocateSize(target.x0   , target.y0+dy, target.width0+dx, target.height0-dy);
