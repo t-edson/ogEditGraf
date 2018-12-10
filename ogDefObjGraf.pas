@@ -73,7 +73,7 @@ type
     destructor Destroy; override;
   end;
 
-  TPosicPCtrol = (   //tipo de desplazamiento de punto de control
+  TPosicPCtrol = (   //Tipo de desplazamiento de punto de control
     TD_SIN_POS,  //sin posición. No se reubicará automáticamente
     //Puntos de dimensionamiento en 2D
     TD_SUP_IZQ,  //superior izquierda, desplaza ancho (por izquierda) y alto (por arriba)
@@ -159,7 +159,7 @@ type
   TPtosConex = specialize TFPGObjectList<TPtoConx>;  //Lista para gestionar los puntos de control
 
   TEventSelec = procedure(obj: TObjGraf) of object; //Procedimiento-evento para seleccionar
-  TEventCPunt = procedure(TipPunt: Integer) of object; //Procedimiento-evento para cambiar puntero
+  TEventPtrChange = procedure(TipPunt: Integer) of object; //Procedimiento-evento para cambiar puntero
 
   { TObjGraf }
   {Este es el Objeto padre de todos los objetos gráficos visibles que son administrados por
@@ -191,7 +191,7 @@ type
     procedure Selec;         //Método único para seleccionar al objeto
     procedure Deselec;       //Método único para quitar la selección del objeto
     procedure Delete;        //Método para eliminar el objeto
-    function LoSelecciona(xr, yr:integer): Boolean; virtual;
+    function IsSelectedBy(xr, yr:integer): Boolean; virtual;
     procedure Draw; virtual;  //Dibuja el objeto gráfico
     procedure StartMove(xr, yr : Integer);
     procedure MouseMove(xr, yr : Integer; nobjetos : Integer); virtual;
@@ -217,7 +217,7 @@ type
     OnResize  : procedure of object;
     OnSelec   : TEventSelec;
     OnDeselec : TEventSelec;
-    OnCamPunt : TEventCPunt;
+    OnCamPunt : TEventPtrChange;
   public //Puntos de Control
     curPntCtl   : TPtoCtrl;  //Punto de Control actual
   public
@@ -232,8 +232,8 @@ type
     pcBOT_LEF: TPtoCtrl;
     pcBOT_CEN: TPtoCtrl;
     pcBOT_RIG: TPtoCtrl;
-    pcBEGIN   : TPtoCtrl;
-    pcEND     : TPtoCtrl;
+    pcBEGIN  : TPtoCtrl;
+    pcEND    : TPtoCtrl;
     PtosControl1: TPtosControl;  //Lista de puntos de control en modo 1D
     PtosControl2: TPtosControl;  //Lista de puntos de control en modo 2D
     function SelecPtoControl(xp, yp: integer): TPtoCtrl;
@@ -705,19 +705,19 @@ begin
         Xant := xr; Yant := yr;
      End;
 end;
-function TObjGraf.LoSelecciona(xr, yr:integer): Boolean;
+function TObjGraf.IsSelectedBy(xr, yr:integer): Boolean;
 //Devuelve verdad si la coordenada de pantalla xr,yr cae en un punto tal
 //que "lograria" la seleccion de la forma.
 var xv , yv : Single; //corodenadas virtuales
 begin
     v2d.XYvirt(xr, yr, xv, yv);
-    LoSelecciona := False; //valor por defecto
+    IsSelectedBy := False; //valor por defecto
     //verifica área de selección
     if (xv > fx - 1) And (xv < fx + width + 1) And (yv > fy - 1) And (yv < fy + height + 1) then begin
-      LoSelecciona := True;
+      IsSelectedBy := True;
     end;
     if Selected then begin   //Ub objeto seleccionado, tiene un área mayor de selección
-      if SelecPtoControl(xr,yr) <> NIL then LoSelecciona := True;
+      if SelecPtoControl(xr,yr) <> NIL then IsSelectedBy := True;
     end;
 End;
 procedure TObjGraf.Draw;
@@ -752,7 +752,7 @@ procedure TObjGraf.MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShif
 begin
 //  CapturoEvento := NIL;
   Proceso := False;
-  If LoSelecciona(xp, yp) Then begin  //sólo responde instantáneamente al caso de selección
+  If IsSelectedBy(xp, yp) Then begin  //sólo responde instantáneamente al caso de selección
     If Not Selected Then Selec;
     Proceso := True;{ TODO : Verificar si es útil la bandera "Proceso" }
   End;
@@ -770,7 +770,7 @@ begin
     //Se soltó el ratón
     If Button = mbLeft Then  begin          //soltó izquierdo
     end else If Button = mbRight Then begin //soltó derecho
-        If LoSelecciona(xp, yp) Then
+        If IsSelectedBy(xp, yp) Then
             Proceso := True;
     end;
     //Restaura puntero si estaba dimensionándose por si acaso

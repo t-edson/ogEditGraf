@@ -135,11 +135,6 @@ begin
     //ampliación inicial
     Zoom := 1;
 End;
-//Private Sub Class_Terminate()
-//    If hPen <> 0 Then DeleteObject hPen     //elimina el lápiz
-//    If hBrush <> 0 Then DeleteObject hBrush //si hay relleno, lo elimina
-//    If hFont <> 0 Then DeleteObject hFont
-//End;
 procedure TMotGraf.FijaModoEscrit(modo: TFPPenMode);
 begin
     Canvas.Pen.Mode := modo;
@@ -151,21 +146,6 @@ begin
    Canvas.pen.Width := ancho;
    Canvas.pen.Color := color;
 End;
-(*
-procedure TEdGrafOQ.FijaLapizTransparente()
-//Establece el lápiz actual de dibujo
-    If hPen <> 0 Then DeleteObject hPen     //si ya hay un lápiz, lo elimina
-    hPen = CreatePen(PS_NULL, 0, 0)
-    SelectObject hdc, hPen                  //queda pendiente eliminarlo
-End;
-
-procedure TEdGrafOQ.FijaRellenoTransparente()
-//Establece el relleno actual en transparente
-    If hBrush <> 0 Then DeleteObject hBrush //si hay relleno, lo elimina
-    hBrush = GetStockObject(NULL_BRUSH)
-    SelectObject hdc, hBrush                //queda pendiente eliminarlo
-End;
-*)
 procedure TMotGraf.SetBrush(ColorR:TColor);
 //Establece el relleno actual
 begin
