@@ -5,19 +5,19 @@ unit Unit1;
 interface
 
 uses
-  Classes, Forms, Controls, Graphics, ExtCtrls, ogMotEdicion, ogDefObjGraf;
+  Classes, Forms, Controls, Graphics, ExtCtrls, ogEditionMot, ogDefObjGraf;
 
 type
-  { TMiObjeto }
+  { TMyObject }
   //Define objeto 2D
-  TMiObjeto = class(TObjGraf)
+  TMyObject = class(TObjGraf)
     procedure Draw; override;
   end;
 
-  { TMiConector }
+  { TMyConnector }
 
-  TMiConector = class(TObjGraf)
-    function LoSelecciona(xr, yr: Integer): Boolean; override;
+  TMyConnector = class(TObjGraf)
+    function IsSelectedBy(xr, yr: Integer): Boolean; override;
     procedure Draw; override;
   end;
 
@@ -28,7 +28,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
-    motEdi: TModEdicion;  //motor de edición
+    motEdi: TEditionMot;  //motor de edición
   end;
 
 var
@@ -37,7 +37,7 @@ var
 implementation
 {$R *.lfm}
 
-procedure TMiObjeto.Draw;
+procedure TMyObject.Draw;
 begin
   v2d.SetText(clBlack, 11,'', true);
   v2d.Texto(X + 2, Y -20, 'Objeto');
@@ -47,9 +47,9 @@ begin
   inherited;
 end;
 
-{ TMiConector }
+{ TMyConnector }
 
-function TMiConector.LoSelecciona(xr, yr: Integer): Boolean;
+function TMyConnector.IsSelectedBy(xr, yr: Integer): Boolean;
 var
   x0, y0, x1, y1: Integer;
 begin
@@ -58,7 +58,7 @@ begin
   Result := PointSelectSegment(xr, yr, x0, y0, x1, y1 );
 end;
 
-procedure TMiConector.Draw;
+procedure TMyConnector.Draw;
 begin
   v2d.SetText(clBlack, 11,'', true);
   v2d.Texto(X + 2, Y -20, 'Conector');
@@ -73,13 +73,13 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 var
-  og: TMiObjeto;
-  oc: TMiConector;
+  og: TMyObject;
+  oc: TMyConnector;
 begin
   //crea motor de edición
-  motEdi := TModEdicion.Create(PaintBox1);
+  motEdi := TEditionMot.Create(PaintBox1);
   //Agrega objetos
-  og := TMiObjeto.Create(motEdi.v2d);
+  og := TMyObject.Create(motEdi.v2d);
   //og.Highlight:=false;
   og.ReLocate(50,50);
   motEdi.AddGraphObject(og);
@@ -89,12 +89,12 @@ begin
   og.ShowPtosConex:=true;
 
   //Agrega objetos
-  og := TMiObjeto.Create(motEdi.v2d);
+  og := TMyObject.Create(motEdi.v2d);
   og.ReLocate(250,50);
   motEdi.AddGraphObject(og);
 
   //Objeto de tipo conector
-  oc := TMiConector.Create(motEdi.v2d);
+  oc := TMyConnector.Create(motEdi.v2d);
   oc.behav:=behav1D;
   motEdi.AddGraphObject(oc);
 

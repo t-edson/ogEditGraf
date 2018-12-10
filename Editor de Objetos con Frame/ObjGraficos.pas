@@ -27,8 +27,8 @@ constructor TMiObjeto.Create(mGraf: TMotGraf);
 begin
   inherited;
   Bot1 := AddButton(24,24,BOT_REPROD, @ProcDesac);
-  pcTOP_LEF.posicion := TD_CEN_IZQ;
-//  Resize;             //Se debe llamar después de crear los puntos de control para poder ubicarlos
+  pcTOP_LEF.relPosition := TD_CEN_IZQ;
+//  Resize;           //Se debe llamar después de crear los puntos de control para poder ubicarlos
   ProcDesac(False);   //Desactivado := False
   name := 'Objeto';
 end;

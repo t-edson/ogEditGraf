@@ -5,7 +5,7 @@ unit Unit1;
 interface
 
 uses
-  Classes, Forms, Controls, Graphics, ExtCtrls, ogMotEdicion, ogDefObjGraf;
+  Classes, Forms, Controls, Graphics, ExtCtrls, ogEditionMot, ogDefObjGraf;
 
 type
 
@@ -22,7 +22,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
-    motEdi: TModEdicion;  //motor de edición
+    motEdi: TEditionMot;  //motor de edición
   end;
 
 var
@@ -47,7 +47,7 @@ procedure TForm1.FormCreate(Sender: TObject);
 var og: TMiObjeto;
 begin
   //crea motor de edición
-  motEdi := TModEdicion.Create(PaintBox1);
+  motEdi := TEditionMot.Create(PaintBox1);
   //agrega objetos
   og := TMiObjeto.Create(motEdi.v2d);
   motEdi.AddGraphObject(og);

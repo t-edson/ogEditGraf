@@ -1,7 +1,7 @@
 {                                frameVisCplex
-Este Frame será usado para colocar nuestro editor gráfico. Requiere un  objeto TPaintBox,
+Este Frame será usado para colocar nuestro editor gráfico. Requiere un objeto TPaintBox,
 como salida gráfica. Para que funcione como editor de objetos gráficos, debe crearse una
-instancia de "TModEdicion" y darle la referencia del PaintBox.
+instancia de "TEditionMot" y darle la referencia del PaintBox.
 Aquí también se deben poner las rutinas que permiten agregar los diversos objetos
 gráficos con los que trabajará nuestra aplicación.
 
@@ -13,7 +13,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, ExtCtrls, Graphics, GraphType, lclType,
-  dialogs, lclProc, ObjGraficos, ogMotEdicion;
+  dialogs, lclProc, ObjGraficos, ogEditionMot;
 
 type
 
@@ -25,7 +25,7 @@ type
   public
     function AgregaObjeto: TMiObjeto;
   private
-    motEdi: TModEdicion;  //motor de edición
+    motEdi: TEditionMot;  //motor de edición
   public
     constructor Create(AOwner: TComponent) ; override;
     destructor Destroy; override;
@@ -46,7 +46,7 @@ end;
 constructor TfraEditor.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  motEdi := TModEdicion.Create(PaintBox1);
+  motEdi := TEditionMot.Create(PaintBox1);
 end;
 
 destructor TfraEditor.Destroy;

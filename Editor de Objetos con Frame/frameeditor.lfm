@@ -5,6 +5,7 @@ object fraEditor: TfraEditor
   Width = 368
   ClientHeight = 298
   ClientWidth = 368
+  LCLVersion = '1.8.0.6'
   TabOrder = 0
   DesignLeft = 253
   DesignTop = 260
