@@ -1,3 +1,30 @@
+2.6
+===
+Se cambia el nombre de los proyectos de ejemplo.
+Se cambia el nombre de TModEdicion.VerificarParaMover a TModEdicion.VerifyForMove.
+Se cambia el nombre de TModEdicion.Refrescar a TModEdicion.Refresh.
+Se cambia el nombre de TMotGraf.GuardarPerspectivaEn a SavePerspectiveIn.
+Se cambia el nombre de TMotGraf.LeePerspectivaDe a ReadPerspectiveFrom
+Se cambia el nombre de TMotGraf.poligono a Polygon
+Se cambia el nombre de TMotGraf.Linea a Line
+Se cambia el nombre de TMotGraf.Linea0 a Line0
+Se cambia el nombre de TMotGraf.DibujarIcono a DrawIcon
+Se cambia el nombre de TMotGraf.DibujarImagen a DrawImage
+Se cambia el nombre de TMotGraf.DibujarImagenN a DrawImageN
+Se cambia el nombre de TMotGraf.DibujarImagen0 a DrawImage0
+Se cambia el nombre de TMotGraf.Desplazar a Scroll
+Se cambia el nombre de TObjGraf.Relleno a FillColor
+
+2.5
+===
+Se cambia el nombre de EstadosPuntero a TPointerState.
+Se elimina el campo TModEdicion.COlorRelleno.
+Se cambia el nombre de TModEdicion.PB a TModEdicion.PBox.
+Se cambia el nombre de TModEdicion a TEditionMot.
+Se cambia el nombre TEventCPunt a TEventPtrChange
+Se cambia el nombre TObjGraf.LoSelecciona a TObjGraf.IsSelectedBy
+Se cambia de nombre a la unidad ogMotEdicion por ogEditionMot.
+
 2.4
 ===
 Se crea el campo TPtoConx.data, como campo para el usuario.

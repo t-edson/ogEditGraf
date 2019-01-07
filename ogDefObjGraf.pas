@@ -182,7 +182,7 @@ type
     SizeLocked  : boolean;   //Protege al objeto de redimensionado
     PosLocked   : Boolean;   //Indica si el objeto está bloqueado para movimiento
     SelLocked   : Boolean;   //Indica si el objeto está bloqueado para selección
-    Relleno     : TColor;    //Color de relleno
+    FillColor   : TColor;    //Color de relleno
     Proceso     : Boolean;   //Bandera
     Resizing    : boolean;   //Indica que el objeto está dimensionándose
     Erased      : boolean;   //Bandera para eliminar al objeto
@@ -514,8 +514,8 @@ begin
   if not visible then exit;    //validación
   v2d.XYpant(fx, fy, xp, yp);      //obtiene coordenadas de pantalla
   v2d.SetLine(clBlue);
-  v2d.Linea0(xp - ANC_PCN2+1, yp - ANC_PCN2+1, xp + ANC_PCN2, yp + ANC_PCN2);
-  v2d.Linea0(xp - ANC_PCN2+1, yp + ANC_PCN2-1, xp + ANC_PCN2, yp - ANC_PCN2);
+  v2d.Line0(xp - ANC_PCN2+1, yp - ANC_PCN2+1, xp + ANC_PCN2, yp + ANC_PCN2);
+  v2d.Line0(xp - ANC_PCN2+1, yp + ANC_PCN2-1, xp + ANC_PCN2, yp - ANC_PCN2);
 end;
 procedure TPtoConx.Mark;
 {Draw a Connection point highlighted.}

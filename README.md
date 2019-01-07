@@ -1,4 +1,4 @@
-ogEditGraf 2.5
+ogEditGraf 2.6
 ==============
 
 Librería en Lazarus, para la creación de editores simples de objetos gráficos.
@@ -67,5 +67,10 @@ Este ejemplo mostrará un objeto rectangular en pantalla, con posibilidad de des
 Las rutinas de dibujo, se dirigen siempre, a un control PaintBox, que debe ser indicado al momento de crear el motor de edición.
 
 Este sencillo ejemplo solo requiere incluir un control TPaintBox en el formulario principal. Sin embargo, para modularizar mejor la aplicación, se sugiere usar una unidad especial para definir los objetos gráficos de nuestra aplicación, y un frame para incluir el PaintBox y las rutinas de trabajo del motor de edición.
+
+== Arquitectura de los proyectos ===
+
+Las unidades de la librería siguen una organización particular, que determina también la arquitectura de la aplicación.
+
 
 Para más información, revisar los ejemplos.

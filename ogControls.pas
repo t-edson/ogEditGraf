@@ -108,7 +108,7 @@ begin
 //         v2d.DibVnormal(fx+2,fy+7,10,-5);
 //         v2d.DibVnormal(fx+2,fy+11,10,-5);
          v2d.SetColor(COL_GRIS, COL_GRIS, 1);
-         v2d.poligono(x+3      , y + height-5,
+         v2d.Polygon(x+3      , y + height-5,
                       x+width-3, y + height-5,
                       x+width/2, y + 4);
       end else begin
@@ -116,7 +116,7 @@ begin
 //         v2d.DibVnormal(fx+2,fy+2,10,5);
 //         v2d.DibVnormal(fx+2,fy+6,10,5);
         v2d.SetColor(COL_GRIS, COL_GRIS, 1);
-        v2d.poligono(x+3      , y + 5,
+        v2d.Polygon(x+3      , y + 5,
                      x+width-3, y + 5,
                      x+width/2, y + height - 4);
       end;
@@ -138,7 +138,7 @@ begin
        v2d.SetColor(clBlack, TColor($E5E5E5), 1);
        v2d.RectRedonR(x, y, x+width, y+height);
        v2d.SetColor(clBlack, clBlack, 1);
-       v2d.poligono(x+ 6, y+3,
+       v2d.Polygon(x+ 6, y+3,
                     x+18, y + height/2,
                     x+ 6, y + height - 4);
      end;
@@ -201,7 +201,7 @@ begin
        v2d.SetColor(clBlack, TColor($E5E5E5), 1);
        v2d.RectRedonR(x,y,x+width, y+height);
        v2d.SetColor(clBlack, clBlack, 1);
-       v2d.poligono(x+6, y+3,
+       v2d.Polygon(x+6, y+3,
                     x+18, y + height/2,
                     x+6, y + height - 4);
      end;
@@ -315,8 +315,8 @@ begin
       yFin := y2-altBot;
       v2d.SetPen(psSolid, 1, clScrollBar);
       v2d.SetBrush(clScrollBar);
-      v2d.Linea(x,yIni,x+width,yIni);
-      v2d.Linea(x,yFin,x+width,yFin);
+      v2d.Line(x,yIni,x+width,yIni);
+      v2d.Line(x,yFin,x+width,yFin);
       //dibuja cursor
       facPag := page/(valMax-valMin+1);  //factor de página
       espCur := yFin-yIni;  //espacio disponible para desplazamiento del cursor

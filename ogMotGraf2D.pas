@@ -61,10 +61,10 @@ TMotGraf = class
   procedure SetColor(colLin,colRel:TColor; ancho: Integer = 1); //Fija colorde línea y relleno
   procedure SetLine(colLin:TColor; width: Integer = 1); //Fija características de línea
 
-  procedure Linea(x1, y1, x2, y2:Single);
-  procedure Linea0(x1, y1, x2, y2: Integer);
-  procedure rectang(x1, y1, x2, y2: Single);
-  procedure rectang0(x1, y1, x2, y2: Integer);
+  procedure Line(x1, y1, x2, y2:Single);
+  procedure Line0(x1, y1, x2, y2: Integer);
+  procedure Rectang(x1, y1, x2, y2: Single);
+  procedure Rectang0(x1, y1, x2, y2: Integer);
   procedure RectangR(x1, y1, x2, y2: Single);
   procedure RectangR0(x1, y1, x2, y2: Integer);
   procedure RectRedonR(x1, y1, x2, y2: Single);
@@ -73,7 +73,7 @@ TMotGraf = class
   procedure Ellipse(x1, y1, x2, y2: Single);
   procedure RadialPie(x1, y1, x2, y2: Single; StartAngle16Deg,
     Angle16DegLength: integer);
-  procedure poligono(x1, y1, x2, y2, x3, y3: Single; x4: Single=-10000;
+  procedure Polygon(x1, y1, x2, y2, x3, y3: Single; x4: Single=-10000;
     y4: Single=-10000; x5: Single=-10000; y5: Single=-10000; x6: Single=-10000;
     y6: Single=-10000);
   procedure Polygon(const Points: array of TFPoint);
@@ -91,17 +91,17 @@ TMotGraf = class
   procedure TextoR(x1, y1, ancho, alto: Single; txt: String);
   function TextWidth(const txt: string): single;  //ancho del texto
 
-  procedure GuardarPerspectivaEn(var p: TPerspectiva);
-  procedure LeePerspectivaDe(p: TPerspectiva);
+  procedure SavePerspectiveIn(var p: TPerspectiva);
+  procedure ReadPerspectiveFrom(p: TPerspectiva);
 
   procedure SetWindow(ScaleWidth, ScaleHeight: Real; xMin, xMax, yMin, yMax: Real);
-  procedure Desplazar(dx, dy: Integer);
+  procedure Scroll(dx, dy: Integer);
   procedure ObtenerDesplaz2(xr, yr: Integer; Xant, Yant: Integer; out dx,
     dy: Single);
-  procedure DibujarIcono(x1, y1: Single; idx: integer);
-  procedure DibujarImagen(im: TGraphic; x1, y1, dx, dy: Single);
-  procedure DibujarImagenN(im: TGraphic; x1, y1: Single);
-  procedure DibujarImagen0(im: TGraphic; x1, y1, dx, dy: Integer);
+  procedure DrawIcon(x1, y1: Single; idx: integer);
+  procedure DrawImage(im: TGraphic; x1, y1, dx, dy: Single);
+  procedure DrawImageN(im: TGraphic; x1, y1: Single);
+  procedure DrawImage0(im: TGraphic; x1, y1, dx, dy: Integer);
 public  //Funciones de transformación
   function XPant(x: Single): Integer;    //INLINE Para acelerar las llamadas
   function YPant(y: Single): Integer;    //INLINE Para acelerar las llamadas
@@ -401,12 +401,12 @@ Dim rc As RECT
     DrawText hdc, cad, Len(cad), rc, DT_WORDBREAK + DT_EDITCONTROL //+ DT_END_ELLIPSIS
 End;
 *)
-procedure TMotGraf.Linea(x1, y1, x2, y2: Single);
+procedure TMotGraf.Line(x1, y1, x2, y2: Single);
 //Dibuja una línea
 begin
    Canvas.Line(XPant(x1), YPant(y1), XPant(x2), YPant(y2));
 End;
-procedure TMotGraf.Linea0(x1, y1, x2, y2: Integer);
+procedure TMotGraf.Line0(x1, y1, x2, y2: Integer);
 //Dibuja una línea , sin transformación
 begin
    Canvas.Line(x1, y1, x2, y2);
@@ -452,12 +452,12 @@ End;
 
 *)
 
-procedure TMotGraf.rectang(x1, y1, x2, y2: Single);
+procedure TMotGraf.Rectang(x1, y1, x2, y2: Single);
 //Dibuja un rectángulo
 begin
     Canvas.Frame(XPant(x1), YPant(y1), XPant(x2), YPant(y2));
 End;
-procedure TMotGraf.rectang0(x1, y1, x2, y2: Integer);
+procedure TMotGraf.Rectang0(x1, y1, x2, y2: Integer);
 //Dibuja un rectángulo sin "transformación"
 begin
     Canvas.Frame(x1, y1, x2, y2);
@@ -596,7 +596,7 @@ Dim i As Integer
  Call Polygon(hdc, ptos(1), nPtos + 1)   //dibuja borde
 End;
 *)
-procedure TMotGraf.poligono(x1, y1, x2, y2, x3, y3 : Single;
+procedure TMotGraf.Polygon(x1, y1, x2, y2, x3, y3 : Single;
                   x4: Single = -10000; y4: Single = -10000;
                   x5: Single = -10000; y5: Single = -10000;
                   x6: Single = -10000; y6: Single = -10000);
@@ -711,7 +711,7 @@ begin
    x_cam := xMin + x_des / Zoom - dxcen;
    y_cam := yMin + y_des / Zoom - dycen;
 End;
-procedure TMotGraf.Desplazar(dx, dy: Integer);
+procedure TMotGraf.Scroll(dx, dy: Integer);
 //Desplaza el escenario (el punto de rotación siempre está en el centro de la pantalla)
 begin
   y_cam := y_cam - dy;
@@ -757,14 +757,14 @@ End Function
 
 *)
 //////////////////////////////  FUNCIONES DE PERSPECTIVA  //////////////////////////////
-procedure TMotGraf.GuardarPerspectivaEn(var p: TPerspectiva);
+procedure TMotGraf.SavePerspectiveIn(var p: TPerspectiva);
 //guarda sus datos de perspectiva en una variable perspectiva
 begin
   p.x_cam := x_cam;
   p.y_cam := y_cam;
   p.zoom := Zoom;
 End;
-procedure TMotGraf.LeePerspectivaDe(p: TPerspectiva);
+procedure TMotGraf.ReadPerspectiveFrom(p: TPerspectiva);
 //lee sus datos de perspectiva de una variable perspectiva
 begin
   x_cam := p.x_cam;
@@ -773,12 +773,12 @@ begin
 End;
 
 //*********************************************************************************
-procedure TMotGraf.DibujarIcono(x1, y1: Single; idx: integer);
+procedure TMotGraf.DrawIcon(x1, y1: Single; idx: integer);
 //Dibuja una de las imágenes alamcenadas en la propiedad ImageList
 begin
   ImageList.Draw(Canvas, XPant(x1),YPant(y1), idx);
 end;
-procedure TMotGraf.DibujarImagen(im: TGraphic; x1, y1, dx, dy: Single);
+procedure TMotGraf.DrawImage(im: TGraphic; x1, y1, dx, dy: Single);
 //Dibuja imagen. Debe recibir el ancho y alto de la imagen
 //en pixeles. Estos valores "ancho" y "alto" no se puede obtener
 //de manera directa con im.Width e im.Height, porque vienen en unidades
@@ -793,7 +793,7 @@ begin
     r.Bottom:=r.Top + round(dy * Zoom);
     Canvas.StretchDraw(r,im);
 End;
-procedure TMotGraf.DibujarImagenN(im: TGraphic; x1, y1: Single);
+procedure TMotGraf.DrawImageN(im: TGraphic; x1, y1: Single);
 //Igual a DibujarImagen() pero no hace escalamiento de la imagen, solo por el Zoom.
 var r:TRect;
 begin
@@ -805,7 +805,7 @@ begin
   r.Bottom:=r.Top + round(im.Height * Zoom);
   Canvas.StretchDraw(r,im);
 End;
-procedure TMotGraf.DibujarImagen0(im: TGraphic; x1, y1, dx, dy: Integer);
+procedure TMotGraf.DrawImage0(im: TGraphic; x1, y1, dx, dy: Integer);
 //Dibuja imagen sin transformación
 var r:TRect;
 begin
@@ -841,8 +841,8 @@ begin
     SetPen(psSolid,2,clGray);
     xm := x1 + round(ancho/2);  //se redondea antes (ancho/2), para evitar vavriación en la
                                 //posición, al dibujar en diferentes posiciones.
-    Linea(x1, y1, xm, y1+alto);
-    Linea(xm,y1+alto,x1+ancho,y1);
+    Line(x1, y1, xm, y1+alto);
+    Line(xm,y1+alto,x1+ancho,y1);
 end;
 procedure TMotGraf.DibCheck(px, py: Single; ancho, alto: Single);
 //Dibuja una marca de tipo "Check". Útil para implementar el control "Check"
@@ -850,8 +850,8 @@ var xm: Single;
 begin
     SetPen(psSolid,2,clGray);
     xm := round(ancho/4);
-    Linea(px     , py + 3, px + xm, py + alto);
-    Linea(px + xm, py + alto, px + ancho, py );
+    Line(px     , py + 3, px + xm, py + alto);
+    Line(px + xm, py + alto, px + ancho, py );
 End;
 procedure TMotGraf.DrawTrianUp(x1, y1: Single; ancho, alto: Single);
 //Dibuja un pequeño triángulo apuntando hacia arriba

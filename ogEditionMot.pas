@@ -50,15 +50,15 @@ type
                         xp, yp: Integer); virtual;
     procedure MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState;
                         xp, yp: Integer); virtual;
-    procedure VerificarParaMover(xp, yp: Integer);
+    procedure VerifyForMove(xp, yp: Integer);
     procedure MouseMove(Sender: TObject; Shift: TShiftState; xp,  yp: Integer); virtual;
     procedure MouseUp(Sender: TObject; Button: TMouseButton;Shift: TShiftState; xp, yp: Integer);
     procedure Paint(Sender: TObject);
     procedure PBMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   public  //Eventos
-    OnObjetosElim : TOnObjetosElim;   //cuando se elminan uno o más objetos
-    OnMouseUp     : TMouseEvent;          //cuando se suelta el botón
+    OnObjetosElim : TOnObjetosElim;   //Cuando se elminan uno o más objetos
+    OnMouseUp     : TMouseEvent;      //Cuando se suelta el botón
     OnMouseUpRight: TEvMouse;
     OnMouseUpLeft : TEvMouse;
     OnMouseDown   : TMouseEvent;
@@ -74,9 +74,9 @@ type
     objetos      : TlistObjGraf;
     seleccion    : TlistObjGraf;
     curPntCtl    : TPtoCtrl;      //Punto de control actual en movimiento
-    Modif  : Boolean;  //bandera para indicar Diagrama Modificado
-    PBox   : TPaintBox;    //Control de Salida
-    v2d    : TMotGraf;    //salida gráfica
+    Modif    : Boolean;    //Bandera para indicar Diagrama Modificado
+    PBox     : TPaintBox;  //Control de Salida
+    v2d      : TMotGraf;   //salida gráfica
     procedure AddGraphObject(og: TObjGraf; AutoPos: boolean=true);
     procedure DeleteAll;
     procedure DeleteSelected;
@@ -84,14 +84,14 @@ type
     procedure PBDblClick(Sender: TObject);
     procedure KeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     function ObjPorNombre(nom: string): TObjGraf;
-    procedure Refrescar;
+    procedure Refresh;
   protected
     //Coordenadas del raton
     x_pulso: integer;
     y_pulso: integer;
     //Perspectivas
-    PFinal: TPerspectiva;  //almacena la perspectiva a la que se quiere llegar
-    x_cam_a: Single;  //coordenadas anteriores de x_cam
+    PFinal : TPerspectiva;  //Almacena la perspectiva a la que se quiere llegar
+    x_cam_a: Single;  //Coordenadas anteriores de x_cam
     y_cam_a: Single;
     procedure InicMover;
     function MarkConnectionPoint(xp, yp: Integer): TPtoConx;
@@ -161,7 +161,7 @@ begin
   ogs := SelectSomeObject(xp, yp);  //verifica si selecciona a un objeto
   if ogs = nil Then begin  //Ninguno Selected
       UnselectAll;
-      Refrescar;
+      Refresh;
       EstPuntero := EP_SELECMULT;  //inicia seleccion multiple
       InicRecSeleccion(x_pulso, y_pulso);
   end else begin //Selecciona a uno, pueden haber otros seleccionados
@@ -174,7 +174,7 @@ begin
       if Shift = [ssRight] Then  //Sin Control ni Shift
         UnselectAll;
       ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
-      Refrescar;
+      Refresh;
        //ParaMover = True       ;  //listo para mover
   end;
 end;
@@ -188,7 +188,7 @@ begin
   ogs := SelectSomeObject(xp, yp);  //verifica si selecciona a un objeto
   if ogs = nil then  begin  //No selecciona a ninguno
       UnselectAll;
-      Refrescar;
+      Refresh;
       EstPuntero := EP_SELECMULT;  //inicia seleccion multiple
       InicRecSeleccion(x_pulso, y_pulso);
   end else begin     //selecciona a uno, pueden haber otros seleccionados
@@ -262,7 +262,7 @@ begin
     end;
   end;
 end;
-procedure TEditionMot.Refrescar;  //   Optional s: TObjGraf = Nothing
+procedure TEditionMot.Refresh;  //   Optional s: TObjGraf = Nothing
 begin
   PBox.Invalidate;
 end;
@@ -342,7 +342,7 @@ begin
   exit(nil);
 end;
 
-procedure TEditionMot.VerificarParaMover(xp, yp: Integer);
+procedure TEditionMot.VerifyForMove(xp, yp: Integer);
 {Si se empieza el movimiento, selecciona primero algun elemento que
 pudiera estar debajo del puntero y actualiza "EstPuntero".
 Solo se debe ejecutar una vez al inicio del movimiento, para ello se
@@ -394,10 +394,10 @@ begin
      begin
       EstPuntero := EP_DESP_PANT;
       ScrollDesp(x_pulso - xp, y_pulso - yp);
-      Refrescar;
+      Refresh;
       Exit;
      End;
-  If ParaMover = True Then VerificarParaMover(xp, yp);
+  If ParaMover = True Then VerifyForMove(xp, yp);
   If EstPuntero = EP_SELECMULT then begin  //modo seleccionando multiples formas
       x2Sel := xp;
       y2Sel := yp;
@@ -413,12 +413,12 @@ begin
             end;
           end;
       End;
-      Refrescar
+      Refresh
   end Else If EstPuntero = EP_MOV_OBJS then begin  //mueve la selección
       Modif := True;
       for s in seleccion do
           s.MouseMove(xp,yp, seleccion.Count);
-      Refrescar;
+      Refresh;
   end Else If EstPuntero = EP_DIMEN_OBJ then begin
       selPntCnx := SelectPointOfConexion(xp, yp);
       if selPntCnx <> nil then begin
@@ -427,11 +427,11 @@ begin
       end;
       //Se está dimensionando un objeto, moviendo un punto de control
       CapturoEvento.MouseMove(xp, yp, seleccion.Count);
-      Refrescar;
+      Refresh;
   end else begin
       if CapturoEvento <> NIL then begin
          CapturoEvento.MouseMove(xp, yp, seleccion.Count);
-         Refrescar;
+         Refresh;
       end else begin  //Movimiento simple
           s := VerifyMouseMove(xp, yp);
           if s <> NIL then s.MouseOver(Sender, Shift, xp, yp);  //pasa el evento
@@ -464,7 +464,7 @@ begin
         For o In seleccion do  //Pasa el evento a la selección
             o.MouseUp(Sender, Button, Shift, xp, yp, EstPuntero = EP_MOV_OBJS);
         EstPuntero := EP_NORMAL;  //fin de movimiento
-        Refrescar;
+        Refresh;
         //Genera eventos. Los objetos movidos se pueden determinar a partir de la selección.
         if OnObjectsMoved<>nil then OnObjectsMoved;
       end;
@@ -493,11 +493,11 @@ begin
                 If Shift = [] Then UnselectAll;
                 o.Selec;   //selecciona
                 o.MouseUp(Sender, Button, Shift, xp, yp, false);
-                Refrescar;
+                Refresh;
                 //verifica si el objeto está piddiendo que lo eliminen
                 if o.Erased then begin
                   DeleteGraphObject(o);
-                  Refrescar;
+                  Refresh;
                 end;
             End;
             CapturoEvento := NIL;      //inicia bandera de captura de evento
@@ -540,7 +540,7 @@ begin
       end;
       If Key = 27 Then begin  //ESCAPE
           UnselectAll;
-          Refrescar;
+          Refresh;
       end;
       If seleccion.Count = 0 Then begin  //si no hay objetos seleccionados
           If Key = 37 Then ScrollRight(DESPLAZ_MENOR)  ;  //derecha
@@ -552,25 +552,25 @@ begin
 //              For og In seleccion do begin
 //                  If Not og.PosLocked Then og.x := og.X - DESPLAZ_MENOR;
 //              end;
-//              Refrescar;
+//              Refresh;
 //          end;
 //          If Key = 39 Then begin  //izquierda
 //              For og In seleccion do begin
 //                  If Not og.PosLocked Then og.X := og.X + DESPLAZ_MENOR;
 //              end;
-//              Refrescar;
+//              Refresh;
 //          end;
 //          If Key = 40 Then begin  //arriba
 //              For og In seleccion do begin
 //                  If Not og.PosLocked Then og.Y := og.Y + DESPLAZ_MENOR;
 //              end;
-//              Refrescar;
+//              Refresh;
 //          end;
 //          If Key = 38 Then begin  //abajo
 //              For og In seleccion do begin
 //                  If Not og.PosLocked Then og.Y := og.Y - DESPLAZ_MENOR;
 //              end;
-//              Refrescar;
+//              Refresh;
 //          end;
       end;
   end else If Shift = [ssShift] Then begin //**********************Shift + ************************
@@ -608,7 +608,7 @@ begin
   og.OnSelec   := @ObjGraf_Select;    //referencia a procedimiento de selección
   og.OnDeselec := @ObjGraf_Unselec;  //referencia a procedimiento de "de-selección"
   og.OnCamPunt := @ObjGraf_SetPointer;    //procedimiento para cambiar el puntero
-//  Refrescar(s)   ;                //Refresca objeto
+//  Refresh(s)   ;                //Refresca objeto
   objetos.Add(og);                //agrega elemento
 end;
 procedure TEditionMot.DeleteGraphObject(obj: TObjGraf);  //elimina un objeto grafico
@@ -660,7 +660,7 @@ begin
     og := seleccion[0];
     DeleteGraphObject(og);
   end;
-  Refrescar;
+  Refresh;
   OnObjetosElim := tmp;  //restaura
   if OnObjetosElim<>nil then OnObjetosElim;  //llama evento
 end;
@@ -782,7 +782,7 @@ begin
         UnselectAll;
         s.Selec;
     end;
-    Refrescar;
+    Refresh;
 end;
 procedure TEditionMot.SeleccionarAnterior;
 //Selecciona el anterior elemento visible en el orden de creación.
@@ -801,7 +801,7 @@ begin
         UnselectAll;
         s.Selec;
     end;
-    Refrescar;
+    Refresh;
 end;
 // Funciones de visualización
 procedure TEditionMot.AmpliarClick(factor: single = ZOOM_INC_FACTOR;
@@ -820,8 +820,8 @@ begin
       v2d.x_cam -= (xv1-xv0);
       v2d.y_cam -= (yv1-yv0);
   end;
-  v2d.GuardarPerspectivaEn(Pfinal);  //para que no se regrese al ángulo inicial
-  Refrescar;
+  v2d.SavePerspectiveIn(Pfinal);  //para que no se regrese al ángulo inicial
+  Refresh;
 End;
 procedure TEditionMot.ReducirClick(factor: single = ZOOM_INC_FACTOR;
                         xrZoom: integer = 0; yrZoom: integer = 0);
@@ -839,8 +839,8 @@ begin
       v2d.x_cam -= (xv1-xv0);
       v2d.y_cam -= (yv1-yv0);
   end;
-  v2d.GuardarPerspectivaEn(Pfinal)  ;  //para que no se regrese al ángulo inicial
-  Refrescar;
+  v2d.SavePerspectiveIn(Pfinal)  ;  //para que no se regrese al ángulo inicial
+  Refresh;
 End;
 // Funciones de selección
 procedure TEditionMot.SelectAll;
@@ -878,7 +878,7 @@ begin
          //Si ya había uno marcado, se actualiza el dibujo y la bandera
          lastMarked.Marked := False;  //se desmarca
          lastMarked := NIL;
-         Refrescar;
+         Refresh;
       end;
       PBox.Cursor := CUR_DEFEC;   //restaura cursor
     end else begin   //Hay uno por marcar
@@ -886,7 +886,7 @@ begin
          //No había ninguno marcado
          lastMarked := sel;      //guarda
          sel.Marked := True;    //lo marca
-         Refrescar;            //y se dibuja
+         Refresh;            //y se dibuja
       end else begin  //ya había uno marcado
          if lastMarked = sel Then  //es el mismo
             //no se hace nada
@@ -894,7 +894,7 @@ begin
             lastMarked.Marked := False;  //se desmarca
             lastMarked := sel ;   //actualiza
             sel.Marked := True;
-            Refrescar;          //y se dibuja
+            Refresh;          //y se dibuja
          end;
         end;
     end;
@@ -905,7 +905,7 @@ begin
     pCnx := MarkConnectionPoint(X, Y);
     if lastCnxPnt <> pCnx then begin
       //Refresh only when changes
-      Refrescar;
+      Refresh;
     end;
     lastCnxPnt := pCnx;
 end;
@@ -914,8 +914,8 @@ procedure TEditionMot.Desplazar(dx, dy: integer);
 begin
 //Procedimiento "estandar" para hacer un desplazamiento de la pantalla
 //Varía los parámetros de la perspectiva "x_cam" e "y_cam"
-    v2d.Desplazar(dx, dy);
-    v2d.GuardarPerspectivaEn(Pfinal);  //para que no se regrese al valor inicial
+    v2d.Scroll(dx, dy);
+    v2d.SavePerspectiveIn(Pfinal);  //para que no se regrese al valor inicial
 end;
 procedure TEditionMot.ScrollDown(desp: Double = DESPLAZ_MENOR) ;  //abajo
 //Genera un desplazamiento en la pantalla haciendolo independiente del
@@ -925,7 +925,7 @@ var
 begin
     z := v2d.zoom;
     Desplazar(0, round(desp / z));
-    Refrescar;
+    Refresh;
 end;
 procedure TEditionMot.ScrollUp(desp: Double = DESPLAZ_MENOR) ;  //arriba
 //Genera un desplazamiento en la pantalla haciendolo independiente del
@@ -935,7 +935,7 @@ var
 begin
     z := v2d.zoom;
     Desplazar(0, round(-desp / z));
-    Refrescar;
+    Refresh;
 end;
 procedure TEditionMot.ScrollRight(desp: Double = DESPLAZ_MENOR) ;  //derecha
 //Genera un desplazamiento en la pantalla haciendolo independiente del
@@ -945,7 +945,7 @@ var
 begin
     z := v2d.zoom;
     Desplazar(round(desp / z), 0);
-    Refrescar;
+    Refresh;
 end;
 procedure TEditionMot.ScrollLeft(desp: Double = DESPLAZ_MENOR) ;  //izquierda
 //Genera un desplazamiento en la pantalla haciendolo independiente del
@@ -955,7 +955,7 @@ var
 begin
     z := v2d.zoom;
     Desplazar(round(-desp / z), 0);
-    Refrescar;
+    Refresh;
 end;
 procedure TEditionMot.ScrollDesp(dx, dy: integer);
 //Desplazamiento de la pantalla
@@ -963,7 +963,7 @@ begin
 //PBox.Canvas.TextOut(0,30,'dx=' + FloatToStr(dx) + '  ');
     v2d.x_cam := round(x_cam_a + dx / v2d.zoom);
     v2d.y_cam := round(y_cam_a + dy / v2d.zoom);
-    v2d.GuardarPerspectivaEn(Pfinal);  //para que no se regrese al valor inicial
+    v2d.SavePerspectiveIn(Pfinal);  //para que no se regrese al valor inicial
 End;
 // Funciones del Rectángulo de Selección
 procedure TEditionMot.DibujRecSeleccion;
