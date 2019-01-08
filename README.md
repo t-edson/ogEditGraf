@@ -130,6 +130,7 @@ También se suele poner al motor de edición en una Frame en lugar de la propia 
    |    ogMotGraf2D    |              <------ MOTOR GRÁFICO
    +-------------------+
 
+   
 Esta es la forma recomendada por modularidad y tiene además la ventaja de poder crear diversas vistas, creando simplemente diversas instancias del Frame.
 
 Un ejemplo de este diseño, se puede observar en el proyecto ejemplo "Sample2 - Object Editor Frame".
