@@ -23,7 +23,7 @@ type
   published
     PaintBox1: TPaintBox;
   public
-    function AgregaObjeto: TMiObjeto;
+    function AgregaObjeto: TMyGraphObject;
   private
     motEdi: TEditionMot;  //motor de edición
   public
@@ -34,11 +34,11 @@ type
 implementation
 {$R *.lfm}
 
-function TfraEditor.AgregaObjeto: TMiObjeto;
-//Agrega un objeto de tipo TMiObjeto al editor.
-var o: TMiObjeto;
+function TfraEditor.AgregaObjeto: TMyGraphObject;
+//Agrega un objeto de tipo TMyGraphObject al editor.
+var o: TMyGraphObject;
 begin
-  o := TMiObjeto.Create(motEdi.v2d);
+  o := TMyGraphObject.Create(motEdi.v2d);
   motEdi.AddGraphObject(o);
   Result := o;
 end;

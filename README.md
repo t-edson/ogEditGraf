@@ -68,9 +68,70 @@ Las rutinas de dibujo, se dirigen siempre, a un control PaintBox, que debe ser i
 
 Este sencillo ejemplo solo requiere incluir un control TPaintBox en el formulario principal. Sin embargo, para modularizar mejor la aplicación, se sugiere usar una unidad especial para definir los objetos gráficos de nuestra aplicación, y un frame para incluir el PaintBox y las rutinas de trabajo del motor de edición.
 
-== Arquitectura de los proyectos ===
+### Arquitectura de la librería
 
-Las unidades de la librería siguen una organización particular, que determina también la arquitectura de la aplicación.
+Las unidades que componen  la librería siguen una organización particular, que determina también la arquitectura de la aplicación.
 
+Esta librería se basa en los siguientes principios:
+
+* Toda aplicación debe tener un Motor Gráfico.
+* Toda aplicación debe tener un Motor de Edición.
+* Los objetos a mostrar deben ser descendientes de la clase TObjGraf.
+
+
+Un proyecto sencillo, requiere solo incluir a la unidad ogEditionMot y a la unidad ogDefObjGraf:
+
+        +-------------------------+
+        |        Programa         |
+        +-------------------------+
+             |                |
+             |                |
+     +------------------+     |
+     |   ogEditionMot   |     |       <-------- MOTOR DE EDICIÓN
+     +------------------+     |  
+       |             |        |
+       |       +------------------+
+       |       |   ogDefObjGraf   |   <------- Definición de TObjGraf
+       |       +------------------+
+       |            |
+   +-------------------+
+   |    ogMotGraf2D    |              <-------- MOTOR GRÁFICO
+   +-------------------+
+
+La unidad ogMotGraf2D es la que contiene los métodos gráficos que dibujan en pantalla. Es por eso que es accedidad por ogDefObjGraf y ogEditGraf. El programa principal no suele acceder a ogMotGraf2D, porque para dibujar puede acceder al motor gráfico mediante la clase TObjGraf que está definida en ogDefObjGraf.
+
+Un ejemplo de esta forma de trabajo, se encuentra en el proyecto ejemplo "Sample1 - Object Editor" en donde se ve que se ha definido una sola clase de objeto gráfico llamada TMyGraphObject, en la unidad del formulario principal.
+
+En la práctica, sin embargo, se tendrán diversas clases de objetos gráficos, por lo que resulta conveniente agruparlas en una unidad a la que podríamos llamar "ObjGraficos". 
+
+También se suele poner al motor de edición en una Frame en lugar de la propia aplicación. De modo que el programa tendría la siguiente forma:
+
+        +-------------------------+
+        |        Programa         |
+        +-------------------------+
+                      |              
+        +-------------------------+
+        |         Frame           |
+        +-------------------------+
+             |               |
+             |       +-------------+
+             |       | ObjGraficos |  <------ Definición de mis objetos gráficos
+             |       +-------------+      
+             |               |            
+     +------------------+    |            
+     |   ogEditionMot   |    |        <------ MOTOR DE EDICIÓN
+     +------------------+    |            
+       |             |       |            
+       |       +------------------+       
+       |       |   ogDefObjGraf   |   <------ Definición de TObjGraf
+       |       +------------------+       
+       |            |                     
+   +-------------------+                  
+   |    ogMotGraf2D    |              <------ MOTOR GRÁFICO
+   +-------------------+
+
+Esta es la forma recomendada por modularidad y tiene además la ventaja de poder crear diversas vistas, creando simplemente diversas instancias del Frame.
+
+Un ejemplo de este diseño, se puede observar en el proyecto ejemplo "Sample2 - Object Editor Frame".
 
 Para más información, revisar los ejemplos.

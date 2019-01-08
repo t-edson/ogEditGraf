@@ -9,9 +9,9 @@ uses
 
 type
 
-  { TMiObjeto }
+  { TMyGraphObject }
   //define el tipo de objeto a dibujar
-  TMiObjeto = class(TObjGraf)
+  TMyGraphObject = class(TObjGraf)
     procedure Draw; override;
   end;
 
@@ -31,7 +31,7 @@ var
 implementation
 {$R *.lfm}
 
-procedure TMiObjeto.Draw;
+procedure TMyGraphObject.Draw;
 begin
   v2d.SetText(clBlack, 11,'', true);
   v2d.Texto(X + 2, Y -20, 'Objeto');
@@ -44,14 +44,14 @@ end;
 { TForm1 }
 
 procedure TForm1.FormCreate(Sender: TObject);
-var og: TMiObjeto;
+var og: TMyGraphObject;
 begin
   //crea motor de edición
   motEdi := TEditionMot.Create(PaintBox1);
   //agrega objetos
-  og := TMiObjeto.Create(motEdi.v2d);
+  og := TMyGraphObject.Create(motEdi.v2d);
   motEdi.AddGraphObject(og);
-  og := TMiObjeto.Create(motEdi.v2d);
+  og := TMyGraphObject.Create(motEdi.v2d);
   motEdi.AddGraphObject(og);
 end;
 

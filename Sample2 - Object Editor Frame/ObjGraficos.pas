@@ -11,8 +11,8 @@ uses
 
 type
 
-{ TMiObjeto }
-TMiObjeto = class(TObjGrafCtrls)  //objeto gráfico que dibujaremos
+{ TMyGraphObject }
+TMyGraphObject = class(TObjGrafCtrls)  //objeto gráfico que dibujaremos
   procedure Draw; override;  //Dibuja el objeto gráfico
   procedure ProcDesac(estado0: Boolean);   //Para responder a evento del botón
   constructor Create(mGraf: TMotGraf); override;
@@ -23,7 +23,7 @@ end;
 
 implementation
 
-constructor TMiObjeto.Create(mGraf: TMotGraf);
+constructor TMyGraphObject.Create(mGraf: TMotGraf);
 begin
   inherited;
   Bot1 := AddButton(24,24,BOT_REPROD, @ProcDesac);
@@ -33,7 +33,7 @@ begin
   name := 'Objeto';
 end;
 
-procedure TMiObjeto.Draw;
+procedure TMyGraphObject.Draw;
 begin
   //Dibuja etiqueta
   v2d.SetPen(psSolid, 1, COL_GRIS);
@@ -47,7 +47,7 @@ begin
   inherited;
 end;
 
-procedure TMiObjeto.ReLocate(newX, newY: Single; UpdatePCtrls: boolean);
+procedure TMyGraphObject.ReLocate(newX, newY: Single; UpdatePCtrls: boolean);
 //Reubica elementos, del objeto. Es llamado cuando se cambia la posición del objeto, con
 //o sin cambio de las dimensiones.
 var x2: Single;
@@ -57,7 +57,7 @@ begin
   Buttons[0].Locate(x2 - 24, y + 1);
 end;
 
-procedure TMiObjeto.ProcDesac(estado0: Boolean);
+procedure TMyGraphObject.ProcDesac(estado0: Boolean);
 begin
    showmessage('Pulsado');
 end;
