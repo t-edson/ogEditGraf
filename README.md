@@ -81,6 +81,7 @@ Esta librería se basa en los siguientes principios:
 
 Un proyecto sencillo, requiere solo incluir a la unidad ogEditionMot y a la unidad ogDefObjGraf:
 
+```
         +-------------------------+
         |        Programa         |
         +-------------------------+
@@ -97,6 +98,7 @@ Un proyecto sencillo, requiere solo incluir a la unidad ogEditionMot y a la unid
    +-------------------+
    |    ogMotGraf2D    |              <-------- MOTOR GRÁFICO
    +-------------------+
+```
 
 La unidad ogMotGraf2D es la que contiene los métodos gráficos que dibujan en pantalla. Es por eso que es accedidad por ogDefObjGraf y ogEditGraf. El programa principal no suele acceder a ogMotGraf2D, porque para dibujar puede acceder al motor gráfico mediante la clase TObjGraf que está definida en ogDefObjGraf.
 
@@ -106,6 +108,7 @@ En la práctica, sin embargo, se tendrán diversas clases de objetos gráficos, 
 
 También se suele poner al motor de edición en una Frame en lugar de la propia aplicación. De modo que el programa tendría la siguiente forma:
 
+```
         +-------------------------+
         |        Programa         |
         +-------------------------+
@@ -129,7 +132,7 @@ También se suele poner al motor de edición en una Frame en lugar de la propia 
    +-------------------+                  
    |    ogMotGraf2D    |              <------ MOTOR GRÁFICO
    +-------------------+
-
+```
    
 Esta es la forma recomendada por modularidad y tiene además la ventaja de poder crear diversas vistas, creando simplemente diversas instancias del Frame.
 
