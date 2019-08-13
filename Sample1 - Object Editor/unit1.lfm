@@ -8,7 +8,7 @@ object Form1: TForm1
   ClientWidth = 401
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  LCLVersion = '1.8.0.6'
+  LCLVersion = '2.0.0.4'
   object PaintBox1: TPaintBox
     Left = 0
     Height = 317

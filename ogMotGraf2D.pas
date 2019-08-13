@@ -55,7 +55,7 @@ TMotGraf = class
 
   ImageList  : TImageList;
   constructor IniMotGraf(canvas0: Tcanvas);
-  procedure FijaModoEscrit(modo:TFPPenMode);
+  procedure SetPenMode(modo:TFPPenMode);
   procedure SetPen(estilo:TFPPenStyle; ancho:Integer; color:Tcolor);
   procedure SetBrush(ColorR:TColor);
   procedure SetColor(colLin,colRel:TColor; ancho: Integer = 1); //Fija colorde línea y relleno
@@ -70,6 +70,7 @@ TMotGraf = class
   procedure RectRedonR(x1, y1, x2, y2: Single);
   procedure Barra(x1, y1, x2, y2: Single; colFon: TColor=-1);
   procedure Barra0(x1, y1, x2, y2: Integer; colFon: TColor);
+  procedure Arc(x1, y1, x2, y2: Single; Angle16Deg, Angle16DegLength: Integer);
   procedure Ellipse(x1, y1, x2, y2: Single);
   procedure RadialPie(x1, y1, x2, y2: Single; StartAngle16Deg,
     Angle16DegLength: integer);
@@ -81,10 +82,10 @@ TMotGraf = class
   procedure SetFont(Letra: string);
   procedure SetText(color: TColor);
   procedure SetText(color: TColor; tam: single);
-  procedure SetText(negrita: Boolean=False; cursiva: Boolean=False;
-    subrayado: Boolean=False);
-  procedure SetText(color: TColor; tam: single; Letra: String;
-    negrita: Boolean=False; cursiva: Boolean=False; subrayado: Boolean=False);
+  procedure SetText(bold: Boolean=False; italic: Boolean=False;
+    underline: Boolean=False);
+  procedure SetText(color: TColor; tam: single; font: String;
+    bold: Boolean=False; italic: Boolean=False; underline: Boolean=False);
   procedure Texto(x1, y1: Single; txt: String);
   procedure TextRect(x1, y1, x2, y2: Single; x0, y0: Single; const Text: string;
     const Style: TTextStyle);
@@ -110,9 +111,9 @@ public  //Funciones de transformación
   function Xvirt(xr, {%H-}yr: Integer): Single;  //INLINE Para acelerar las llamadas
   function Yvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
 public  //funciones básicas para dibujo de Controles
-  procedure DibBorBoton(x1,y1:Single; ancho,alto: Single);
-  procedure DibFonBotonOsc(x1, y1: Single; ancho, alto: Single);
-  procedure DibCheck(px, py: Single; ancho, alto: Single);
+  procedure DrawButtonBord(x1,y1:Single; ancho,alto: Single);
+  procedure DrawButtonBack(x1, y1: Single; ancho, alto: Single);
+  procedure DrawCheck(px, py: Single; ancho, alto: Single);
   procedure DibVnormal(x1, y1: Single; ancho, alto: Single);
   procedure DrawTrianUp(x1,y1:Single; ancho,alto: Single);
   procedure DrawTrianDown(x1,y1:Single; ancho,alto: Single);
@@ -135,7 +136,7 @@ begin
     //ampliación inicial
     Zoom := 1;
 End;
-procedure TMotGraf.FijaModoEscrit(modo: TFPPenMode);
+procedure TMotGraf.SetPenMode(modo: TFPPenMode);
 begin
     Canvas.Pen.Mode := modo;
 End;
@@ -187,27 +188,27 @@ begin
    Canvas.Font.Color := color;
    Canvas.Font.Size := round(tam * Zoom);
 end;
-procedure TMotGraf.SetText(negrita:Boolean = False; cursiva: Boolean = False;
-            subrayado: Boolean = False);
+procedure TMotGraf.SetText(bold:Boolean = False; italic: Boolean = False;
+            underline: Boolean = False);
 //Establece las características completas del texto
 begin
-   Canvas.Font.Bold := negrita;
-   Canvas.Font.Italic := cursiva;
-   Canvas.Font.Underline := subrayado;
+   Canvas.Font.Bold := bold;
+   Canvas.Font.Italic := italic;
+   Canvas.Font.Underline := underline;
 End;
 procedure TMotGraf.SetText(color: TColor; tam: single; //; nDegrees As Single, _
-            Letra: String;
-            negrita:Boolean = False;
-            cursiva: Boolean = False;
-            subrayado: Boolean = False);
+            font: String;
+            bold:Boolean = False;
+            italic: Boolean = False;
+            underline: Boolean = False);
 //Establece las características completas del texto
 begin
    Canvas.Font.Color := color;
    Canvas.Font.Size := round(tam * Zoom);
-   if Letra <> '' then Canvas.Font.Name:=letra;
-   Canvas.Font.Bold := negrita;
-   Canvas.Font.Italic := cursiva;
-   Canvas.Font.Underline := subrayado;
+   if font <> '' then Canvas.Font.Name:=font;
+   Canvas.Font.Bold := bold;
+   Canvas.Font.Italic := italic;
+   Canvas.Font.Underline := underline;
 End;
 procedure TMotGraf.Texto(x1, y1: Single; txt: String);
 //Escribe un texto
@@ -496,6 +497,12 @@ begin
     Canvas.Brush.Color := colFon;
     Canvas.FillRect(x1,y1,x2,y2); //fondo
 End;
+
+procedure TMotGraf.Arc(x1, y1, x2, y2: Single; Angle16Deg,
+  Angle16DegLength: Integer);
+begin
+  Canvas.Arc(XPant(x1), YPant(y1), XPant(x2), YPant(y2), Angle16Deg, Angle16DegLength);
+end;
 procedure TMotGraf.Ellipse(x1, y1, x2, y2: Single);
 begin
   Canvas.Ellipse(XPant(x1), YPant(y1), XPant(x2), YPant(y2));
@@ -820,14 +827,14 @@ begin
 End;
 
 ////////////////////////  Funciones de Dibujo de Controles /////////////////////////
-procedure TMotGraf.DibBorBoton(x1, y1: Single; ancho, alto: Single);
+procedure TMotGraf.DrawButtonBord(x1, y1: Single; ancho, alto: Single);
 //Dibuja el borde de los botones
 begin
    SetColor(clGray, clWhite, 1);
    Canvas.RoundRect(XPant(x1), YPant(y1), XPant(x1+ancho), YPant(y1+alto),
                     round(6 * Zoom), Round(6 * Zoom));
 end;
-procedure TMotGraf.DibFonBotonOsc(x1, y1: Single; ancho, alto: Single);
+procedure TMotGraf.DrawButtonBack(x1, y1: Single; ancho, alto: Single);
 //Dibuja el fondo de los botones
 begin
    SetColor(clGray, clScrollBar, 1);
@@ -844,7 +851,7 @@ begin
     Line(x1, y1, xm, y1+alto);
     Line(xm,y1+alto,x1+ancho,y1);
 end;
-procedure TMotGraf.DibCheck(px, py: Single; ancho, alto: Single);
+procedure TMotGraf.DrawCheck(px, py: Single; ancho, alto: Single);
 //Dibuja una marca de tipo "Check". Útil para implementar el control "Check"
 var xm: Single;
 begin

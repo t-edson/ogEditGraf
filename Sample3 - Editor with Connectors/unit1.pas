@@ -85,13 +85,15 @@ begin
   motEdi.AddGraphObject(og);
   //Agrega punto de conexión
   og.AddPtoConex(0,50);
-  og.AddPtoConex(100,50);
   og.ShowPtosConex:=true;
 
   //Agrega objetos
   og := TMyObject.Create(motEdi.v2d);
   og.ReLocate(250,50);
   motEdi.AddGraphObject(og);
+  og.AddPtoConex(100,50);
+  og.ShowPtosConex:=true;
+  og.pcTOP_CEN.Visible := false;
 
   //Objeto de tipo conector
   oc := TMyConnector.Create(motEdi.v2d);

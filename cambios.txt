@@ -1,3 +1,14 @@
+2.7
+===
+Se cambia el nombre de TMotGraf.DibBorBoton() por DrawButtonBord().
+Se cambia el nombre de TMotGraf.DibFonBotonOsc() por DrawButtonBack().
+Se cambia el nombre de TMotGraf.DibCheck() por DrawCheck()
+Se cambia el nombre de TMotGraf.FijaModoEscrit() por SetPenMode()
+Se cambia el nombre de TMotGraf.Texto() por TMotGraf.Text().
+Se cambia el nombre de TEditionMot.objetos por TEditionMot.objects
+Se cambia el nombre de TEditionMot.seleccion por TEditionMot.selection
+Se crea el método TMotGraf.Arc().
+
 2.6
 ===
 Se cambia el nombre de los proyectos de ejemplo.
