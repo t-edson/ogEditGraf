@@ -56,7 +56,7 @@ type
     procedure Paint(Sender: TObject);
     procedure PBMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
-  public  //Eventos
+  public  //Events
     OnObjetosElim : TOnObjetosElim;   //Cuando se elminan uno o más objetos
     OnMouseUp     : TMouseEvent;      //Cuando se suelta el botón
     OnMouseUpRight: TEvMouse;
@@ -68,22 +68,23 @@ type
     OnDblClick    : TNotifyEvent;
     OnObjectsMoved: procedure of object;
   public
-    EstPuntero   : TPointerState; //Estado del puntero
-    ParaMover    : Boolean;       //Bandera de control para el inicio del movimiento
-    CapturoEvento: TObjGraf;      //Referencia a objeto que capturo el movimiento
-    objetos      : TlistObjGraf;
-    seleccion    : TlistObjGraf;
+    PointerState : TPointerState; //Estado del puntero
+    ToMove       : Boolean;       //Bandera de control para el inicio del movimiento
+    CaptureEvent : TObjGraf;      //Referencia a objeto que capturo el movimiento
+    objects      : TlistObjGraf;
+    selection    : TlistObjGraf;
     curPntCtl    : TPtoCtrl;      //Punto de control actual en movimiento
-    Modif    : Boolean;    //Bandera para indicar Diagrama Modificado
-    PBox     : TPaintBox;  //Control de Salida
-    v2d      : TMotGraf;   //salida gráfica
+    Modif        : Boolean;       //Bandera para indicar Diagrama Modificado
+    PBox         : TPaintBox;     //Control de Salida
+    v2d          : TMotGraf;      //salida gráfica
     procedure AddGraphObject(og: TObjGraf; AutoPos: boolean=true);
     procedure DeleteAll;
     procedure DeleteSelected;
     procedure DeleteGraphObject(obj: TObjGraf);
     procedure PBDblClick(Sender: TObject);
     procedure KeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-    function ObjPorNombre(nom: string): TObjGraf;
+    function ObjByName(nom: string; CaseSensit: boolean): TObjGraf;
+    function NewNameObject(BaseName: string): string;
     procedure Refresh;
   protected
     //Coordenadas del raton
@@ -95,7 +96,7 @@ type
     y_cam_a: Single;
     procedure InicMover;
     function MarkConnectionPoint(xp, yp: Integer): TPtoConx;
-  protected  // Funciones para administrar los elementos visibles y seleccion por teclado
+  protected  // Funciones para administrar los elementos visibles y selection por teclado
     function NumberOfVisible: Integer;
     function FirstVisible: TObjGraf;
     function LastVisible: TObjGraf;
@@ -116,12 +117,12 @@ type
     function SelectSomeObject(xp, yp: Integer): TObjGraf;
     function SelectPointOfConexion(xp, yp: Integer; snap_adj: integer =
       ACCURACY_SNAP): TPtoConx;
-  protected  //Resaltado de Objetos
-    lastMarked   : TObjGraf;      //Nombre del objeto marcado
+  protected  //Objects highlight
+    lastMarked   : TObjGraf;      //Marked object
     lastCnxPnt   : TPtoConx;
     function VerifyMouseMove(X, Y: Integer): TObjGraf;
-  protected  //Desplazamiento de pantalla
-    procedure Desplazar(dx, dy: integer);
+  protected  //Screen scroll
+    procedure Scroll(dx, dy: integer);
     procedure ScrollDown(desp: Double=DESPLAZ_MENOR);
     procedure ScrollUp(desp: Double=DESPLAZ_MENOR);
     procedure ScrollRight(desp: Double=DESPLAZ_MENOR);
@@ -162,7 +163,7 @@ begin
   if ogs = nil Then begin  //Ninguno Selected
       UnselectAll;
       Refresh;
-      EstPuntero := EP_SELECMULT;  //inicia seleccion multiple
+      PointerState := EP_SELECMULT;  //inicia selection multiple
       InicRecSeleccion(x_pulso, y_pulso);
   end else begin //Selecciona a uno, pueden haber otros seleccionados
       if ogs.Selected Then  begin  //Se marcó sobre un Selected
@@ -175,7 +176,7 @@ begin
         UnselectAll;
       ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
       Refresh;
-       //ParaMover = True       ;  //listo para mover
+       //ToMove = True       ;  //listo para mover
   end;
 end;
 procedure TEditionMot.MouseDownLeft(Sender: TObject; Button: TMouseButton;
@@ -189,23 +190,23 @@ begin
   if ogs = nil then  begin  //No selecciona a ninguno
       UnselectAll;
       Refresh;
-      EstPuntero := EP_SELECMULT;  //inicia seleccion multiple
+      PointerState := EP_SELECMULT;  //inicia selection multiple
       InicRecSeleccion(x_pulso, y_pulso);
   end else begin     //selecciona a uno, pueden haber otros seleccionados
       if ogs.Selected Then begin //Se marcó sobre un Selected
           //No se quita la selección porque puede que se quiera mover
-          //varios objetos seleccionados. Si no se mueve, se quitará la
+          //varios objects seleccionados. Si no se mueve, se quitará la
           //selección en MouseUp
           //If Shift = 0 Then Call UnselectAll
           ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
-          ParaMover := True;  //listo para mover
+          ToMove := True;  //listo para mover
           exit;               //Se sale sin desmarcar
       end;
       //Se selecciona a uno que no tenía selección
       if Shift = [ssLeft] then  //Sin Control ni Shift
          UnselectAll;
       ogs.MouseDown(Sender, Button, Shift, xp, yp);  //Pasa el evento
-      ParaMover := True;            //Listo para mover
+      ToMove := True;            //Listo para mover
   end;
 end;
 procedure TEditionMot.MouseDown(Sender: TObject;
@@ -218,7 +219,7 @@ begin
     if Shift >= [ssCtrl, ssShift]  Then begin   //Contiene <Shift>+<Ctrl>
         //Inicia estado de ZOOM. Puede convertirse en EP_DESP_PANT
         //si luego se genera el evento Move()
-        EstPuntero := EP_RAT_ZOOM;
+        PointerState := EP_RAT_ZOOM;
     end else begin
         //Caso sin <Shift>+<Ctrl>
         if Button = mbRight then begin
@@ -239,9 +240,9 @@ begin
 //  If s = NIL Then
     PBox.canvas.Brush.Color := clWhite; //rgb(255,255,255);
     PBox.canvas.FillRect(PBox.ClientRect); //fondo
-    If EstPuntero = EP_SELECMULT Then DibujRecSeleccion;
-    //Dibuja objetos
-    for o In objetos do begin
+    If PointerState = EP_SELECMULT Then DibujRecSeleccion;
+    //Dibuja objects
+    for o In objects do begin
       o.Draw;
     end;
 end;
@@ -252,7 +253,7 @@ var
 begin
   ogs := SelectSomeObject(MousePos.x, MousePos.y);  //verifica si selecciona a un objeto
   if ogs=nil then begin
-    //debe desplazar la pantalla
+    //debe Scroll la pantalla
   end else begin
     //lo selecciona, pero debe ver si está Selected
     if ogs.Selected then begin
@@ -282,17 +283,17 @@ var
 begin
   //Verifica primero entre los que están seleccionados
   Result := NIL; //valor por defecto
-  //Explora objetos priorizando los que están encima
-  for i := seleccion.Count-1 downTo 0 do begin
-    s := seleccion[i];
+  //Explora objects priorizando los que están encima
+  for i := selection.Count-1 downTo 0 do begin
+    s := selection[i];
     If not s.SelLocked and s.IsSelectedBy(xp, yp) Then begin
         Result:= s;
         Exit;
     End;
   end;
-  //Explora objetos priorizando los que están encima
-  for i := objetos.Count-1 downTo 0 do begin
-    s := objetos[i];
+  //Explora objects priorizando los que están encima
+  for i := objects.Count-1 downTo 0 do begin
+    s := objects[i];
     If not s.SelLocked and s.IsSelectedBy(xp, yp) Then begin
         Result := s;
         Exit;
@@ -309,7 +310,7 @@ var
   pcnx: TPtoConx;
 begin
   Result := nil;
-  for og In objetos do begin
+  for og In objects do begin
     pcnx := og.SelectConnectionPoint(xp, yp, snap_adj);
     if pcnx<>nil then exit(pcnx);
   end;
@@ -322,7 +323,7 @@ var
   pCnx: TPtoConx;
 begin
   Result := nil;
-  for og In objetos do begin
+  for og In objects do begin
     pCnx := og.MarkConnectionPoint(xp, yp, 5);
     if pCnx<>nil then begin
       Result := pCnx;
@@ -335,7 +336,7 @@ var
   og: TObjGraf;
   pCnx: TPtoConx;
 begin
-  for og In objetos do begin
+  for og In objects do begin
     pCnx := og.ConnectionPointMarked;
     if pCnx<>nil then exit(pCnx);
   end;
@@ -350,38 +351,38 @@ usa la bandera ParaMover, que debe ponerse a FALSE aquí.}
 var
   s: TObjGraf;
 begin
-    for s In seleccion  do begin  //da prioridad a los elementos seleccionados
+    for s In selection  do begin  //da prioridad a los elementos seleccionados
       if s.PosLocked then continue;
       s.StartMove(xp, yp);      //llama al evento inic_mover para cada objeto
       if s.Proceso Then begin  //este objeto proceso el evento
-          CapturoEvento := s;
+          CaptureEvent := s;
           if s.Resizing then begin
-            EstPuntero := EP_DIMEN_OBJ;
+            PointerState := EP_DIMEN_OBJ;
             curPntCtl := s.curPntCtl;
           end else begin
-            EstPuntero := EP_NORMAL;
+            PointerState := EP_NORMAL;
           end;
-          ParaMover := False;    //para que ya no se llame otra vez
+          ToMove := False;    //para que ya no se llame otra vez
           Exit;
       end;
     end;
-    for s In objetos do begin
+    for s In objects do begin
       if s.PosLocked then continue;
       s.StartMove(xp, yp);    //llama al evento inic_mover para cada objeto
       if s.Proceso Then begin   //este objeto proceso el evento
-          CapturoEvento := s;
-          if s.Resizing then EstPuntero := EP_DIMEN_OBJ else EstPuntero := EP_NORMAL;
-          EstPuntero := EP_NORMAL;
-          ParaMover := False;   //para que ya no se llame otra vez
+          CaptureEvent := s;
+          if s.Resizing then PointerState := EP_DIMEN_OBJ else PointerState := EP_NORMAL;
+          PointerState := EP_NORMAL;
+          ToMove := False;   //para que ya no se llame otra vez
           exit;
       end;
     end;
     //Ningún objeto ha capturado, el evento, asumimos que se debe realizar
-    //el desplazamiento simple de los objetos seleccionados
+    //el desplazamiento simple de los objects seleccionados
 //Debug.Print "   VerifParaMover: EP_MOV_OBJS"
-    EstPuntero := EP_MOV_OBJS;
-    CapturoEvento := nil;      //ningún objeto capturo el evento
-    ParaMover := False;        //para que ya no se llame otra vez
+    PointerState := EP_MOV_OBJS;
+    CaptureEvent := nil;      //ningún objeto capturo el evento
+    ToMove := False;        //para que ya no se llame otra vez
 end;
 procedure TEditionMot.MouseMove(Sender: TObject; Shift: TShiftState;
   xp,  yp: Integer);
@@ -392,18 +393,18 @@ begin
   if OnMouseMove<>nil then OnMouseMove(Sender, Shift, xp, yp);
   If Shift = [ssCtrl, ssShift, ssRight] Then  //<Shift>+<Ctrl> + <Botón derecho>
      begin
-      EstPuntero := EP_DESP_PANT;
+      PointerState := EP_DESP_PANT;
       ScrollDesp(x_pulso - xp, y_pulso - yp);
       Refresh;
       Exit;
      End;
-  If ParaMover = True Then VerifyForMove(xp, yp);
-  If EstPuntero = EP_SELECMULT then begin  //modo seleccionando multiples formas
+  If ToMove = True Then VerifyForMove(xp, yp);
+  If PointerState = EP_SELECMULT then begin  //modo seleccionando multiples formas
       x2Sel := xp;
       y2Sel := yp;
       //verifica los que se encuentran seleccionados
-      if objetos.Count < 100 Then begin//sólo anima para pocos objetos
-          for s In objetos do begin
+      if objects.Count < 100 Then begin//sólo anima para pocos objects
+          for s In objects do begin
             if s.SelLocked then continue;
             if enRecSeleccion(s.XCent, s.YCent) And Not s.Selected Then begin
               s.Selec;
@@ -414,23 +415,23 @@ begin
           end;
       End;
       Refresh
-  end Else If EstPuntero = EP_MOV_OBJS then begin  //mueve la selección
+  end Else If PointerState = EP_MOV_OBJS then begin  //mueve la selección
       Modif := True;
-      for s in seleccion do
-          s.MouseMove(xp,yp, seleccion.Count);
+      for s in selection do
+          s.MouseMove(xp,yp, selection.Count);
       Refresh;
-  end Else If EstPuntero = EP_DIMEN_OBJ then begin
+  end Else If PointerState = EP_DIMEN_OBJ then begin
       selPntCnx := SelectPointOfConexion(xp, yp);
       if selPntCnx <> nil then begin
          //Engancha la coordenada de pantalla al punto de control
          v2d.XYpant(selPntCnx.x, selPntCnx.y, xp, yp);
       end;
       //Se está dimensionando un objeto, moviendo un punto de control
-      CapturoEvento.MouseMove(xp, yp, seleccion.Count);
+      CaptureEvent.MouseMove(xp, yp, selection.Count);
       Refresh;
   end else begin
-      if CapturoEvento <> NIL then begin
-         CapturoEvento.MouseMove(xp, yp, seleccion.Count);
+      if CaptureEvent <> NIL then begin
+         CaptureEvent.MouseMove(xp, yp, selection.Count);
          Refresh;
       end else begin  //Movimiento simple
           s := VerifyMouseMove(xp, yp);
@@ -444,36 +445,36 @@ var o: TObjGraf;
   selPntCnx: TPtoConx;
 begin
     //Verifica si la selección es NULA
-    If (EstPuntero = EP_SELECMULT) And RecSeleccionNulo Then EstPuntero := EP_NORMAL;
+    If (PointerState = EP_SELECMULT) And RecSeleccionNulo Then PointerState := EP_NORMAL;
     //Procesa de acuerdo al estado
-    Case EstPuntero of
+    Case PointerState of
     EP_RAT_ZOOM  : begin   //------ Zoom con el Ratón ------
         If Button = mbLeft Then AmpliarClick(1.2, xp, yp) ;  //<Shift> + <Ctrl> + click izquierdo
         If Button = mbRight Then ReducirClick(1.2, xp, yp) ;  //<Shift> + <Ctrl> + click derecho
-//      EstPuntero = EP_NORMAL   //Legalmente debería ponerse a normal. Pero si se
+//      PointerState = EP_NORMAL   //Legalmente debería ponerse a normal. Pero si se
                                  //hace, es posible que un click consecutivo muy
                                  //rápido, no dispare el evento MouseDown (dispara
                                  //el DblClick en su lugar), y se desactivaría el
                                  //modo ZOOM lo que es molesto.
       end;
     EP_DESP_PANT : begin    //------ Desplazamiento de Pantalla ------
-        EstPuntero := EP_NORMAL;
+        PointerState := EP_NORMAL;
       end;
-    EP_MOV_OBJS  : begin    //------ Moviendo Objetos ------
+    EP_MOV_OBJS  : begin    //------ Moviendo objects ------
 //Debug.Print "Esatado EP_MOV_OBJS"
-        For o In seleccion do  //Pasa el evento a la selección
-            o.MouseUp(Sender, Button, Shift, xp, yp, EstPuntero = EP_MOV_OBJS);
-        EstPuntero := EP_NORMAL;  //fin de movimiento
+        For o In selection do  //Pasa el evento a la selección
+            o.MouseUp(Sender, Button, Shift, xp, yp, PointerState = EP_MOV_OBJS);
+        PointerState := EP_NORMAL;  //fin de movimiento
         Refresh;
-        //Genera eventos. Los objetos movidos se pueden determinar a partir de la selección.
+        //Genera eventos. Los objects movidos se pueden determinar a partir de la selección.
         if OnObjectsMoved<>nil then OnObjectsMoved;
       end;
     EP_SELECMULT : begin //------ En selección múltiple, Botón izquierdo o derecho
-        if objetos.Count > 100 Then begin  //Necesita actualizar porque la selección múltiple es diferente
-          for o in objetos do
+        if objects.Count > 100 Then begin  //Necesita actualizar porque la selección múltiple es diferente
+          for o in objects do
             if enRecSeleccion(o.XCent, o.YCent) And Not o.Selected Then o.Selec;
         end;
-        EstPuntero := EP_NORMAL;
+        PointerState := EP_NORMAL;
       end;
     EP_NORMAL    : begin //------ En modo normal
         o := SelectSomeObject(xp, yp);  //verifica si selecciona a un objeto
@@ -500,17 +501,17 @@ begin
                   Refresh;
                 end;
             End;
-            CapturoEvento := NIL;      //inicia bandera de captura de evento
-            ParaMover := False;        //por si aca
+            CaptureEvent := NIL;      //inicia bandera de captura de evento
+            ToMove := False;        //por si aca
         end;
       end;
     EP_DIMEN_OBJ : begin  //Se soltó mientras se estaba dimensionado un objeto
         //Pasa evento a objeto que se estaba dimensionando
-        CapturoEvento.MouseUp(Sender, Button, Shift, xp, yp, false);
+        CaptureEvent.MouseUp(Sender, Button, Shift, xp, yp, false);
         //termina estado
-        EstPuntero := EP_NORMAL;
-        CapturoEvento := NIL;      //inicia bandera de captura de evento
-        ParaMover := False;        //por si aca
+        PointerState := EP_NORMAL;
+        CaptureEvent := NIL;      //inicia bandera de captura de evento
+        ToMove := False;        //por si aca
         //Verifica el enganche de los puntos de conexión
         selPntCnx := SelectPointOfConexion(xp, yp);
         if selPntCnx <> nil then begin
@@ -542,32 +543,32 @@ begin
           UnselectAll;
           Refresh;
       end;
-      If seleccion.Count = 0 Then begin  //si no hay objetos seleccionados
+      If selection.Count = 0 Then begin  //si no hay objects seleccionados
           If Key = 37 Then ScrollRight(DESPLAZ_MENOR)  ;  //derecha
           If Key = 39 Then ScrollLeft(DESPLAZ_MENOR);  //izquierda
           If Key = 40 Then ScrollUp(DESPLAZ_MENOR)   ;  //arriba
           If Key = 38 Then ScrollDown(DESPLAZ_MENOR)    ;  //abajo
       end else begin  //hay seleccionados
 //          If Key = 37 Then begin  //derecha
-//              For og In seleccion do begin
+//              For og In selection do begin
 //                  If Not og.PosLocked Then og.x := og.X - DESPLAZ_MENOR;
 //              end;
 //              Refresh;
 //          end;
 //          If Key = 39 Then begin  //izquierda
-//              For og In seleccion do begin
+//              For og In selection do begin
 //                  If Not og.PosLocked Then og.X := og.X + DESPLAZ_MENOR;
 //              end;
 //              Refresh;
 //          end;
 //          If Key = 40 Then begin  //arriba
-//              For og In seleccion do begin
+//              For og In selection do begin
 //                  If Not og.PosLocked Then og.Y := og.Y + DESPLAZ_MENOR;
 //              end;
 //              Refresh;
 //          end;
 //          If Key = 38 Then begin  //abajo
-//              For og In seleccion do begin
+//              For og In selection do begin
 //                  If Not og.PosLocked Then og.Y := og.Y - DESPLAZ_MENOR;
 //              end;
 //              Refresh;
@@ -600,8 +601,8 @@ begin
   Modif := True;        //Marca el editor como modificado
   //Posiciona tratando de que siempre aparezca en pantalla
   if AutoPos Then begin  //Se calcula posición
-    x := v2d.Xvirt(100, 100) + 30 * objetos.Count Mod 400;
-    y := v2d.Yvirt(100, 100) + 30 * objetos.Count Mod 400;
+    x := v2d.Xvirt(100, 100) + 30 * objects.Count Mod 400;
+    y := v2d.Yvirt(100, 100) + 30 * objects.Count Mod 400;
     og.ReLocate(x,y);
   end;
   //configura eventos para ser controlado por este editor
@@ -609,7 +610,7 @@ begin
   og.OnDeselec := @ObjGraf_Unselec;  //referencia a procedimiento de "de-selección"
   og.OnCamPunt := @ObjGraf_SetPointer;    //procedimiento para cambiar el puntero
 //  Refresh(s)   ;                //Refresca objeto
-  objetos.Add(og);                //agrega elemento
+  objects.Add(og);                //agrega elemento
 end;
 procedure TEditionMot.DeleteGraphObject(obj: TObjGraf);  //elimina un objeto grafico
 var
@@ -622,7 +623,7 @@ begin
     pCnx.Disconnect;
   end;
   //Elimina de la lista
-  objetos.Remove(obj);
+  objects.Remove(obj);
   obj := nil;
   if OnObjetosElim<>nil then OnObjetosElim;
 End;
@@ -633,13 +634,13 @@ end;
 procedure TEditionMot.DeleteAll;
 //Elimina todos los objetos gráficos existentes
 begin
-  if objetos.Count=0 then exit;  //no hay qué eliminar
+  if objects.Count=0 then exit;  //no hay qué eliminar
   //elimina
   UnselectAll;  //por si acaso hay algun simbolo Selected
-  objetos.Clear;    //limpia la lista de objetos
-  EstPuntero := EP_NORMAL;
-  ParaMover := false;
-  CapturoEvento := nil;
+  objects.Clear;    //limpia la lista de objects
+  PointerState := EP_NORMAL;
+  ToMove := false;
+  CaptureEvent := nil;
   lastMarked := nil;     //por si había alguno marcado
   Modif := true;    //indica que se modificó
 //    DeleteGraphObject(o);
@@ -654,61 +655,73 @@ var
 begin
   tmp := OnObjetosElim;  //guarda evento
   OnObjetosElim := nil; //para evitar llamar muchas veces
-  //For og In seleccion  do  //explora todos
+  //For og In selection  do  //explora todos
   //  DeleteGraphObject(og);
-  while seleccion.Count>0 do begin
-    og := seleccion[0];
+  while selection.Count>0 do begin
+    og := selection[0];
     DeleteGraphObject(og);
   end;
   Refresh;
   OnObjetosElim := tmp;  //restaura
   if OnObjetosElim<>nil then OnObjetosElim;  //llama evento
 end;
-function  TEditionMot.ObjPorNombre(nom: string): TObjGraf;
+function  TEditionMot.ObjByName(nom: string; CaseSensit: boolean): TObjGraf;
 //Devuelve la referecnia a un objeto, dado el nombre. Si no encuentra, devuelve NIL.
 var s: TObjGraf;
 begin
   Result := nil;   //valor por defecto
   if nom = '' then exit;
-  For s In objetos do
-    if s.Name = nom then begin
-       Result := s;
-       break;
-    end;
+  if CaseSensit then begin
+    For s In objects do
+      if s.Name = nom then begin
+         Result := s;
+         break;
+      end;
+  end else begin
+    nom := upcase(nom);
+    For s In objects do
+      if upcase(s.Name) = nom then begin
+         Result := s;
+         break;
+      end;
+  end;
 End;
-{
-//Respuesta al evento doble click
-Public Sub DblClick()
-Dim s: TObjGraf
-    Set s = SeleccionaAlguno(x_pulso, y_pulso)
-    If s = NIL Then    ;  //En diagrama
-        Exit Sub
-    Else                    ;  //En objeto
-        RaiseEvent DblClickObj(s)
-    End If
-End Sub
-}
+function TEditionMot.NewNameObject(BaseName: string): string;
+{Return a new name in the form: <BaseName><n> so that this name doesn't exist in
+the object list. For this the value of <n> will be incremented until have a new name.}
+var
+  idx: Integer;
+  nomb: String;
+begin
+  idx := 1;   //Inicia en 1
+  nomb := BaseName + IntToStr(idx);
+  while ObjByName(nomb, false) <> nil do begin
+    Inc(idx);
+    nomb := BaseName + IntToStr(idx);
+  end;
+  Result := nomb;
+end;
 // Funciones para administrar los elementos visibles y seleccion por teclado
 function TEditionMot.NumberOfVisible: Integer;
-//devuelve el número de objetos visibles
+//Return the number of visible objects.
 var
   v: TObjGraf;
   tmp: Integer;
 begin
   tmp := 0;
-  For v in objetos do begin
+  For v in objects do begin
     if v.visible then Inc(tmp);
   end;
   Result := tmp;
 end;
 function TEditionMot.FirstVisible: TObjGraf;
- //devuelve el primer objeto visible
+ //Return the firs visible object.
 var
   i: integer;
 begin
-  for i:=0 to objetos.Count-1 do begin
-    if objetos[i].visible then begin
-      Result := objetos[i];
+  for i:=0 to objects.Count-1 do begin
+    if objects[i].visible then begin
+      Result := objects[i];
       exit;
     end;
   end;
@@ -718,9 +731,9 @@ function TEditionMot.LastVisible: TObjGraf;
 var
   i: Integer;
 begin
-  for i:=objetos.Count-1 downto 0 do begin
-    if objetos[i].visible then begin
-      Result := objetos[i];
+  for i:=objects.Count-1 downto 0 do begin
+    if objects[i].visible then begin
+      Result := objects[i];
       exit;
     end;
   end;
@@ -730,29 +743,29 @@ function TEditionMot.SiguienteVisible(c: TObjGraf): TObjGraf;
 var
   i: Integer;
 begin
-    //busca su orden dentro de los objetos
-    For i := 0 To objetos.Count-1 do begin
-      if objetos[i] = c Then break;
+    //busca su orden dentro de los objects
+    For i := 0 To objects.Count-1 do begin
+      if objects[i] = c Then break;
     end;
     //calcula el siguiente elemento
     repeat
       Inc(i);
-      If i >= objetos.Count Then begin  //se ha llegado al final del conjunto
+      If i >= objects.Count Then begin  //se ha llegado al final del conjunto
         Result := FirstVisible;
         Exit;
       end;
-    until objetos[i].visible;
+    until objects[i].visible;
     //selecciona el siguiente visible
-    Result := objetos[i];
+    Result := objects[i];
 end;
 function TEditionMot.AnteriorVisible(c: TObjGraf): TObjGraf;
 //devuelve el anterior objeto visible en el orden de creación
 var
   i: Integer;
 begin
-    //busca su orden dentro de los objetos
-    For i := 0 To objetos.Count-1 do begin
-      If objetos[i] = c Then break;
+    //busca su orden dentro de los objects
+    For i := 0 To objects.Count-1 do begin
+      If objects[i] = c Then break;
     end;
     //calcula el elemento anterior
     repeat
@@ -761,9 +774,9 @@ begin
         Result := LastVisible;
         Exit;
       End;
-    until objetos[i].visible;
+    until objects[i].visible;
     //selecciona el siguiente visible
-    Result := objetos[i];
+    Result := objects[i];
 End;
 procedure TEditionMot.SeleccionarSiguiente;
 //Selecciona el siguiente elemento visible en el orden de creación.
@@ -772,8 +785,8 @@ var
   s: TObjGraf;
 begin
     if NumberOfVisible() = 0 Then exit;
-    if seleccion.Count = 1 Then begin  //hay uno Selected
-        s := seleccion[0];   //toma el Selected
+    if selection.Count = 1 Then begin  //hay uno Selected
+        s := selection[0];   //toma el Selected
         s := SiguienteVisible(s);
         UnselectAll;
         s.Selec;
@@ -791,8 +804,8 @@ var
   s: TObjGraf;
 begin
     if NumberOfVisible() = 0 Then exit;
-    if seleccion.Count = 1 then begin     //hay uno Selected
-        s := seleccion[0];    //toma el Selected
+    if selection.Count = 1 then begin     //hay uno Selected
+        s := selection[0];    //toma el Selected
         s := AnteriorVisible(s);
         UnselectAll;
         s.Selec;
@@ -846,22 +859,22 @@ End;
 procedure TEditionMot.SelectAll;
 var s: TObjGraf;
 begin
-    For s In objetos do s.Selec; //selecciona todos
+    For s In objects do s.Selec; //selecciona todos
 End;
 procedure TEditionMot.UnselectAll;
 var s: TObjGraf;
 begin
-  For s In objetos do //no se explora "seleccion" porque se modifica con "s.Deselec"
+  For s In objects do //no se explora "selection" porque se modifica con "s.Deselec"
     if s.Selected then s.Deselec;
-//  seleccion.Clear; //No se puede limpiar simplemente la lista. Se debe llamar a s.Deselec
+//  selection.Clear; //No se puede limpiar simplemente la lista. Se debe llamar a s.Deselec
 End;
 function  TEditionMot.Selected: TObjGraf;
 //Devuelve el objeto seleccionado. Si no hay ninguno seleccionado, devuelve NIL.
 begin
   Result := nil;   //valor por defecto
-  if seleccion.Count = 0 then exit;  //no hay
+  if selection.Count = 0 then exit;  //no hay
   //hay al menos uno
-  Result := seleccion[seleccion.Count-1];  //devuelve el único o último
+  Result := selection[selection.Count-1];  //devuelve el único o último
 End;
 // Resaltado de Objetos
 function TEditionMot.VerifyMouseMove(X, Y: Integer): TObjGraf;
@@ -901,7 +914,7 @@ begin
     {Verifica si se pasa por un Punto de Control y lo pone como "Marked = true".
     Aquí se usa una técncia distinta. Se exploran todos los puntos de conexión y
     se marca solo el que es seleccionado por (x,y), poniendo los demas desmarcados.
-    Tal vez se debería elegir la misma técnica para el marcado de objetos }
+    Tal vez se debería elegir la misma técnica para el marcado de objects }
     pCnx := MarkConnectionPoint(X, Y);
     if lastCnxPnt <> pCnx then begin
       //Refresh only when changes
@@ -910,7 +923,7 @@ begin
     lastCnxPnt := pCnx;
 end;
 //Desplazamiento de pantalla
-procedure TEditionMot.Desplazar(dx, dy: integer);
+procedure TEditionMot.Scroll(dx, dy: integer);
 begin
 //Procedimiento "estandar" para hacer un desplazamiento de la pantalla
 //Varía los parámetros de la perspectiva "x_cam" e "y_cam"
@@ -924,7 +937,7 @@ var
     z: Single ;  //zoom
 begin
     z := v2d.zoom;
-    Desplazar(0, round(desp / z));
+    Scroll(0, round(desp / z));
     Refresh;
 end;
 procedure TEditionMot.ScrollUp(desp: Double = DESPLAZ_MENOR) ;  //arriba
@@ -934,7 +947,7 @@ var
     z: Single ;  //zoom
 begin
     z := v2d.zoom;
-    Desplazar(0, round(-desp / z));
+    Scroll(0, round(-desp / z));
     Refresh;
 end;
 procedure TEditionMot.ScrollRight(desp: Double = DESPLAZ_MENOR) ;  //derecha
@@ -944,7 +957,7 @@ var
     z: Single ;  //zoom
 begin
     z := v2d.zoom;
-    Desplazar(round(desp / z), 0);
+    Scroll(round(desp / z), 0);
     Refresh;
 end;
 procedure TEditionMot.ScrollLeft(desp: Double = DESPLAZ_MENOR) ;  //izquierda
@@ -954,7 +967,7 @@ var
     z: Single ;  //zoom
 begin
     z := v2d.zoom;
-    Desplazar(round(-desp / z), 0);
+    Scroll(round(-desp / z), 0);
     Refresh;
 end;
 procedure TEditionMot.ScrollDesp(dx, dy: integer);
@@ -1148,14 +1161,14 @@ procedure TEditionMot.ObjGraf_Select(obj: TObjGraf);
 //Si se quiere seleccionar un objeto se debe usar la forma objeto.Selec.
 begin
 //    If obj.Seleccionado Then Exit;  //Ya está Selected. No debe ser necesario
-  seleccion.Add(obj);      { TODO : Verificar si se puede manejar bien el programa sin usar la propiedad "NombreObj"}
+  selection.Add(obj);      { TODO : Verificar si se puede manejar bien el programa sin usar la propiedad "NombreObj"}
 End;
 procedure TEditionMot.ObjGraf_Unselec(obj: TObjGraf);
 //Quita un objeto gráfico de la lista "selección". Este método no debe ser llamado directamente.
 //Si se quiere quitar la seleccion a un objeto se debe usar la forma objeto.Deselec.
 begin
 //    If not obj.Seleccionado Then Exit;
-  seleccion.Remove(obj);
+  selection.Remove(obj);
 End;
 procedure TEditionMot.ObjGraf_SetPointer(Punt: integer);
 //procedimiento que cambia el puntero del mouse. Es usado para proporcionar la los objetos "TObjGraf"
@@ -1180,12 +1193,12 @@ begin
   //Inicia motor
   v2d := TMotGraf.IniMotGraf(PBox.Canvas);   //Inicia motor gráfico
   v2d.SetFont('MS Sans Serif');   //define tipo de letra
-  objetos := TlistObjGraf.Create(TRUE);   //crea lista con "posesión" de objetos
-  seleccion := TlistObjGraf.Create(FALSE);   //crea lista sin posesión", porque la
-                                        //administración la hará "objetos".
-  EstPuntero := EP_NORMAL;
-  ParaMover := false;
-  CapturoEvento := NIL;
+  objects := TlistObjGraf.Create(TRUE);   //crea lista con "posesión" de objects
+  selection := TlistObjGraf.Create(FALSE);   //crea lista sin posesión", porque la
+                                        //administración la hará "objects".
+  PointerState := EP_NORMAL;
+  ToMove := false;
+  CaptureEvent := NIL;
   lastMarked := NIL;
   Modif := False;   //Inicialmente no modificado
 
@@ -1193,8 +1206,8 @@ begin
 end;
 destructor TEditionMot.Destroy;
 begin
-  seleccion.Free;
-  objetos.Free;  //limpia lista y libera objetos apuntados
+  selection.Free;
+  objects.Free;  //limpia lista y libera objects apuntados
   v2d.Free;      //Libera
   //resatura eventos
   PBox.OnMouseUp:=nil;

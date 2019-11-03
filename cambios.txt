@@ -1,3 +1,16 @@
+2.8
+===
+Se cambia el nombre de TEditionMot.EstPuntero por TEditionMot.
+Se cambia el nombre de TEditionMot.ParaMover por TEditionMot.ToMove
+Se cambia el nombre de TEditionMot.CapturoEvento por TEditionMot.CaptureEvent
+Se cambia el nombre de TEditionMot.Objectos por TEditionMot.Object
+Se cambia el nombre de TEditionMot.Seleccion por TEditionMot.Selection
+Se cambia el nombre de TEditionMot.Desplazar por TEditionMot.Scroll
+Se cambia el nombre de TEditionMot.ObjPorNombre por TEditionMot.ObjByName y se le 
+agrega un parámetro para el "Case Sensitivy".
+Se crea el método NewNameObject() en ogEditionMot para generar un nombre único de
+objeto. 
+
 2.7
 ===
 Se cambia el nombre de TMotGraf.DibBorBoton() por DrawButtonBord().

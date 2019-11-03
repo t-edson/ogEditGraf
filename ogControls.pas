@@ -122,10 +122,10 @@ begin
       end;
   BOT_CHECK: begin  //botón check
      if estado then begin   //dibuja solo borde
-        v2d.DibBorBoton(x, y,15,15);
+        v2d.DrawButtonBord(x, y,15,15);
      end else begin         //dibuja con check
-        v2d.DibBorBoton(x, y,15,15);
-        v2d.DibCheck(x+2, y+2,10,8);
+        v2d.DrawButtonBord(x, y,15,15);
+        v2d.DrawCheck(x+2, y+2,10,8);
      end;
     end;
   BOT_REPROD: begin  //botón reproducir
@@ -165,19 +165,19 @@ procedure TogButton.Dibujar;
 begin
   case tipo of
   BOT_CERRAR: begin
-       if drawBack then v2d.DibBorBoton(x, y,width,height);
+       if drawBack then v2d.DrawButtonBord(x, y,width,height);
        v2d.DibVnormal(x+2, y+ 2, 10, 5);
        v2d.DibVnormal(x+2, y+12, 10,-5);
      end;
   BOT_EXPAND:
       if estado then begin
-        if drawBack then v2d.DibBorBoton(x, y,width,height);
+        if drawBack then v2d.DrawButtonBord(x, y,width,height);
 //         v2d.DibVnormal(fx+2,fy+7,10,-5);
 //         v2d.DibVnormal(fx+2,fy+11,10,-5);
          v2d.SetColor(COL_GRIS, COL_GRIS, 1);
          v2d.DrawTrianUp(x+2, y+4, width-4, height-10);
       end else begin
-         if drawBack then v2d.DibBorBoton(x, y,width,height);
+         if drawBack then v2d.DrawButtonBord(x, y,width,height);
 //         v2d.DibVnormal(fx+2,fy+2,10,5);
 //         v2d.DibVnormal(fx+2,fy+6,10,5);
         v2d.SetColor(COL_GRIS, COL_GRIS, 1);
@@ -185,10 +185,10 @@ begin
       end;
   BOT_CHECK: begin  //botón check
      if estado then begin   //dibuja solo borde
-        v2d.DibBorBoton(x,y,15,15);
+        v2d.DrawButtonBord(x,y,15,15);
      end else begin         //dibuja con check
-        v2d.DibBorBoton(x,y,15,15);
-        v2d.DibCheck(x+2,y+2,10,8);
+        v2d.DrawButtonBord(x,y,15,15);
+        v2d.DrawCheck(x+2,y+2,10,8);
      end;
     end;
   BOT_REPROD: begin  //botón reproducir

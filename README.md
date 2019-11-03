@@ -1,4 +1,4 @@
-ogEditGraf 2.7
+ogEditGraf 2.8
 ==============
 
 Librería en Lazarus, para la creación de editores simples de objetos gráficos.
