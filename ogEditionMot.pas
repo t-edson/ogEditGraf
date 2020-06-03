@@ -52,7 +52,7 @@ type
                         xp, yp: Integer); virtual;
     procedure VerifyForMove(xp, yp: Integer);
     procedure MouseMove(Sender: TObject; Shift: TShiftState; xp,  yp: Integer); virtual;
-    procedure MouseUp(Sender: TObject; Button: TMouseButton;Shift: TShiftState; xp, yp: Integer);
+    procedure MouseUp(Sender: TObject; Button: TMouseButton;Shift: TShiftState; xp, yp: Integer); virtual;
     procedure Paint(Sender: TObject);
     procedure PBMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
