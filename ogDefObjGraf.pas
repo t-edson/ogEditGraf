@@ -153,7 +153,7 @@ type
     procedure Disconnect;
   public //Inicialización
     x0, y0, width0, height0: Single;  //valores objetivo para las dimensiones
-    constructor Create(mGraf: TMotGraf);
+    constructor Create(mGraf: TMotGraf); reintroduce;
     destructor Destroy; override;
   end;
   TPtosConex = specialize TFPGObjectList<TPtoConx>;  //Lista para gestionar los puntos de control
@@ -248,7 +248,7 @@ type
     procedure ClearMarkConnectionPoints;
     function ConnectionPointMarked: TPtoConx;
   public //Inicialización
-    constructor Create(mGraf: TMotGraf); virtual;
+    constructor Create(mGraf: TMotGraf); virtual; reintroduce;
     destructor Destroy; override;
   end;
 
