@@ -149,9 +149,9 @@ Visualmente, se componen de:
 * Dos puntos de control (inicial y final) para habilitar la conexión del objeto gráfico a puntos de conexión.
 * Cero o más puntos de conexiones. Los puntos de conexión son los puntos de anclaje a los que otros objetos gráficos pueden conectarse.
 
-A nivel de código, son instancias de una clase derivada de la clase base "TObjGraf".
+![image](https://github.com/user-attachments/assets/259aa19d-cf24-4063-9dca-ef8b0add1ad2)
 
-
+A nivel de código, los objetos gráficos son instancias de una clase derivada de la clase base "TObjGraf".
 
 ## La clase TObjGraf
 
