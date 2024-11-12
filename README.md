@@ -1,4 +1,4 @@
-ogEditGraf 2.8
+ogEditGraf 2.9
 ==============
 
 Librería en Lazarus, para la creación de editores simples de objetos gráficos.
@@ -142,14 +142,25 @@ Un ejemplo de este diseño, se puede observar en el proyecto ejemplo "Sample2 - 
 
 Los objetos graficos son los elementos visibles que aparecen en el editor y que pueden ser manipulados por eventos del teclado o del ratón. 
 
-Visualmente, se componen de:
+Dentro de esta librería, los objetos gráficos pueden ser de tipo:
+
+- Bidimensional o 2D
+- Unidimensional o 1D
+
+Los objetos 2D son los que representan a objetos con área, como políginos o figuras geométricas que tienen ancho y alto.
+
+Los objetos 1D son los que se representan como líneas y se definen con un punto inicial y un punto final.
+
+Visualmente, los objetos gráficos se componen de:
 
 * Un área de selección, en donde se espera que se dibuje la figura completa del objeto. Esta área de selección es la que permite mover el 
 * Ocho puntos de control que permiten cambiar las dimensiones del objeto, tanto horizontal como verticalmente.
-* Dos puntos de control (inicial y final) para habilitar la conexión del objeto gráfico a puntos de conexión.
+* Dos puntos de control (Inicial y final) para habilitar la conexión del objeto gráfico a puntos de conexión, cuando el objeto es de tipo 1D.
 * Cero o más puntos de conexiones. Los puntos de conexión son los puntos de anclaje a los que otros objetos gráficos pueden conectarse.
 
 ![image](https://github.com/user-attachments/assets/259aa19d-cf24-4063-9dca-ef8b0add1ad2)
+
+Los puntos de control Inicial y Final no son normalmente visibles. 
 
 A nivel de código, los objetos gráficos son instancias de una clase derivada de la clase base "TObjGraf".
 
