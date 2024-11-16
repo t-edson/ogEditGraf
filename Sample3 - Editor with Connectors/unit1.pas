@@ -39,10 +39,10 @@ implementation
 
 procedure TMyObject.Draw;
 begin
-  v2d.SetText(clBlack, 11,'', true);
-  v2d.Texto(X + 2, Y -20, 'Objeto');
-  v2d.SetPen(psSolid, 1, clBlack);
   v2d.SetBrush(TColor($D5D5D5));
+  v2d.SetText(clBlack, 11,'', true);
+  v2d.TextOut(X + 2, Y -20, 'Objeto');
+  v2d.SetPen(psSolid, 1, clBlack);
   v2d.RectangR(x, y, x+width, y+height);
   inherited;
 end;
@@ -60,11 +60,10 @@ end;
 
 procedure TMyConnector.Draw;
 begin
+  v2d.SetBrush(TColor($D5D5D5));
   v2d.SetText(clBlack, 11,'', true);
-  v2d.Texto(X + 2, Y -20, 'Conector');
+  v2d.TextOut(X + 2, Y -20, 'Conector');
   v2d.SetPen(psSolid, 1, clBlack);
-  //v2d.SetBrush(TColor($D5D5D5));
-  //v2d.RectangR(x, y, x+width, y+height);
   v2d.Line(pcBEGIN.x, pcBEGIN.y, pcEND.x, pcEND.y);
   inherited Draw;
 end;
@@ -81,25 +80,24 @@ begin
   //Agrega objetos
   og := TMyObject.Create(motEdi.v2d);
   //og.Highlight:=false;
-  og.ReLocate(50,50);
   motEdi.AddGraphObject(og);
   //Agrega punto de conexión
   og.AddPtoConex(0,50);
   og.ShowPtosConex:=true;
+  og.ReLocate(50,50);
 
   //Agrega objetos
   og := TMyObject.Create(motEdi.v2d);
-  og.ReLocate(250,50);
   motEdi.AddGraphObject(og);
   og.AddPtoConex(100,50);
   og.ShowPtosConex:=true;
   og.pcTOP_CEN.Visible := false;
+  og.ReLocate(250,50);
 
   //Objeto de tipo conector
   oc := TMyConnector.Create(motEdi.v2d);
   oc.behav:=behav1D;
   motEdi.AddGraphObject(oc);
-
 
 end;
 
