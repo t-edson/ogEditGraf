@@ -1,18 +1,18 @@
 {Unidad ogMotEdicion
 ====================
-Por Tito Hinostroza 24/09/2014
-
-Descripción
-============
-Define la clase TModEdicion para la implementación de una interfaz de objetos gráficos
-en un Editor.
+Define la clase TModEdicion para la implementación de una interfaz para la edición de
+objetos gráficos.
 Los objetos a manejar deben derivarse de la clase TObjGraf.
 Se debe indicar el control TPaint que se usará como salida gráfica.
 Trabaja en pixels para acelerar la velocidad de gráficos.
 Basado en la clase equivalente en el proyecto SQLGraf en Visual Basic.
+
+Creado por Tito Hinostroza 24/09/2014
+
 }
 unit ogEditionMot;
 {$mode objfpc}{$H+}
+{$DEFINE debugmode}
 INTERFACE
 uses
   Classes, Forms, Controls, ExtCtrls, SysUtils, Graphics, Fgl, LCLIntf,
@@ -39,7 +39,7 @@ type
   TlistObjGraf = specialize TFPGObjectList<TObjGraf>;   //Lista de "TObjTabla"
 
   TEvMouse = procedure(Shift: TShiftState; x,y:integer) of object;
-  TOnObjetosElim = procedure of object;
+  TOnObjectsDel = procedure of object;
 
   { TEditionMot }
   TEditionMot = class
@@ -57,7 +57,7 @@ type
     procedure PBMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   public  //Events
-    OnObjetosElim : TOnObjetosElim;   //Cuando se elminan uno o más objetos
+    OnObjectsDel  : TOnObjectsDel;   //Cuando se elminan uno o más objetos
     OnMouseUp     : TMouseEvent;      //Cuando se suelta el botón
     OnMouseUpRight: TEvMouse;
     OnMouseUpLeft : TEvMouse;
@@ -66,6 +66,7 @@ type
     OnMouseDownLeft : TMouseEvent;
     OnMouseMove   : TMouseMoveEvent;
     OnDblClick    : TNotifyEvent;
+    OnPaint       : TNotifyEvent;
     OnObjectsMoved: procedure of object;
   public
     PointerState : TPointerState; //Estado del puntero
@@ -137,7 +138,7 @@ type
     y1Sel_a  : integer;
     x2Sel_a  : integer;
     y2Sel_a  : integer;
-    procedure DibujRecSeleccion;
+    procedure DrawSelectionFrame;
     procedure InicRecSeleccion(X, Y: Integer);
     function RecSeleccionNulo: Boolean;
     function enRecSeleccion(X, Y: Single): Boolean;
@@ -240,11 +241,12 @@ begin
 //  If s = NIL Then
     PBox.canvas.Brush.Color := clWhite; //rgb(255,255,255);
     PBox.canvas.FillRect(PBox.ClientRect); //fondo
-    If PointerState = EP_SELECMULT Then DibujRecSeleccion;
+    If PointerState = EP_SELECMULT Then DrawSelectionFrame;
     //Dibuja objects
     for o In objects do begin
       o.Draw;
     end;
+    if OnPaint<>nil then OnPaint(Sender);
 end;
 procedure TEditionMot.PBMouseWheel(Sender: TObject; Shift: TShiftState;
   WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
@@ -351,38 +353,43 @@ usa la bandera ParaMover, que debe ponerse a FALSE aquí.}
 var
   s: TObjGraf;
 begin
-    for s In selection  do begin  //da prioridad a los elementos seleccionados
-      if s.PosLocked then continue;
-      s.StartMove(xp, yp);      //llama al evento inic_mover para cada objeto
-      if s.Proceso Then begin  //este objeto proceso el evento
-          CaptureEvent := s;
-          if s.Resizing then begin
-            PointerState := EP_DIMEN_OBJ;
-            curPntCtl := s.curPntCtl;
-          end else begin
-            PointerState := EP_NORMAL;
-          end;
-          ToMove := False;    //para que ya no se llame otra vez
-          Exit;
-      end;
-    end;
-    for s In objects do begin
-      if s.PosLocked then continue;
-      s.StartMove(xp, yp);    //llama al evento inic_mover para cada objeto
-      if s.Proceso Then begin   //este objeto proceso el evento
-          CaptureEvent := s;
-          if s.Resizing then PointerState := EP_DIMEN_OBJ else PointerState := EP_NORMAL;
+  {$IFDEF debugmode} DebugLn('VerifyForMove'); {$ENDIF}
+  //Verifica si el evanto lo procesa algún objeto de la selección
+  for s In selection  do begin  //da prioridad a los elementos seleccionados
+    if s.PosLocked then continue;
+    s.StartMove(xp, yp);      //llama al evento inic_mover para cada objeto
+    if s.Proceso Then begin  //este objeto proceso el evento
+        CaptureEvent := s;
+        if s.Resizing then begin
+          PointerState := EP_DIMEN_OBJ;
+          curPntCtl := s.curPntCtl;
+        end else begin
           PointerState := EP_NORMAL;
-          ToMove := False;   //para que ya no se llame otra vez
-          exit;
-      end;
+        end;
+        ToMove := False;    //para que ya no se llame otra vez
+        {$IFDEF debugmode} DebugLn('  Procesado por obj de selección'); {$ENDIF}
+        exit;
     end;
-    //Ningún objeto ha capturado, el evento, asumimos que se debe realizar
-    //el desplazamiento simple de los objects seleccionados
+  end;
+  for s In objects do begin
+    if s.PosLocked then continue;
+    s.StartMove(xp, yp);    //llama al evento inic_mover para cada objeto
+    if s.Proceso Then begin   //este objeto proceso el evento
+        CaptureEvent := s;
+        if s.Resizing then PointerState := EP_DIMEN_OBJ else PointerState := EP_NORMAL;
+        PointerState := EP_NORMAL;
+        ToMove := False;   //para que ya no se llame otra vez
+        {$IFDEF debugmode} DebugLn('  Procesado por objeto'); {$ENDIF}
+        exit;
+    end;
+  end;
+  //Ningún objeto ha capturado, el evento, asumimos que se debe realizar
+  //el desplazamiento simple de los objects seleccionados
 //Debug.Print "   VerifParaMover: EP_MOV_OBJS"
-    PointerState := EP_MOV_OBJS;
-    CaptureEvent := nil;      //ningún objeto capturo el evento
-    ToMove := False;        //para que ya no se llame otra vez
+  PointerState := EP_MOV_OBJS;
+  CaptureEvent := nil;      //ningún objeto capturo el evento
+  ToMove := False;        //para que ya no se llame otra vez
+  {$IFDEF debugmode} DebugLn('  Iniciando mov.'); {$ENDIF}
 end;
 procedure TEditionMot.MouseMove(Sender: TObject; Shift: TShiftState;
   xp,  yp: Integer);
@@ -608,7 +615,7 @@ begin
   //configura eventos para ser controlado por este editor
   og.OnSelec   := @ObjGraf_Select;    //referencia a procedimiento de selección
   og.OnDeselec := @ObjGraf_Unselec;  //referencia a procedimiento de "de-selección"
-  og.OnCamPunt := @ObjGraf_SetPointer;    //procedimiento para cambiar el puntero
+  og.OnReqMouCur := @ObjGraf_SetPointer;    //procedimiento para cambiar el puntero
 //  Refresh(s)   ;                //Refresca objeto
   objects.Add(og);                //agrega elemento
 end;
@@ -625,7 +632,7 @@ begin
   //Elimina de la lista
   objects.Remove(obj);
   obj := nil;
-  if OnObjetosElim<>nil then OnObjetosElim;
+  if OnObjectsDel<>nil then OnObjectsDel;
 End;
 procedure TEditionMot.PBDblClick(Sender: TObject);
 begin
@@ -645,16 +652,16 @@ begin
   Modif := true;    //indica que se modificó
 //    DeleteGraphObject(o);
   PBox.Cursor := CUR_DEFEC;        //define cursor
-  if OnObjetosElim<>nil then OnObjetosElim;
+  if OnObjectsDel<>nil then OnObjectsDel;
 End;
 procedure TEditionMot.DeleteSelected;
 //Elimina la selección.
 var
   og: TObjGraf;
-  tmp: TOnObjetosElim;
+  tmp: TOnObjectsDel;
 begin
-  tmp := OnObjetosElim;  //guarda evento
-  OnObjetosElim := nil; //para evitar llamar muchas veces
+  tmp := OnObjectsDel;  //guarda evento
+  OnObjectsDel := nil; //para evitar llamar muchas veces
   //For og In selection  do  //explora todos
   //  DeleteGraphObject(og);
   while selection.Count>0 do begin
@@ -662,8 +669,8 @@ begin
     DeleteGraphObject(og);
   end;
   Refresh;
-  OnObjetosElim := tmp;  //restaura
-  if OnObjetosElim<>nil then OnObjetosElim;  //llama evento
+  OnObjectsDel := tmp;  //restaura
+  if OnObjectsDel<>nil then OnObjectsDel;  //llama evento
 end;
 function  TEditionMot.ObjByName(nom: string; CaseSensit: boolean): TObjGraf;
 //Devuelve la referecnia a un objeto, dado el nombre. Si no encuentra, devuelve NIL.
@@ -979,7 +986,7 @@ begin
     v2d.SavePerspectiveIn(Pfinal);  //para que no se regrese al valor inicial
 End;
 // Funciones del Rectángulo de Selección
-procedure TEditionMot.DibujRecSeleccion;
+procedure TEditionMot.DrawSelectionFrame;
 //Dibuja por métodos gráficos el rectángulo de selección en pantalla
 begin
     v2d.SetPen(psDot, 1, clGreen);
@@ -1171,8 +1178,8 @@ begin
   selection.Remove(obj);
 End;
 procedure TEditionMot.ObjGraf_SetPointer(Punt: integer);
-//procedimiento que cambia el puntero del mouse. Es usado para proporcionar la los objetos "TObjGraf"
-//la posibilidad de cambiar el puntero.
+{Procedimiento que cambia el puntero del mouse. Es usado para proporcionar a los objetos
+"TObjGraf" la posibilidad de cambiar el puntero.}
 begin
   PBox.Cursor := Punt;        //define cursor
 end;

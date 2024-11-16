@@ -56,8 +56,9 @@ TMotGraf = class
   ImageList  : TImageList;
   constructor IniMotGraf(canvas0: Tcanvas);
   procedure SetPenMode(modo:TFPPenMode);
-  procedure SetPen(estilo:TFPPenStyle; ancho:Integer; color:Tcolor);
-  procedure SetBrush(ColorR:TColor);
+  procedure SetPen(style:TFPPenStyle; width:Integer; color:Tcolor);
+  procedure SetBrush(color:TColor);
+  procedure SetBrush(style: TFPBrushStyle; color: TColor);
   procedure SetColor(colLin,colRel:TColor; ancho: Integer = 1); //Fija colorde línea y relleno
   procedure SetLine(colLin:TColor; width: Integer = 1); //Fija características de línea
 
@@ -78,19 +79,20 @@ TMotGraf = class
     y4: Single=-10000; x5: Single=-10000; y5: Single=-10000; x6: Single=-10000;
     y6: Single=-10000);
   procedure Polygon(const Points: array of TFPoint);
-  //funciones para texto
+public      //Funciones para texto
   procedure SetFont(Letra: string);
   procedure SetText(color: TColor);
-  procedure SetText(color: TColor; tam: single);
+  procedure SetText(color: TColor; fsize: single);
   procedure SetText(bold: Boolean=False; italic: Boolean=False;
     underline: Boolean=False);
-  procedure SetText(color: TColor; tam: single; font: String;
+  procedure SetText(color: TColor; fsize: single; font: String;
     bold: Boolean=False; italic: Boolean=False; underline: Boolean=False);
-  procedure Texto(x1, y1: Single; txt: String);
+  procedure TextOut(x1, y1: Single; txt: String);
   procedure TextRect(x1, y1, x2, y2: Single; x0, y0: Single; const Text: string;
     const Style: TTextStyle);
-  procedure TextoR(x1, y1, ancho, alto: Single; txt: String);
-  function TextWidth(const txt: string): single;  //ancho del texto
+  procedure TextoR(x1, y1, width, height: Single; txt: String);
+  function TextWidth(const txt: string): Single;  //Ancho del texto
+  function TextHeight(const txt: string): Single; //Alto del texto
 
   procedure SavePerspectiveIn(var p: TPerspectiva);
   procedure ReadPerspectiveFrom(p: TPerspectiva);
@@ -111,12 +113,12 @@ public  //Funciones de transformación
   function Xvirt(xr, {%H-}yr: Integer): Single;  //INLINE Para acelerar las llamadas
   function Yvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
 public  //funciones básicas para dibujo de Controles
-  procedure DrawButtonBord(x1,y1:Single; ancho,alto: Single);
-  procedure DrawButtonBack(x1, y1: Single; ancho, alto: Single);
-  procedure DrawCheck(px, py: Single; ancho, alto: Single);
-  procedure DibVnormal(x1, y1: Single; ancho, alto: Single);
-  procedure DrawTrianUp(x1,y1:Single; ancho,alto: Single);
-  procedure DrawTrianDown(x1,y1:Single; ancho,alto: Single);
+  procedure DrawButtonBord(x1,y1:Single; width, height: Single);
+  procedure DrawButtonBack(x1, y1: Single; width, height: Single);
+  procedure DrawCheck(px, py: Single; width, height: Single);
+  procedure DibVnormal(x1, y1: Single; width, height: Single);
+  procedure DrawTrianUp(x1,y1:Single; width, height: Single);
+  procedure DrawTrianDown(x1,y1:Single; width, height: Single);
 public
   Canvas    : Tcanvas;                 //referencia al lienzo
 end;
@@ -140,20 +142,24 @@ procedure TMotGraf.SetPenMode(modo: TFPPenMode);
 begin
     Canvas.Pen.Mode := modo;
 End;
-procedure TMotGraf.SetPen(estilo:TFPPenStyle; ancho:Integer; color:Tcolor);
+procedure TMotGraf.SetPen(style:TFPPenStyle; width:Integer; color:Tcolor);
 //Establece el lápiz actual de dibujo
 begin
-   Canvas.Pen.Style := estilo;
-   Canvas.pen.Width := ancho;
+   Canvas.Pen.Style := style;
+   Canvas.pen.Width := width;
    Canvas.pen.Color := color;
 End;
-procedure TMotGraf.SetBrush(ColorR:TColor);
+procedure TMotGraf.SetBrush(color:TColor);
 //Establece el relleno actual
 begin
    Canvas.Brush.Style := bsSolid;  //estilo sólido
-   Canvas.Brush.Color:=ColorR;
+   Canvas.Brush.Color:=color;
 End;
-
+procedure TMotGraf.SetBrush(style: TFPBrushStyle; color: TColor);
+begin
+  Canvas.Brush.Style := style;  //estilo sólido
+  Canvas.Brush.Color := color;
+end;
 procedure TMotGraf.SetColor(colLin, colRel: TColor; ancho: Integer = 1);
 //Fija un color de línea y un color de relleno. La línea se fija a estilo sólido
 //y el relleno también
@@ -182,11 +188,11 @@ procedure TMotGraf.SetText(color: TColor);
 begin
   Canvas.Font.Color := color;
 end;
-procedure TMotGraf.SetText(color: TColor; tam: single);
+procedure TMotGraf.SetText(color: TColor; fsize: single);
 //método sencillo para cambiar propiedades del texto
 begin
    Canvas.Font.Color := color;
-   Canvas.Font.Size := round(tam * Zoom);
+   Canvas.Font.Size := round(fsize * Zoom);
 end;
 procedure TMotGraf.SetText(bold:Boolean = False; italic: Boolean = False;
             underline: Boolean = False);
@@ -196,7 +202,7 @@ begin
    Canvas.Font.Italic := italic;
    Canvas.Font.Underline := underline;
 End;
-procedure TMotGraf.SetText(color: TColor; tam: single; //; nDegrees As Single, _
+procedure TMotGraf.SetText(color: TColor; fsize: single; //; nDegrees As Single, _
             font: String;
             bold:Boolean = False;
             italic: Boolean = False;
@@ -204,21 +210,18 @@ procedure TMotGraf.SetText(color: TColor; tam: single; //; nDegrees As Single, _
 //Establece las características completas del texto
 begin
    Canvas.Font.Color := color;
-   Canvas.Font.Size := round(tam * Zoom);
+   Canvas.Font.Size := round(fsize * Zoom);
    if font <> '' then Canvas.Font.Name:=font;
    Canvas.Font.Bold := bold;
    Canvas.Font.Italic := italic;
    Canvas.Font.Underline := underline;
 End;
-procedure TMotGraf.Texto(x1, y1: Single; txt: String);
+procedure TMotGraf.TextOut(x1, y1: Single; txt: String);
 //Escribe un texto
 begin
-   Canvas.Brush.Style := bsClear;  //Fondo transparente
-//   tmp := Canvas.Font.Size;  //guarda tamaño actual
-//   Canvas.Font.Size := round(Canvas.Font.Size * Zoom);
+   //Canvas.Brush.Style := bsClear;  //Fondo transparente
    Canvas.TextOut(XPant(x1), YPant(y1), txt);
-//   Canvas.Font.Size := tmp;  //restaura
-   Canvas.Brush.Style := bsSolid;  //devuelve estilo de fondo
+   //Canvas.Brush.Style := bsSolid;  //devuelve estilo de fondo
 End;
 procedure TMotGraf.TextRect(x1,y1,x2,y2: Single; x0, y0: Single; const Text: string;
                        const Style: TTextStyle);
@@ -226,18 +229,15 @@ procedure TMotGraf.TextRect(x1,y1,x2,y2: Single; x0, y0: Single; const Text: str
 var
   Arect: TRect;
 begin
-   Canvas.Brush.Style := bsClear;  //Fondo transparente
-//   tmp := Canvas.Font.Size;  //guarda tamaño actual
-//   Canvas.Font.Size := round(Canvas.Font.Size * Zoom);
+   //Canvas.Brush.Style := bsClear;  //Fondo transparente
    ARect.Left   := XPant(x1);
    ARect.Top    := YPant(y1);
    ARect.Right  := XPant(x2);
    ARect.Bottom := YPant(y2);
    Canvas.TextRect(Arect, XPant(x0), YPant(y0), Text, Style);
-//   Canvas.Font.Size := tmp;  //restaura
-   Canvas.Brush.Style := bsSolid;  //devuelve estilo de fondo
+   //Canvas.Brush.Style := bsSolid;  //devuelve estilo de fondo
 End;
-procedure TMotGraf.TextoR(x1, y1, ancho, alto: Single; txt: String);
+procedure TMotGraf.TextoR(x1, y1, width, height: Single; txt: String);
 //Escribe un texto
 var r:TRect;
     //s:TTextStyle;
@@ -247,16 +247,20 @@ begin
    Canvas.Font.Size := round(11 * Zoom);
    r.Left := XPant(x1);
    r.Top := YPant(y1);
-   r.Right := XPant(x1+ancho);     { TODO : Ver como dibujar texto no limitado }
-   r.Bottom:= YPant(y1+alto);
+   r.Right := XPant(x1+width);     { TODO : Ver como dibujar TextOut no limitado }
+   r.Bottom:= YPant(y1+height);
 //   s.Alignment:=taRightJustify;  //alineado a la derecha
 // Canvas.TextRect(r,r.Left,r.Top,txt,s);//No permite cambia el tamaño de letra!!!!
    Canvas.TextRect(r,r.Left,r.Top,txt);
    Canvas.Brush.Style := bsSolid;  //devuelve estilo de fondo
 End;
-function TMotGraf.TextWidth(const txt: string): single;
+function TMotGraf.TextWidth(const txt: string): Single;
 begin
-  Result := Canvas.TextWidth(txt) * Zoom;
+  Result := Canvas.TextWidth(txt)/ Zoom;
+end;
+function TMotGraf.TextHeight(const txt: string): Single;
+begin
+  Result := Canvas.TextHeight(txt)/ Zoom;
 end;
 
 (*
@@ -827,52 +831,52 @@ begin
 End;
 
 ////////////////////////  Funciones de Dibujo de Controles /////////////////////////
-procedure TMotGraf.DrawButtonBord(x1, y1: Single; ancho, alto: Single);
+procedure TMotGraf.DrawButtonBord(x1, y1: Single; width, height: Single);
 //Dibuja el borde de los botones
 begin
    SetColor(clGray, clWhite, 1);
-   Canvas.RoundRect(XPant(x1), YPant(y1), XPant(x1+ancho), YPant(y1+alto),
+   Canvas.RoundRect(XPant(x1), YPant(y1), XPant(x1+width), YPant(y1+height),
                     round(6 * Zoom), Round(6 * Zoom));
 end;
-procedure TMotGraf.DrawButtonBack(x1, y1: Single; ancho, alto: Single);
+procedure TMotGraf.DrawButtonBack(x1, y1: Single; width, height: Single);
 //Dibuja el fondo de los botones
 begin
    SetColor(clGray, clScrollBar, 1);
-   Canvas.RoundRect(XPant(x1), YPant(y1), XPant(x1+ancho), YPant(y1+alto),
+   Canvas.RoundRect(XPant(x1), YPant(y1), XPant(x1+width), YPant(y1+height),
                     round(6 * Zoom), Round(6 * Zoom));
 end;
-procedure TMotGraf.DibVnormal(x1, y1: Single; ancho, alto: Single);
+procedure TMotGraf.DibVnormal(x1, y1: Single; width, height: Single);
 //Dibuja una V en modo normal. Usado para dibujar el ícono de los botones
 var xm: Single;
 begin
     SetPen(psSolid,2,clGray);
-    xm := x1 + round(ancho/2);  //se redondea antes (ancho/2), para evitar vavriación en la
+    xm := x1 + round(width/2);  //se redondea antes (width/2), para evitar vavriación en la
                                 //posición, al dibujar en diferentes posiciones.
-    Line(x1, y1, xm, y1+alto);
-    Line(xm,y1+alto,x1+ancho,y1);
+    Line(x1, y1, xm, y1+height);
+    Line(xm,y1+height,x1+width,y1);
 end;
-procedure TMotGraf.DrawCheck(px, py: Single; ancho, alto: Single);
+procedure TMotGraf.DrawCheck(px, py: Single; width, height: Single);
 //Dibuja una marca de tipo "Check". Útil para implementar el control "Check"
 var xm: Single;
 begin
     SetPen(psSolid,2,clGray);
-    xm := round(ancho/4);
-    Line(px     , py + 3, px + xm, py + alto);
-    Line(px + xm, py + alto, px + ancho, py );
+    xm := round(width/4);
+    Line(px     , py + 3, px + xm, py + height);
+    Line(px + xm, py + height, px + width, py );
 End;
-procedure TMotGraf.DrawTrianUp(x1, y1: Single; ancho, alto: Single);
+procedure TMotGraf.DrawTrianUp(x1, y1: Single; width, height: Single);
 //Dibuja un pequeño triángulo apuntando hacia arriba
 var
   Ptos: array of TPoint;    //arreglo de puntos a dibujar
 begin
   SetLength(Ptos, 3);   //dimensiona
   //Llena arreglo
-  Ptos[0].x := XPant(x1);         Ptos[0].y := YPant(y1+alto);
-  Ptos[1].x := XPant(x1+ancho);   Ptos[1].y := YPant(y1+alto);
-  Ptos[2].x := XPant(x1+ancho/2); Ptos[2].y := YPant(y1);
+  Ptos[0].x := XPant(x1);         Ptos[0].y := YPant(y1+height);
+  Ptos[1].x := XPant(x1+width);   Ptos[1].y := YPant(y1+height);
+  Ptos[2].x := XPant(x1+width/2); Ptos[2].y := YPant(y1);
   Canvas.Polygon(Ptos);   //dibuja
 end;
-procedure TMotGraf.DrawTrianDown(x1, y1: Single; ancho, alto: Single);
+procedure TMotGraf.DrawTrianDown(x1, y1: Single; width, height: Single);
 //Dibuja un pequeño triángulo apuntando hacia abajo
 var
   Ptos: array of TPoint;    //arreglo de puntos a dibujar
@@ -880,8 +884,8 @@ begin
   SetLength(Ptos, 3);   //dimensiona
   //Llena arreglo
   Ptos[0].x := XPant(x1);         Ptos[0].y := YPant(y1);
-  Ptos[1].x := XPant(x1+ancho);   Ptos[1].y := YPant(y1);
-  Ptos[2].x := XPant(x1+ancho/2); Ptos[2].y := YPant(y1+alto);
+  Ptos[1].x := XPant(x1+width);   Ptos[1].y := YPant(y1);
+  Ptos[2].x := XPant(x1+width/2); Ptos[2].y := YPant(y1+height);
   Canvas.Polygon(Ptos);   //dibuja
 end;
 

@@ -28,6 +28,7 @@ TObjVisible ----------------------------------------> TObjGraf ---> Derivar obje
 }
 unit ogDefObjGraf;
 {$mode objfpc}{$H+}
+//{$DEFINE debugmode}
 interface
 uses
   Classes, Controls, SysUtils, Fgl, Graphics, GraphType, Types, math, ExtCtrls,
@@ -123,8 +124,12 @@ type
     function LoSelec(xp, yp: Integer):boolean;
     procedure LocateInParent;
   public //Inicialización
-    x0, y0  : Single;        //Posición inicial de la forma al iniciar el control
-    width0, height0: Single; //Dimensiones iniciales de la forma al iniciar el control
+    {Posición inicial de la forma padre (Parent), al iniciar el redimensionado con el
+    punto de control}
+    x0, y0  : Single;
+    {Dimensiones iniciales de la forma padre (Parent), al iniciar el dimensionado con el
+    punto de control}
+    width0, height0: Single;
     constructor Create(Parent0: TObjGraf; PosicPCtrol: TPosicPCtrol;
       mousePtr0: TCursor; ChangePosition: TEvPCReqPosiiton); reintroduce;
   end;
@@ -134,7 +139,7 @@ type
   {Define al objeto Punto de Conexión.}
   TPtoConx = class(TObjVsible)
   public
-    xFac, yFac: Single;  //Posición con respecto al objeto contenedor (procentaje de ancho y alto)
+    xFac, yFac: Single;   //Posición con respecto al objeto contenedor (porcentaje de ancho y alto)
     procedure Draw;
     procedure Mark;
     procedure StartMove(xr, yr: Integer; xIni, yIni, widthIni, heightIni: Single);
@@ -144,10 +149,10 @@ type
   private
     pointerTyp : Integer;  //Tipo de puntero
   public
-    Marked     : boolean;  //Indica que el punto debe marcarse porqu el ratón pasó por encima
-    ptosControl: TPtosControl; //Puntos de control a los que se encuentar enganchado.
+    Marked     : boolean;  //Indica que el punto debe marcarse porque el ratón pasó por encima
+    ptosControl: TPtosControl; //Puntos de control a los que se encuentra enganchado.
     Parent     : TObjGraf;     //Reference to object container
-    data       : TObject;      //Unused field. Can be used for teh user.
+    data       : TObject;      //Unused field. Can be used for the user.
     procedure ConnectTo(pCtl: TPtoCtrl);
     procedure DisconnectFrom(pCtl: TPtoCtrl);
     procedure Disconnect;
@@ -159,7 +164,7 @@ type
   TPtosConex = specialize TFPGObjectList<TPtoConx>;  //Lista para gestionar los puntos de control
 
   TEventSelec = procedure(obj: TObjGraf) of object; //Procedimiento-evento para seleccionar
-  TEventPtrChange = procedure(TipPunt: Integer) of object; //Procedimiento-evento para cambiar puntero
+  TEventReqMouCur = procedure(TipPunt: Integer) of object; //Procedimiento-evento para cambiar puntero
 
   { TObjGraf }
   {Este es el Objeto padre de todos los objetos gráficos visibles que son administrados por
@@ -213,11 +218,11 @@ type
     procedure ReLocateSize(newX, newY, newWidth, newHeight: Single;
       UpdatePCtrls: boolean=true);
   public //Eventos de la clase
-    OnRelocate: procedure of object;
-    OnResize  : procedure of object;
-    OnSelec   : TEventSelec;
-    OnDeselec : TEventSelec;
-    OnCamPunt : TEventPtrChange;
+    OnRelocate : procedure of object;
+    OnResize   : procedure of object;
+    OnSelec    : TEventSelec;
+    OnDeselec  : TEventSelec;
+    OnReqMouCur: TEventReqMouCur;  //Requerimiento para cambiar el puntero del ratón
   public //Puntos de Control
     curPntCtl   : TPtoCtrl;  //Punto de Control actual
   public
@@ -253,6 +258,12 @@ type
   end;
 
   function PointSelectSegment(xp, yp, x0, y0, x1, y1: integer): Boolean;
+
+var   //Colores a usar para los elementos
+  colObjMarked: TColor;
+  colCtlPoints: TColor;
+  colCnxPoints: TColor;
+  {$IFDEF debugmode} dProf: integer; {$ENDIF}
 
 implementation
 const
@@ -513,7 +524,7 @@ var xp, yp: Integer;
 begin
   if not visible then exit;    //validación
   v2d.XYpant(fx, fy, xp, yp);      //obtiene coordenadas de pantalla
-  v2d.SetLine(clBlue);
+  v2d.SetLine(colCnxPoints);
   v2d.Line0(xp - ANC_PCN2+1, yp - ANC_PCN2+1, xp + ANC_PCN2, yp + ANC_PCN2);
   v2d.Line0(xp - ANC_PCN2+1, yp + ANC_PCN2-1, xp + ANC_PCN2, yp - ANC_PCN2);
 end;
@@ -523,7 +534,7 @@ var xp, yp: Integer;
 begin
   if not visible then exit;    //validación
   v2d.XYpant(fx, fy, xp, yp);      //obtiene coordenadas de pantalla
-  v2d.SetLine(clBlue, 2);
+  v2d.SetLine(colObjMarked, 2);
   v2d.rectang(xp - ANC_PCN2-1, yp - ANC_PCN2-1, xp + ANC_PCN2+2, yp + ANC_PCN2+2);
 end;
 procedure TPtoConx.StartMove(xr, yr: Integer; xIni, yIni, widthIni, heightIni: Single);
@@ -565,7 +576,7 @@ begin
   inherited Locate(x0, y0);
   //Mueve puntos de control enganchados
   for pctl in ptosControl do begin
-     {Se llama al evento simulando un movimiento por Ratón. Esto solo funcioanará en
+     {Se llama al evento simulando un movimiento por Ratón. Esto solo funcionará en
      Puntos de Control 1D.
      Se pudo haber hecho solo: pctl.x := x; pctl.y := y;
      Pero esto no actualizaría la geometría de la forma}
@@ -575,6 +586,11 @@ end;
 procedure TPtoConx.ConnectTo(pCtl: TPtoCtrl);
 {Conecta a un punto de control.}
 begin
+  if pCtl.Parent = Self.Parent then begin
+     {No debemos permitir que un punto de conexión se pueda conectar a su propio punto
+     de control, porque produciría resultdaos inesperados.}
+     exit;
+  end;
   ptosControl.Add(pCtl);
   pCtl.ConnectedTo := self;
   if pCtl.OnConnect<>nil then pCtl.OnConnect(pCtl, self);
@@ -687,10 +703,11 @@ procedure TObjGraf.MouseMove(xr, yr: Integer; nobjetos: Integer);
 "nobjetos" es la cantidad de objetos que se mueven. Ususalmente es sólo uno}
 var dx , dy: Single;
 begin
+    {$IFDEF debugmode} DebugLn(LineEnding + 'TObjGraf.MouseMove'); {$ENDIF}
 //     If ArrastBoton Then Exit;       //Arrastrando botón  { TODO : Revisar }
 //     If ArrastFila Then Exit;        //Arrastrando botón  { TODO : Revisar }
      If Selected Then begin
-        v2d.ObtenerDesplaz2( xr, yr, Xant, Yant, dx, dy);
+        v2d.ObtenerDesplaz2(xr, yr, Xant, Yant, dx, dy);
         if Proceso then begin
             //Algún elemento del objeto ha procesado el evento de movimiento
             if curPntCtl <> nil then begin
@@ -698,7 +715,9 @@ begin
                if not SizeLocked then
                  curPntCtl.MouseMove(xr, yr);   //permite dimensionar el objeto
             end;
+            {$IFDEF debugmode} DebugLn('  Algún elemento lo procesó'); {$ENDIF}
         end else begin //ningún elemento del objeto lo ha procesado, pasamos a mover todo el objeto
+           {$IFDEF debugmode} DebugLn('  Relocate dx='+dx.ToString); {$ENDIF}
             ReLocate(fx + dx, fy + dy);  //reubica los elementos
             Proceso := False;
         end;
@@ -723,12 +742,12 @@ End;
 procedure TObjGraf.Draw;
 const tm = 3;
 var
-  pct  : TPtoCtrl;
+  pct : TPtoCtrl;
   pcn : TPtoConx;
 begin
   //---------------Draw mark --------------
   if Marked and Highlight then begin
-    v2d.SetPen(psSolid, 2, clBlue);   //RGB(128, 128, 255)
+    v2d.SetPen(psSolid, 2, colObjMarked);   //RGB(128, 128, 255)
     v2d.rectang(fx - tm, fy - tm, fx + width + tm, fy + height + tm);
   end;
   //--------------- Draw selection state--------------
@@ -776,7 +795,7 @@ begin
     //Restaura puntero si estaba dimensionándose por si acaso
     if Resizing then begin
        if not curPntCtl.LoSelec(xp,yp) then //se salio del foco
-          if Assigned(OnCamPunt) then OnCamPunt(crDefault);  //pide retomar el puntero
+          if Assigned(OnReqMouCur) then OnReqMouCur(crDefault);  //pide retomar el puntero
        Resizing := False;    //quita bandera, por si estaba Resizing
        exit;
     end;
@@ -788,12 +807,12 @@ begin
     if not Selected then Exit;
     //Aquí se supone que tomamos el control porque está Selected
     //Procesa el cambio de puntero.
-    if Assigned(OnCamPunt) then begin
+    if Assigned(OnReqMouCur) then begin
         pc := SelecPtoControl(xp,yp);
         if pc<> NIL then
-           OnCamPunt(pc.mousePtr)  //cambia a supuntero
+           OnReqMouCur(pc.mousePtr)  //cambia a supuntero
         else
-           OnCamPunt(crDefault);
+           OnReqMouCur(crDefault);
     end;
 end;
 procedure TObjGraf.MouseWheel(Sender: TObject; Shift: TShiftState;
@@ -807,6 +826,7 @@ procedure TObjGraf.ReLocate(newX, newY: Single; UpdatePCtrls: boolean = true);
 var
   pCnx: TPtoConx;
 begin
+  {$IFDEF debugmode} Inc(dProf); DebugLn(Space(dProf) + 'TObjGraf.Relocate: '+ Self.Name+' at ' + fx.toString); {$ENDIF}
   fx := newX;
   fy := newY;
   //Reubica todos los puntos de control
@@ -828,6 +848,7 @@ begin
                 y + height * pCnx.yFac);
   end;
   if OnRelocate<>nil then OnRelocate;
+  {$IFDEF debugmode} DebugLn(Space(dProf)+'TObjGraf.Relocate end'); Dec(dProf); {$ENDIF}
 end;
 procedure TObjGraf.ReSize(newWidth, newHeight: Single; UpdatePCtrls: boolean = true);
 {Se usa para cambiar SOLAMENTE el tamaño del objeto}
@@ -879,11 +900,12 @@ begin
 end;
 procedure TObjGraf.ReLocateSize(newX, newY, newWidth, newHeight: Single;
                                 UpdatePCtrls: boolean = true);
-//Se usa para atender los requerimientos de los puntos de control cuando quieren
-//cambiar el tamaño y/o la posición del objeto.
+{Se usa para atender los requerimientos de los puntos de control cuando quieren
+cambiar el tamaño y/o la posición del objeto.}
 var
   changeLocation, changeSize: Boolean;
 begin
+  {$IFDEF debugmode} Inc(dProf); DebugLn(Space(dProf)+'TObjGraf.ReLocateSize: '+ Self.Name); {$ENDIF}
   //Protección
   if newWidth < ANCHO_MIN then begin
      newWidth := ANCHO_MIN;
@@ -902,6 +924,7 @@ begin
   if changeSize then begin
      ReSize(newWidth, newHeight, UpdatePCtrls);       //Reubica
   end;
+  {$IFDEF debugmode} DebugLn(Space(dProf)+'TObjGraf.RelocateSize end'); Dec(dProf); {$ENDIF}
 end;
 procedure TObjGraf.PtoCtl_ChangePosition(target: TPtoCtrl; dx, dy: Single; wishX, wishY: Single
   );
@@ -1118,6 +1141,11 @@ begin
   PtosConex.Free;
   inherited Destroy;
 end;
+
+initialization
+  colObjMarked := clBlue;
+  colCtlPoints := clBlue;
+  colCnxPoints := clBlue;
 
 end.
 

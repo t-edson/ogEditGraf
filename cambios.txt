@@ -1,3 +1,19 @@
+Se corrige un problema de enganche de un punto de conexión a un punto de control del
+mismo objeto, que originaba que el objeto se bloquee.
+Se cambia de nombre a TEditionMot.DibujRecSeleccion() por TEditionMot.DibujRecSeleccion
+Se crea la unidad ogObjConnector
+Se cambia de nombre al evento TObjdGraf.OnCamPunt por OnReqMouCur.
+Se quita la instrucción de cambio de estilo inicial que tenían las instrucciones 
+TMotGraf.TextOut() y TMotGraf.TextRect().
+Se crea una versión sobrecargada de TMotGraf.SetBrush().
+Se cambia de nombre a diversos parámetros de ogMotGraf2D.
+Se crea el evento TEditionMot.OnPaint
+Se renombar el método OnObjetosElim a OnObjectsDel.
+Se agrega la función TMotGraf.TextHeight().
+Se cambia de nombre a TMotGraf.Texto() por TMotGraf.TextOut().
+Se agrega información adicional al archivo READEM.md y una imagen.
+Se incluyes los cambios del Github a la librería local.
+
 2.8
 ===
 Se cambia el nombre de TEditionMot.EstPuntero por TEditionMot.
