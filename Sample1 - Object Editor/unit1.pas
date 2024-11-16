@@ -34,11 +34,10 @@ implementation
 procedure TMyGraphObject.Draw;
 begin
   v2d.SetText(clBlack, 11,'', true);
-  v2d.Texto(X + 2, Y -20, 'Objeto');
-  v2d.SetPen(psSolid, 1, clBlack);
   v2d.SetBrush(TColor($D5D5D5));
+  v2d.TextOut(X + 2, Y -20, 'Objeto');
+  v2d.SetPen(psSolid, 1, clBlack);
   v2d.RectangR(x, y, x+width, y+height);
-  v2d.Arc(x, y, x+width, y+height, 0, 480);
   inherited;
 end;
 
