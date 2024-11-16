@@ -1,7 +1,9 @@
+2.9
+===
 Se corrige un problema de enganche de un punto de conexión a un punto de control del
 mismo objeto, que originaba que el objeto se bloquee.
 Se cambia de nombre a TEditionMot.DibujRecSeleccion() por TEditionMot.DibujRecSeleccion
-Se crea la unidad ogObjConnector
+Se crea la unidad ogObjConnector pero aún no es funcional.
 Se cambia de nombre al evento TObjdGraf.OnCamPunt por OnReqMouCur.
 Se quita la instrucción de cambio de estilo inicial que tenían las instrucciones 
 TMotGraf.TextOut() y TMotGraf.TextRect().

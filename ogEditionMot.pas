@@ -12,7 +12,7 @@ Creado por Tito Hinostroza 24/09/2014
 }
 unit ogEditionMot;
 {$mode objfpc}{$H+}
-{$DEFINE debugmode}
+//{$DEFINE debugmode}
 INTERFACE
 uses
   Classes, Forms, Controls, ExtCtrls, SysUtils, Graphics, Fgl, LCLIntf,
