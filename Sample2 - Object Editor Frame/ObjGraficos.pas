@@ -35,13 +35,13 @@ end;
 
 procedure TMyGraphObject.Draw;
 begin
+  v2d.SetBrush(TColor($D5D5D5));
   //Dibuja etiqueta
   v2d.SetPen(psSolid, 1, COL_GRIS);
   v2d.SetText(clBlack, 11,'', true);
-  v2d.Texto(X + 2, Y -20, name);
+  v2d.TextOut(X + 2, Y -20, name);
   //muestra un rectángulo
   v2d.SetPen(psSolid, 1, clBlack);
-  v2d.SetBrush(TColor($D5D5D5));
   v2d.RectangR(x, y+10, x+width, y+height);
   Bot1.estado:= false;
   inherited;
