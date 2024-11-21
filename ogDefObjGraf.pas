@@ -21,6 +21,8 @@ TObjVisible ----------------------------------------> TObjGraf ---> Derivar obje
               |                                          |
                --> TPtoCtrl --(Se incluyen en)-----------
               |                                          |
+               --> TPtoTerm --(Se incluyen en)-----------
+              |                                          |
                --> TogButton --(Se pueden incluir en)----
               |                                          |
                --> TogScrollBar -(Se pueden incluir en)--
@@ -86,7 +88,7 @@ type
 
     TD_INF_IZQ,  //inferior izquierda
     TD_INF_CEN,  //inferior central
-    TD_INF_DER  //inferior izquierda
+    TD_INF_DER   //inferior izquierda
 
     );
 
@@ -94,7 +96,7 @@ type
   TPtoConx = class;
   //Eventos para dimensionar forma
   TEvReqDimen2D = procedure(newX, newY, newWidth, newHeight: Single) of object;
-  TEvPCReqPosiiton = procedure(target: TPtoCtrl; dx, dy: Single; wishX, wishY: Single) of object;
+  TEvPCReqPosition = procedure(target: TPtoCtrl; dx, dy: Single; wishX, wishY: Single) of object;
   TEvPCconnect = procedure(pCtl: TPtoCtrl; pCnx: TPtoConx) of object;
 
   TPtoCtrlIco = (pciSquare, pciCircle);
@@ -106,22 +108,21 @@ type
   private
     function GetQuadrant: byte;
     procedure SetQuadrant(AValue: byte);
+  public //Identificación
+    id_pCtrl   : (PTO_CTRL, PTO_TERM);  //Identifica a las clases
+    function isTerminal: Boolean; inline; //Indica si es un punto terminal
   public
     idIcon     : TPtoCtrlIco;   {Forma gráfica del punto de control.}
     relPosition: TPosicPCtrol;  {Posición del Punto de Control con respecto a su objeto
                                 contenedor.}
     mousePtr   : TCursor;       //Tipo de puntero del mouse
     Parent     : TObjGraf;      //Referencia al objeto contenedor
-    OnChangePosition: TEvPCReqPosiiton;  //Requiere dimensionamiento en modo 1D
-    OnConnect  : TEvPCconnect;  //Se conecta a un punto de conexión
-    OnDisconnect:TEvPCconnect; //Se desconecta de un punto de conexión
-    ConnectedTo: TPtoConx;     //Punto de conexión al cual se encuentra conectado
-    procedure Disconnect;
+    OnChangePosition: TEvPCReqPosition;  //Requiere dimensionamiento en modo 1D
     property Quadrant: byte read GetQuadrant write SetQuadrant;
     procedure Draw();
     procedure StartMove(xr, yr: Integer; xIni, yIni, widthIni, heighIni: Single);
     procedure MouseMove(xr, yr: Integer);  //Dimensiona las variables indicadas
-    function LoSelec(xp, yp: Integer):boolean;
+    function IsSelectedBy(xp, yp: Integer):boolean;
     procedure LocateInParent;
   public //Inicialización
     {Posición inicial de la forma padre (Parent), al iniciar el redimensionado con el
@@ -131,9 +132,22 @@ type
     punto de control}
     width0, height0: Single;
     constructor Create(Parent0: TObjGraf; PosicPCtrol: TPosicPCtrol;
-      mousePtr0: TCursor; ChangePosition: TEvPCReqPosiiton); reintroduce;
+      mousePtr0: TCursor; ChangePosition: TEvPCReqPosition); reintroduce; virtual;
   end;
   TPtosControl = specialize TFPGObjectList<TPtoCtrl>;  //Lista para gestionar los puntos de control
+
+  { TPtoTerm }
+  {Define al objeto Punto terminal, como una especialización de TPtoCtrl.}
+  TPtoTerm = class(TPtoCtrl)
+  public  //Propiedades de conexión
+    OnConnect   : TEvPCconnect; //Se conecta a un punto de conexión
+    OnDisconnect: TEvPCconnect; //Se desconecta de un punto de conexión
+    ConnectedTo : TPtoConx;     //Punto de conexión al cual se encuentra conectado
+    procedure Disconnect;
+    constructor Create(Parent0: TObjGraf; PosicPCtrol: TPosicPCtrol;
+      mousePtr0: TCursor; ChangePosition: TEvPCReqPosition); override;
+  end;
+  TPtosTerminal = specialize TFPGObjectList<TPtoTerm>;  //Lista para gestionar los puntos de control
 
   { TPtoConx }
   {Define al objeto Punto de Conexión.}
@@ -144,17 +158,17 @@ type
     procedure Mark;
     procedure StartMove(xr, yr: Integer; xIni, yIni, widthIni, heightIni: Single);
     procedure Mover(xr, yr: Integer);  //Dimensiona las variables indicadas
-    function LoSelec(xp, yp: Integer; accuracy: integer=0): boolean;
+    function IsSelectedBy(xp, yp: Integer; accuracy: integer=0): boolean;
     procedure Locate(x0, y0: Single); override;
   private
     pointerTyp : Integer;  //Tipo de puntero
   public
     Marked     : boolean;  //Indica que el punto debe marcarse porque el ratón pasó por encima
-    ptosControl: TPtosControl; //Puntos de control a los que se encuentra enganchado.
+    ptosTermin : TPtosTerminal; //Puntos terminal a los que se encuentra enganchado.
     Parent     : TObjGraf;     //Reference to object container
     data       : TObject;      //Unused field. Can be used for the user.
-    procedure ConnectTo(pCtl: TPtoCtrl);
-    procedure DisconnectFrom(pCtl: TPtoCtrl);
+    procedure ConnectTo(pTerm: TPtoTerm);
+    procedure DisconnectFrom(pTer: TPtoTerm);
     procedure Disconnect;
   public //Inicialización
     x0, y0, width0, height0: Single;  //valores objetivo para las dimensiones
@@ -179,18 +193,18 @@ type
     procedure PtoCtl_ChangePosition(target: TPtoCtrl; dx, dy: Single; wishX,
       wishY: Single);
   public
-    behav : TBehave;  //Indica si la forma es de 1D o 2D.
-    Name        : String;    //Identificación del objeto
-    Marked      : Boolean;   //Indica que está marcado, porque el ratón pasa por encima
-    DibSimplif  : Boolean;   //Indica que se está en modo de dibujo simplificado
-    Highlight   : Boolean;   //Indica si permite el resaltado del objeto
-    SizeLocked  : boolean;   //Protege al objeto de redimensionado
-    PosLocked   : Boolean;   //Indica si el objeto está bloqueado para movimiento
-    SelLocked   : Boolean;   //Indica si el objeto está bloqueado para selección
-    FillColor   : TColor;    //Color de relleno
-    Proceso     : Boolean;   //Bandera
-    Resizing    : boolean;   //Indica que el objeto está dimensionándose
-    Erased      : boolean;   //Bandera para eliminar al objeto
+    behav      : TBehave;  //Indica si la forma es de 1D o 2D.
+    Name       : String;    //Identificación del objeto
+    Marked     : Boolean;   //Indica que está marcado, porque el ratón pasa por encima
+    DibSimplif : Boolean;   //Indica que se está en modo de dibujo simplificado
+    Highlight  : Boolean;   //Indica si permite el resaltado del objeto
+    SizeLocked : boolean;   //Protege al objeto de redimensionado
+    PosLocked  : Boolean;   //Indica si el objeto está bloqueado para movimiento
+    SelLocked  : Boolean;   //Indica si el objeto está bloqueado para selección
+    FillColor  : TColor;    //Color de relleno
+    Proceso    : Boolean;   //Bandera
+    Resizing   : boolean;   //Indica que el objeto está dimensionándose
+    Erased     : boolean;   //Bandera para eliminar al objeto
     property Xcent: Single read GetXCent write SetXcent;
     property YCent: Single read GetYCent write SetYCent;
     procedure Selec;         //Método único para seleccionar al objeto
@@ -237,13 +251,16 @@ type
     pcBOT_LEF: TPtoCtrl;
     pcBOT_CEN: TPtoCtrl;
     pcBOT_RIG: TPtoCtrl;
-    pcBEGIN  : TPtoCtrl;
-    pcEND    : TPtoCtrl;
-    PtosControl1: TPtosControl;  //Lista de puntos de control en modo 1D
-    PtosControl2: TPtosControl;  //Lista de puntos de control en modo 2D
+    //Puntos terminales. Usado para formas 1D
+    pcBEGIN  : TPtoTerm;
+    pcEND    : TPtoTerm;
+    //Contenedores de puntos
+    PtosTerminal: TPtosTerminal;  //Lista de puntos de control en modo 1D
+    PtosControl: TPtosControl;  //Lista de puntos de control en modo 2D
     function SelecPtoControl(xp, yp: integer): TPtoCtrl;
-    function AddPtoControl1D(PosicPCtrol: TPosicPCtrol; mousePtr: TCursor): TPtoCtrl;
-    function AddPtoControl2D(PosicPCtrol: TPosicPCtrol; mousePtr: TCursor): TPtoCtrl;
+    function AddPtoTerminal(PosicPCtrol: TPosicPCtrol; mousePtr: TCursor
+      ): TPtoTerm;
+    function AddPtoControl(PosicPCtrol: TPosicPCtrol; mousePtr: TCursor): TPtoCtrl;
   public //Puntos de conexión
     ShowPtosConex: boolean;   //Indica si se mostrarán los puntos de conexión
     PtosConex  : TPtosConex;  //Lista de puntos de conexión
@@ -328,6 +345,23 @@ begin
         Result := abs( (xp - x1)*dy - (yp-y1)*dx ) < DSEL * abs(dy);
       end;
   end;
+end;
+
+{ TPtoTerm }
+
+procedure TPtoTerm.Disconnect;
+{Desconecta la el punto de control al punto de conexión que pudiera estar ligado.}
+begin
+  if ConnectedTo<>nil then begin
+     ConnectedTo.DisconnectFrom(self);
+     ConnectedTo := nil;
+  end;
+end;
+constructor TPtoTerm.Create(Parent0: TObjGraf; PosicPCtrol: TPosicPCtrol;
+  mousePtr0: TCursor; ChangePosition: TEvPCReqPosition);
+begin
+  inherited Create(Parent0, PosicPCtrol, mousePtr0, ChangePosition);
+  id_pCtrl := PTO_TERM;
 end;
 
 { TObjVsible }
@@ -416,13 +450,9 @@ begin
   4: relPosition := TD_INF_DER;
   end
 end;
-procedure TPtoCtrl.Disconnect;
-{Desconecta la el punto de control al punto de conexión que pudiera estar ligado.}
+function TPtoCtrl.isTerminal: Boolean;
 begin
-  if ConnectedTo<>nil then begin
-     ConnectedTo.DisconnectFrom(self);
-     ConnectedTo := nil;
-  end;
+  exit(id_pCtrl = PTO_TERM);
 end;
 procedure TPtoCtrl.Draw();
 //Dibuja el Punto de control en la posición definida
@@ -451,7 +481,6 @@ begin
    y0 := yIni;
    width0 := widthIni;
    height0 := heighIni;
-   Disconnect;
 end;
 procedure TPtoCtrl.MouseMove(xr, yr: Integer);
 //Realiza el cambio de las variables indicadas de acuerdo al tipo de control y a
@@ -467,17 +496,17 @@ begin
   v2d.XYvirt(xr, yr, wishX, wishY);
   OnChangePosition(Self, dx, dy, wishX, wishY);
 end;
-function TPtoCtrl.LoSelec(xp, yp: Integer): boolean;
+function TPtoCtrl.IsSelectedBy(xp, yp: Integer): boolean;
 //Indica si las coordenadas lo selecciona
 var xp0, yp0 : Integer; //corodenadas virtuales
 begin
-   LoSelec := False;
+   IsSelectedBy := False;
    if not visible then exit;    //validación
    v2d.XYpant(fx, fy, xp0, yp0);   //obtiene sus coordenadas en pantalla
    //compara en coordenadas de pantalla
    If (xp >= xp0 - ANC_PCT2) And (xp <= xp0 + ANC_PCT2) And
       (yp >= yp0 - ANC_PCT2) And (yp <= yp0 + ANC_PCT2) Then
-        LoSelec := True;
+        IsSelectedBy := True;
 End;
 procedure TPtoCtrl.LocateInParent;
 {Ubica al Punto de control en su posición respectiva con respecto al objeto padre.}
@@ -506,9 +535,10 @@ begin
  end;
 end;
 constructor TPtoCtrl.Create(Parent0: TObjGraf; PosicPCtrol: TPosicPCtrol;
-  mousePtr0: TCursor; ChangePosition: TEvPCReqPosiiton);
+  mousePtr0: TCursor; ChangePosition: TEvPCReqPosition);
 begin
   inherited Crear(Parent0.v2d, 2*ANC_PCT2, 2*ANC_PCT2);    //crea
+  id_pCtrl := PTO_CTRL;
   Parent    := Parent0;
   relPosition := PosicPCtrol;  //Dónde aparecerá en el objeto
   mousePtr  := mousePtr0;    //El puntero del mouse
@@ -557,17 +587,17 @@ begin
 //  dy := (yr - Yant) / v2d.Zoom;     //obtiene desplazamiento absoluto
 //  Xant := xr; Yant := yr;   //actualiza coordenadas
 end;
-function TPtoConx.LoSelec(xp, yp: Integer; accuracy: integer = 0): boolean;
+function TPtoConx.IsSelectedBy(xp, yp: Integer; accuracy: integer = 0): boolean;
 //Indica si las coordenadas lo selecciona
 var xp0, yp0 : Integer; //corodenadas virtuales
 begin
-  LoSelec := False;
+  IsSelectedBy := False;
   if not visible then exit;    //validación
   v2d.XYpant(fx, fy, xp0, yp0);   //obtiene sus coordenadas en pantalla
   //compara en coordenadas de pantalla
   if (xp >= xp0 - ANC_PCN2-accuracy) and (xp <= xp0 + ANC_PCN2+accuracy) and
      (yp >= yp0 - ANC_PCN2-accuracy) and (yp <= yp0 + ANC_PCN2+accuracy) then
-       LoSelec := True;
+       IsSelectedBy := True;
 end;
 procedure TPtoConx.Locate(x0, y0: Single);
 var
@@ -575,7 +605,7 @@ var
 begin
   inherited Locate(x0, y0);
   //Mueve puntos de control enganchados
-  for pctl in ptosControl do begin
+  for pctl in ptosTermin do begin
      {Se llama al evento simulando un movimiento por Ratón. Esto solo funcionará en
      Puntos de Control 1D.
      Se pudo haber hecho solo: pctl.x := x; pctl.y := y;
@@ -583,34 +613,34 @@ begin
      pctl.OnChangePosition(pctl, 0, 0, x, y);
   end;
 end;
-procedure TPtoConx.ConnectTo(pCtl: TPtoCtrl);
+procedure TPtoConx.ConnectTo(pTerm: TPtoTerm);
 {Conecta a un punto de control.}
 begin
-  if pCtl.Parent = Self.Parent then begin
+  if pTerm.Parent = Self.Parent then begin
      {No debemos permitir que un punto de conexión se pueda conectar a su propio punto
      de control, porque produciría resultdaos inesperados.}
      exit;
   end;
-  ptosControl.Add(pCtl);
-  pCtl.ConnectedTo := self;
-  if pCtl.OnConnect<>nil then pCtl.OnConnect(pCtl, self);
+  ptosTermin.Add(pTerm);
+  pTerm.ConnectedTo := self;
+  if pTerm.OnConnect<>nil then pTerm.OnConnect(pTerm, self);
 end;
-procedure TPtoConx.DisconnectFrom(pCtl: TPtoCtrl);
+procedure TPtoConx.DisconnectFrom(pTer: TPtoTerm);
 {Se desconecta de un punto de control.}
 begin
-  pCtl.ConnectedTo := nil;
-  ptosControl.Remove(pCtl);
-  if pCtl.OnDisconnect<>nil then pCtl.OnDisconnect(pCtl, self);
+  pTer.ConnectedTo := nil;
+  ptosTermin.Remove(pTer);
+  if pTer.OnDisconnect<>nil then pTer.OnDisconnect(pTer, self);
 end;
 procedure TPtoConx.Disconnect;
-{Se desconecta de todos los puntos de control a los que se enuentra conectado.}
+{Se desconecta de todos los puntos de control a los que se encuentra conectado.}
 var
-  pCtl: TPtoCtrl;
+  pTerm: TPtoTerm;
 begin
   //Usa while porque va a eliminar elementor
-  while ptosControl.Count>0 do begin
-    pCtl := ptosControl[0];
-    DisconnectFrom(pCtl)
+  while ptosTermin.Count>0 do begin
+    pTerm := ptosTermin[0];
+    DisconnectFrom(pTerm)
   end;
 end;
 constructor TPtoConx.Create(mGraf: TMotGraf);
@@ -622,19 +652,19 @@ begin
   pointerTyp := crSizeNW;  //No se usa
   {Crea lista para los puntos de control 1D que engancha. Pero solo gaurdará referencias
    no eliminará los objetos.}
-  ptosControl:= TPtosControl.Create(false);
+  ptosTermin:= TPtosTerminal.Create(false);
 end;
 destructor TPtoConx.Destroy;
 var
-  pctl: TPtoCtrl;
+  pTer: TPtoTerm;
 begin
   //Se desconecta de todos los puntos de control que pudieran estar conectados a
   //este punto de conexión.
-  for pctl in ptosControl do begin
-    pCtl.ConnectedTo := nil;
-    //Hacer DisconnectFrom(pctl) no es necesario y generará error por la forma como se explora a la lista
+  for pTer in ptosTermin do begin
+    pTer.ConnectedTo := nil;
+    //Hacer DisconnectFrom(pTer) no es necesario y generará error por la forma como se explora a la lista
   end;
-  ptosControl.Destroy;
+  ptosTermin.Destroy;
   inherited Destroy;
 end;
 
@@ -687,6 +717,7 @@ begin
   curPntCtl := SelecPtoControl(xr,yr);
   if curPntCtl <> NIL  then begin
       curPntCtl.StartMove(xr, yr, fx, fy, width, height);     //prepara para movimiento fy dimensionamiento
+      if curPntCtl.isTerminal then TPtoTerm(curPntCtl).Disconnect;
       Proceso := True;      //Marcar para indicar al editor fy a Mover() que este objeto procesará
                             //el evento fy no se lo pasé a los demás que pueden estar seleccionados.
       Resizing := True; //Marca bandera
@@ -753,9 +784,9 @@ begin
   //--------------- Draw selection state--------------
   if Selected Then begin
     if behav = behav1D then begin
-       for pct in PtosControl1 do pct.Draw;   //Dibuja puntos de control
+       for pct in PtosTerminal do pct.Draw;   //Dibuja puntos de control
     end else if behav = behav2D then begin
-       for pct in PtosControl2 do pct.Draw;   //Dibuja puntos de control
+       for pct in PtosControl do pct.Draw;   //Dibuja puntos de control
     end;
   end;
   //Draw Connection Points
@@ -794,7 +825,7 @@ begin
     end;
     //Restaura puntero si estaba dimensionándose por si acaso
     if Resizing then begin
-       if not curPntCtl.LoSelec(xp,yp) then //se salio del foco
+       if not curPntCtl.IsSelectedBy(xp,yp) then //se salio del foco
           if Assigned(OnReqMouCur) then OnReqMouCur(crDefault);  //pide retomar el puntero
        Resizing := False;    //quita bandera, por si estaba Resizing
        exit;
@@ -986,17 +1017,17 @@ begin
   end;
   end;
 end;
-function TObjGraf.AddPtoControl1D(PosicPCtrol: TPosicPCtrol; mousePtr: TCursor): TPtoCtrl;
+function TObjGraf.AddPtoTerminal(PosicPCtrol: TPosicPCtrol; mousePtr: TCursor): TPtoTerm;
 //Agrega un punto de control, que trabajará en formas 1D
 begin
-  Result := TPtoCtrl.Create(self, PosicPCtrol, mousePtr, @PtoCtl_ChangePosition);
-  PtosControl1.Add(Result);
+  Result := TPtoTerm.Create(self, PosicPCtrol, mousePtr, @PtoCtl_ChangePosition);
+  PtosTerminal.Add(Result);
 end;
-function TObjGraf.AddPtoControl2D(PosicPCtrol: TPosicPCtrol; mousePtr: TCursor): TPtoCtrl;
+function TObjGraf.AddPtoControl(PosicPCtrol: TPosicPCtrol; mousePtr: TCursor): TPtoCtrl;
 //Agrega un punto de control, que trabajará en formas 2D
 begin
   Result := TPtoCtrl.Create(self, PosicPCtrol, mousePtr, @PtoCtl_ChangePosition);
-  PtosControl2.Add(Result);
+  PtosControl.Add(Result);
 end;
 function TObjGraf.SelecPtoControl(xp, yp:integer): TPtoCtrl;
 //Indica si selecciona a algún punto de control y devuelve la referencia.
@@ -1004,15 +1035,15 @@ var pdc: TPtoCtrl;
 begin
   Result := Nil;      //valor por defecto
   if behav = behav1D then begin
-     for pdc in PtosControl1 do begin
-         if pdc.LoSelec(xp,yp) then begin
+     for pdc in PtosTerminal do begin
+         if pdc.IsSelectedBy(xp,yp) then begin
              Result := pdc;
              exit;
          end;
      end;
   end else if behav = behav2D then begin
-    for pdc in PtosControl2 do begin
-        if pdc.LoSelec(xp,yp) then begin
+    for pdc in PtosControl do begin
+        if pdc.IsSelectedBy(xp,yp) then begin
             Result := pdc;
             exit;
         end;
@@ -1039,7 +1070,7 @@ var
 begin
   Result := Nil;      //valor por defecto
   for pcnx in PtosConex do begin
-     if pcnx.LoSelec(xp, yp, accuracy) then begin
+     if pcnx.IsSelectedBy(xp, yp, accuracy) then begin
         Result := pcnx;
         exit;
      end;
@@ -1060,7 +1091,7 @@ begin
        pcnx.Marked := false;
      end else begin
        //Find
-       if pcnx.LoSelec(xp, yp, accuracy) then begin
+       if pcnx.IsSelectedBy(xp, yp, accuracy) then begin
          pcnx.Marked := true;
          Result := pcnx;
          found := true;
@@ -1102,29 +1133,29 @@ begin
   height := 100;    //height por defecto
   fx := 100;
   fy := 100;
-  PtosControl1:= TPtosControl.Create(True);   //Crea lista con administración de objetos
-  PtosControl2:= TPtosControl.Create(True);   //Crea lista con administración de objetos
+  PtosTerminal:= TPtosTerminal.Create(True);   //Crea lista con administración de objetos
+  PtosControl:= TPtosControl.Create(True);   //Crea lista con administración de objetos
   PtosConex  := TPtosConex.Create(true);
   Selected   := False;
-  Marked    := False;
+  Marked     := False;
   Proceso    := false;
   DibSimplif := false;
   Highlight  := true;
   //Crea puntos de control estándar. Luego se pueden eliminar fy crear nuevos o modificar
   //estos puntos de control.
-  pcTOP_LEF  := AddPtoControl2D(TD_SUP_IZQ, crSizeNW);
-  pcTOP_CEN := AddPtoControl2D(TD_SUP_CEN, crSizeNS);
-  pcTOP_RIG := AddPtoControl2D(TD_SUP_DER, crSizeNE);
+  pcTOP_LEF  := AddPtoControl(TD_SUP_IZQ, crSizeNW);
+  pcTOP_CEN := AddPtoControl(TD_SUP_CEN, crSizeNS);
+  pcTOP_RIG := AddPtoControl(TD_SUP_DER, crSizeNE);
 
-  pcCEN_LEF := AddPtoControl2D(TD_CEN_IZQ, crSizeWE);
-  pcCEN_RIG := AddPtoControl2D(TD_CEN_DER, crSizeWE);
+  pcCEN_LEF := AddPtoControl(TD_CEN_IZQ, crSizeWE);
+  pcCEN_RIG := AddPtoControl(TD_CEN_DER, crSizeWE);
 
-  pcBOT_LEF := AddPtoControl2D(TD_INF_IZQ, crSizeNE);
-  pcBOT_CEN := AddPtoControl2D(TD_INF_CEN, crSizeNS);
-  pcBOT_RIG := AddPtoControl2D(TD_INF_DER, crSizeNW);
+  pcBOT_LEF := AddPtoControl(TD_INF_IZQ, crSizeNE);
+  pcBOT_CEN := AddPtoControl(TD_INF_CEN, crSizeNS);
+  pcBOT_RIG := AddPtoControl(TD_INF_DER, crSizeNW);
   //Crea puntos de control para formas 1D
-  pcBEGIN   := AddPtoControl1D(TD_SUP_IZQ, crSize);
-  pcEND     := AddPtoControl1D(TD_INF_DER, crSize);
+  pcBEGIN   := AddPtoTerminal(TD_SUP_IZQ, crSize);
+  pcEND     := AddPtoTerminal(TD_INF_DER, crSize);
   pcBEGIN.idIcon := pciCircle;
   pcEND.idIcon := pciCircle;
   //Comportamiento por defecto
@@ -1136,8 +1167,8 @@ begin
   pcBEGIN.Disconnect;
   pcEND.Disconnect;
   //Elimina Puntos de control
-  PtosControl1.Free;
-  PtosControl2.Free;
+  PtosTerminal.Free;
+  PtosControl.Free;
   PtosConex.Free;
   inherited Destroy;
 end;

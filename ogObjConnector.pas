@@ -140,7 +140,7 @@ begin
 //  inherited Draw;
   //--------------- Draw selection state--------------
   if Selected Then begin
-     for pct in PtosControl1 do pct.Draw;   //Dibuja puntos de control
+     for pct in PtosTerminal do pct.Draw;   //Dibuja puntos de control
   end;
   //Draw Connection Points
   if ShowPtosConex then begin

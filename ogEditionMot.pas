@@ -517,13 +517,16 @@ begin
         CaptureEvent.MouseUp(Sender, Button, Shift, xp, yp, false);
         //termina estado
         PointerState := EP_NORMAL;
-        CaptureEvent := NIL;      //inicia bandera de captura de evento
-        ToMove := False;        //por si aca
+        CaptureEvent := NIL;    //Inicia bandera de captura de evento
+        ToMove := False;        //Por si aca...
         //Verifica el enganche de los puntos de conexión
         selPntCnx := SelectPointOfConexion(xp, yp);
         if selPntCnx <> nil then begin
-           //Engancha la coordenada de pantalla al punto de control
-          selPntCnx.ConnectTo(curPntCtl);
+          //Engancha la coordenada de pantalla al punto de control actual.
+          //Se supone que estamos moviendo un punto de control porque es el único que puede dimensionar.
+          if curPntCtl.isTerminal then begin  //Validamos por si acaso
+            selPntCnx.ConnectTo(TPtoTerm(curPntCtl));
+          end;
         end;
       end;
     End;

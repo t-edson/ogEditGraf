@@ -1,3 +1,15 @@
+2.10
+===
+
+Se renombra PtosControl1 por PtosTerminal y PtosControl2 por PtosControl.
+Se crea la clase TPtoTerm como una especialización de TPtoCtrl y se modifica el código
+para que se use donde sea necesario un punto terminal.
+Se renombra TObjGraf.AddPtoControl2D por TObjGraf.AddPtoControl
+Se renombra TObjGraf.AddPtoControl1D por TObjGraf.AddPtoTerminal
+Se cambia de  nombre al tipo TEvPCReqPosiiton por TEvPCReqPosition
+Se cambia de nombre al método TPtoCtrl.LoSelec por TPtoCtrl.IsSelectedBy
+Se cambia de nombre al método TPtoConx.LoSelec por TPtoConx.IsSelectedBy
+
 2.9
 ===
 Se corrige un problema de enganche de un punto de conexión a un punto de control del
