@@ -22,7 +22,7 @@ type
 
   { TogButton }
   { Objeto TogButton - Permite gestionar los botones}
-  TogButton = class(TObjVsible)
+  TogButton = class(TObjVisible)
     estado     : Boolean;   //Permite ver el estado del botón o el check
     drawBack   : boolean;   //indica si debe dibujar el fondo
     constructor Create(mGraf: TMotGraf; tipo0: TTipBot; EvenBTclk0: TEvenBTclk);
@@ -34,7 +34,7 @@ type
   end;
 
   { TogCheckBox }   //////////No implementado
-  TogCheckBox = class(TObjVsible)
+  TogCheckBox = class(TObjVisible)
     estado     : Boolean;   //Permite ver el estado del botón o el check
     procedure Dibujar;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
@@ -45,7 +45,7 @@ type
 
   { TogScrollBar }
   //Este ScrollBar está diseñado para manejara desplazamientos con valores discretos
-  TogScrollBar = class(TObjVsible)
+  TogScrollBar = class(TObjVisible)
     valMin   : integer;   //valor mínimo
     valMax   : integer;   //valor máximo
     valCur   : integer;   //valor actual
@@ -154,7 +154,9 @@ end;
 constructor TogButton.Create(mGraf: TMotGraf; tipo0: TTipBot;
   EvenBTclk0: TEvenBTclk);
 begin
-   inherited Crear(mGraf, 16, 16);    //crea
+   inherited Create(mGraf);
+   Width := 16;
+   Height := 16;    //crea
    tipo := tipo0;
    OnClick := EvenBTclk0;
    estado := FALSE;   //inicia en 0 (check no marcado, o botón por contraer)
@@ -221,7 +223,9 @@ end;
 constructor TogScrollBar.Create(mGraf: TMotGraf; tipo0: TSBOrientation;
   EvenBTclk0: TEvenBTclk);
 begin
-  inherited Crear(mGraf, 16, 50);    //crea
+  inherited Create(mGraf);
+  Width :=  16;
+  Height := 50;    //crea
   clock := TTimer.Create(nil);
   clock.interval:=250;  //ciclo de conteo
   clock.OnTimer:=@ProcTic;

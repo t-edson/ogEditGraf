@@ -45,9 +45,9 @@ type
     behav1D,  //De una dimensión (línea)
     behav2D   //De dos dimensiones
   );
-  { TObjVsible }
+  { TObjVisible }
   //Clase base para todos los objetos visibles
-  TObjVsible = class
+  TObjVisible = class
   private
     procedure Setx(AValue: Single);
     procedure Sety(AValue: Single);
@@ -56,23 +56,19 @@ type
     v2d       : TMotGraf;  //motor gráfico
     Xant,Yant : Integer;   //coordenadas anteriores
   public  //Contenedor de la forma (Cuadro de selección)
-    //Puntos de Inicio y Fin
-    {Estos puntos definen la geometría cuando se trata de una forma: behav1D}
-    startX, startY, endX, endY: Single;
     //Cuadro de selección
-    Width     : Single;    //ancho
-    Height    : Single;    //alto
+    Width     : Single;    //Ancho
+    Height    : Single;    //Alto
+    property x: Single read fx write Setx;
+    property y: Single read fy write Sety;
   public
-    Id        : Integer;   //Identificador del Objeto. No usado por la clase. Se deja para facilidad de identificación.
-    Selected  : Boolean;   //indica si el objeto está seleccionado
-    Visible   : boolean;   //indica si el objeto es visible
-    procedure Crear(mGraf: TMotGraf; ancho0, alto0: Integer);  //no es constructor
+    //Id        : Integer;   //Identificador del Objeto. No usado por la clase. Se deja para facilidad de identificación.
+    Selected  : Boolean;   //Indica si el objeto está seleccionado
+    Visible   : boolean;   //Indica si el objeto es visible
     procedure Locate(x0, y0: Single); virtual; //Fija posición  ¿Realmente es útil?
     function LoSelec(xr, yr: Integer): Boolean;
     function StartMove(xr, yr: Integer): Boolean;
-    property x: Single read fx write Setx;
-    property y: Single read fy write Sety;
-    constructor Create; virtual;
+    constructor Create(mGraf: TMotGraf); virtual;
     destructor Destroy; override;
   end;
 
@@ -104,7 +100,7 @@ type
 
   { TPtoCtrl }
   {Define al objeto Punto de Control.}
-  TPtoCtrl = class(TObjVsible)
+  TPtoCtrl = class(TObjVisible)
   private
     function GetQuadrant: byte;
     procedure SetQuadrant(AValue: byte);
@@ -151,7 +147,7 @@ type
 
   { TPtoConx }
   {Define al objeto Punto de Conexión.}
-  TPtoConx = class(TObjVsible)
+  TPtoConx = class(TObjVisible)
   public
     xFac, yFac: Single;   //Posición con respecto al objeto contenedor (porcentaje de ancho y alto)
     procedure Draw;
@@ -172,7 +168,7 @@ type
     procedure Disconnect;
   public //Inicialización
     x0, y0, width0, height0: Single;  //valores objetivo para las dimensiones
-    constructor Create(mGraf: TMotGraf); reintroduce;
+    constructor Create(mGraf: TMotGraf); override;
     destructor Destroy; override;
   end;
   TPtosConex = specialize TFPGObjectList<TPtoConx>;  //Lista para gestionar los puntos de control
@@ -183,17 +179,34 @@ type
   { TObjGraf }
   {Este es el Objeto padre de todos los objetos gráficos visibles que son administrados por
    el motor de edición.}
-  TObjGraf = class(TObjVsible)
+  TObjGraf = class(TObjVisible)
   protected
     function GetXCent: Single;  //Coordenada X central del objeto.
     procedure SetXcent(AValue: Single);
     function GetYCent: Single;  //Coordenada Ycentral del objeto
     procedure SetYCent(AValue: Single);
   private
+    FlocAxisX: Single;
+    FlocAxisY: Single;
     procedure PtoCtl_ChangePosition(target: TPtoCtrl; dx, dy: Single; wishX,
       wishY: Single);
+    procedure SetlocAxisX(AValue: Single);
+    procedure SetlocAxisY(AValue: Single);
+  public //Propiedades geométricas de la forma
+    //Propiedades heredadas
+    //Width     : Single;    //Ancho
+    //Height    : Single;    //Alto
+    //property x: Single read fx write Setx;
+    //property y: Single read fy write Sety;
+    property AxisX: Single read GetXCent write SetXcent;
+    property AxisY: Single read GetYCent write SetYCent;
+    {Las propiedades XCent e YCent definen el eje de giro de la forma que normalmente
+    cae en el centro de la forma, pero su posición exacta con respecto a la forma, está
+    definida por las propiedades locAxisX y locAxisY}
+    property locAxisX: Single read FlocAxisX write SetlocAxisX;
+    property locAxisY: Single read FlocAxisY write SetlocAxisY;
   public
-    behav      : TBehave;  //Indica si la forma es de 1D o 2D.
+    behav      : TBehave;   //Indica si la forma es de 1D o 2D.
     Name       : String;    //Identificación del objeto
     Marked     : Boolean;   //Indica que está marcado, porque el ratón pasa por encima
     DibSimplif : Boolean;   //Indica que se está en modo de dibujo simplificado
@@ -205,11 +218,9 @@ type
     Proceso    : Boolean;   //Bandera
     Resizing   : boolean;   //Indica que el objeto está dimensionándose
     Erased     : boolean;   //Bandera para eliminar al objeto
-    property Xcent: Single read GetXCent write SetXcent;
-    property YCent: Single read GetYCent write SetYCent;
-    procedure Selec;         //Método único para seleccionar al objeto
-    procedure Deselec;       //Método único para quitar la selección del objeto
-    procedure Delete;        //Método para eliminar el objeto
+    procedure Selec;        //Método único para seleccionar al objeto
+    procedure Deselec;      //Método único para quitar la selección del objeto
+    procedure Delete;       //Método para eliminar el objeto
     function IsSelectedBy(xr, yr:integer): Boolean; virtual;
     procedure Draw; virtual;  //Dibuja el objeto gráfico
     procedure StartMove(xr, yr : Integer);
@@ -239,7 +250,6 @@ type
     OnReqMouCur: TEventReqMouCur;  //Requerimiento para cambiar el puntero del ratón
   public //Puntos de Control
     curPntCtl   : TPtoCtrl;  //Punto de Control actual
-  public
     {Los puntos de control son los que se pueden mover independientemente y tienen
     efecto sobre la posición y/o el tamaño de la forma.}
     //Puntos de control por defecto
@@ -292,11 +302,10 @@ function PointSelectSegment(xp, yp, x0, y0, x1, y1: integer): Boolean;
 de 5 pixeles.
 El segmento se define con los puntos (x0, y0) y (x1, y1).
 Las coordenadas son de pantalla.}
-const
+const   //Tolerancia en pixeles
   DSEL = 5;
 var
   dx, dy: Int16;
-   //tolerancia en pixeles
 begin
   {No debería ser necesario actualizar las coordenadas de pantalla de P0 y P1, ya que
   si esta recta se mostró en pantalla, es porque se actualizaron sus coordenadas de
@@ -325,6 +334,8 @@ begin
      //Forma alternativa, sin divisiones
      dx := x1 - x0;   //siempre positivo
      dy := y1 - y0;   //positivo o negativo
+     if (yp<y1) and (yp<y0) then exit(false);  //Muy arriba
+     if (yp>y1) and (yp>y0) then exit(false);  //Muy abajo
      if abs(dy)<dx then begin
        Result := abs( (xp - x0)*dy - (yp-y0)*dx ) < DSEL * dx;
      end else begin //abs(dy), es mayor a dx
@@ -339,6 +350,8 @@ begin
 //     Result := abs(a*xp + b - yp) < DSEL;
       dx := x0 - x1;   //siempre positivo
       dy := y0 - y1;   //positivo o negativo
+      if (yp<y1) and (yp<y0) then exit(false);  //Muy arriba
+      if (yp>y1) and (yp>y0) then exit(false);  //Muy abajo
       if abs(dy)<dx then begin
         Result := abs( (xp - x1)*dy - (yp-y1)*dx ) < DSEL * dx;
       end else begin //abs(dy), es mayor a dx
@@ -364,30 +377,23 @@ begin
   id_pCtrl := PTO_TERM;
 end;
 
-{ TObjVsible }
-procedure TObjVsible.Crear(mGraf: TMotGraf; ancho0, alto0: Integer);
-begin
-  v2d := mGraf;
-  width:=ancho0;
-  height :=alto0;
-  visible := true;
-end;
-procedure TObjVsible.Setx(AValue: Single);
+{ TObjVisible }
+procedure TObjVisible.Setx(AValue: Single);
 begin
   if fx=AValue then Exit;
   fx:=AValue;
 end;
-procedure TObjVsible.Sety(AValue: Single);
+procedure TObjVisible.Sety(AValue: Single);
 begin
   if fy=AValue then Exit;
   fy:=AValue;
 end;
-procedure TObjVsible.Locate(x0, y0: Single);
+procedure TObjVisible.Locate(x0, y0: Single);
 begin
   fx := x0;
   fy := y0;
 end;
-function TObjVsible.LoSelec(xr, yr: Integer): Boolean;
+function TObjVisible.LoSelec(xr, yr: Integer): Boolean;
 //Indica si las coordenadas de ratón seleccionan al botón en su posición actual
 var xv, yv: Single;    //coordenadas virtuales
 begin
@@ -397,19 +403,20 @@ begin
        (yv > fy - 2) And (yv < fy + height + 2) Then
         Result := True;
 end;
-function TObjVsible.StartMove(xr, yr: Integer): Boolean;
+function TObjVisible.StartMove(xr, yr: Integer): Boolean;
 begin
-  Result := false;  //por el momento, no devuelve valor
+  Result := false;  //Por el momento, no devuelve valor
   if not visible then exit;    //validación
   //captura posición actual, para calcular los desplazamientos
   Xant := xr;
   Yant := yr;
 end;
-constructor TObjVsible.Create;
+constructor TObjVisible.Create(mGraf: TMotGraf);
 begin
-  inherited Create;
+  v2d := mGraf;
+  visible := true;
 end;
-destructor TObjVsible.Destroy;
+destructor TObjVisible.Destroy;
 begin
   inherited Destroy;
 end;
@@ -537,13 +544,14 @@ end;
 constructor TPtoCtrl.Create(Parent0: TObjGraf; PosicPCtrol: TPosicPCtrol;
   mousePtr0: TCursor; ChangePosition: TEvPCReqPosition);
 begin
-  inherited Crear(Parent0.v2d, 2*ANC_PCT2, 2*ANC_PCT2);    //crea
+  inherited Create(Parent0.v2d);
+  Width  := 2*ANC_PCT2;
+  Height := 2*ANC_PCT2;
   id_pCtrl := PTO_CTRL;
   Parent    := Parent0;
   relPosition := PosicPCtrol;  //Dónde aparecerá en el objeto
   mousePtr  := mousePtr0;    //El puntero del mouse
   OnChangePosition := ChangePosition;
-  visible   := true;             //lo hace visible
   fx :=0;
   fy :=0;
 end;
@@ -645,8 +653,9 @@ begin
 end;
 constructor TPtoConx.Create(mGraf: TMotGraf);
 begin
-  inherited Crear(mGraf, 2*ANC_PCT2, 2*ANC_PCT2);    //crea
-  visible := true;             //lo hace visible
+  inherited Create(mGraf);
+  Width := 2*ANC_PCT2;
+  Height := 2*ANC_PCT2;
   fx :=0;
   fy :=0;
   pointerTyp := crSizeNW;  //No se usa
@@ -1017,6 +1026,19 @@ begin
   end;
   end;
 end;
+
+procedure TObjGraf.SetlocAxisX(AValue: Single);
+begin
+  if FlocAxisX = AValue then Exit;
+  FlocAxisX := AValue;
+end;
+
+procedure TObjGraf.SetlocAxisY(AValue: Single);
+begin
+  if FlocAxisY = AValue then Exit;
+  FlocAxisY := AValue;
+end;
+
 function TObjGraf.AddPtoTerminal(PosicPCtrol: TPosicPCtrol; mousePtr: TCursor): TPtoTerm;
 //Agrega un punto de control, que trabajará en formas 1D
 begin
@@ -1121,13 +1143,11 @@ begin
   end;
   exit(nil);
 end;
-
 //Inicialización
 constructor TObjGraf.Create(mGraf: TMotGraf);
 begin
-  inherited Create;
+  inherited Create(mGraf);
   erased := false;
-  v2d := mGraf;   //asigna motor gráfico
   visible := true;
   width := 100;   //width por defecto
   height := 100;    //height por defecto

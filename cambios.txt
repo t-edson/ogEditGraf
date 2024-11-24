@@ -1,6 +1,25 @@
+2.11
+====
+Se corrige el error de selección de un segemento que tenía PointSelectSegment().
+SE cambia de nombre a TEditionMot.SiguienteVisible() por NextVisible().
+Se cambia de nombre a TEditionMot.AnteriorVisible() por PreviousVisible().
+Se cambai de nombre a TEditionMot.SeleccionarSiguiente() por SelectNext().
+Se cambai de nombre a TEditionMot.SeleccionarAnterior() por SelectPrevious().
+Se cambia de nombre a TObjVsible por TObjVisible.
+Se cambia de nombre a TEditionMot.AmpliarClick() por ZoomInClick().
+Se cambia de nombre a TEditionMot.ReducirClick() por ZoomOutClick().
+Se cambia el constructor de TObjVisible para que pida el motor gráfico.
+Se elimina el método Crear() de TObjVisible.
+Se cambia de nombre a TObjGraf.XCent y TObjGraf.YCent por AxisX y AxisY.
+Se crean las propiedades TObjGraf.locAxisX e TObjGraf.locAxisY.
+Se agrega la propiedad "editorMode" a TEditionMot.
+
+Se han producido diversas refactorizaciones en esta versión. 
+La idea es definir que las formas trabajen con las propiedades del ejec (y su posición relativa)
+para definir su posició nfinal. Y no como se hace actualmente usando solamente su posición X e Y.
+
 2.10
 ===
-
 Se renombra PtosControl1 por PtosTerminal y PtosControl2 por PtosControl.
 Se crea la clase TPtoTerm como una especialización de TPtoCtrl y se modifica el código
 para que se use donde sea necesario un punto terminal.

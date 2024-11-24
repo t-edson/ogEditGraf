@@ -1,11 +1,10 @@
 {Unidad ogMotEdicion
 ====================
-Define la clase TModEdicion para la implementación de una interfaz para la edición de
+Define la clase TEditionMot para la implementación de una interfaz para la edición de
 objetos gráficos.
 Los objetos a manejar deben derivarse de la clase TObjGraf.
 Se debe indicar el control TPaint que se usará como salida gráfica.
 Trabaja en pixels para acelerar la velocidad de gráficos.
-Basado en la clase equivalente en el proyecto SQLGraf en Visual Basic.
 
 Creado por Tito Hinostroza 24/09/2014
 
@@ -69,6 +68,8 @@ type
     OnPaint       : TNotifyEvent;
     OnObjectsMoved: procedure of object;
   public
+    v2d          : TMotGraf;      //salida gráfica
+    editorMode   : (edmSelect, edmRotat);
     PointerState : TPointerState; //Estado del puntero
     ToMove       : Boolean;       //Bandera de control para el inicio del movimiento
     CaptureEvent : TObjGraf;      //Referencia a objeto que capturo el movimiento
@@ -77,7 +78,6 @@ type
     curPntCtl    : TPtoCtrl;      //Punto de control actual en movimiento
     Modif        : Boolean;       //Bandera para indicar Diagrama Modificado
     PBox         : TPaintBox;     //Control de Salida
-    v2d          : TMotGraf;      //salida gráfica
     procedure AddGraphObject(og: TObjGraf; AutoPos: boolean=true);
     procedure DeleteAll;
     procedure DeleteSelected;
@@ -101,14 +101,14 @@ type
     function NumberOfVisible: Integer;
     function FirstVisible: TObjGraf;
     function LastVisible: TObjGraf;
-    function SiguienteVisible(c: TObjGraf): TObjGraf;
-    function AnteriorVisible(c: TObjGraf): TObjGraf;
-    procedure SeleccionarSiguiente;
-    procedure SeleccionarAnterior;
+    function NextVisible(c: TObjGraf): TObjGraf;
+    function PreviousVisible(c: TObjGraf): TObjGraf;
+    procedure SelectNext;
+    procedure SelectPrevious;
   public // Funciones de visualización
-    procedure AmpliarClick(factor: single=ZOOM_INC_FACTOR; xrZoom: integer=0;
+    procedure ZoomInClick(factor: single=ZOOM_INC_FACTOR; xrZoom: integer=0;
       yrZoom: integer=0);
-    procedure ReducirClick(factor: single=ZOOM_INC_FACTOR; xrZoom: integer=0;
+    procedure ZoomOutClick(factor: single=ZOOM_INC_FACTOR; xrZoom: integer=0;
       yrZoom: integer=0);
   public //Funciones de selección
     procedure SelectAll;
@@ -413,10 +413,10 @@ begin
       if objects.Count < 100 Then begin//sólo anima para pocos objects
           for s In objects do begin
             if s.SelLocked then continue;
-            if enRecSeleccion(s.XCent, s.YCent) And Not s.Selected Then begin
+            if enRecSeleccion(s.AxisX, s.AxisY) And Not s.Selected Then begin
               s.Selec;
             End;
-            if Not enRecSeleccion(s.XCent, s.YCent) And s.Selected Then begin
+            if Not enRecSeleccion(s.AxisX, s.AxisY) And s.Selected Then begin
               s.Deselec;
             end;
           end;
@@ -456,8 +456,8 @@ begin
     //Procesa de acuerdo al estado
     Case PointerState of
     EP_RAT_ZOOM  : begin   //------ Zoom con el Ratón ------
-        If Button = mbLeft Then AmpliarClick(1.2, xp, yp) ;  //<Shift> + <Ctrl> + click izquierdo
-        If Button = mbRight Then ReducirClick(1.2, xp, yp) ;  //<Shift> + <Ctrl> + click derecho
+        If Button = mbLeft Then ZoomInClick(1.2, xp, yp) ;  //<Shift> + <Ctrl> + click izquierdo
+        If Button = mbRight Then ZoomOutClick(1.2, xp, yp) ;  //<Shift> + <Ctrl> + click derecho
 //      PointerState = EP_NORMAL   //Legalmente debería ponerse a normal. Pero si se
                                  //hace, es posible que un click consecutivo muy
                                  //rápido, no dispare el evento MouseDown (dispara
@@ -479,7 +479,7 @@ begin
     EP_SELECMULT : begin //------ En selección múltiple, Botón izquierdo o derecho
         if objects.Count > 100 Then begin  //Necesita actualizar porque la selección múltiple es diferente
           for o in objects do
-            if enRecSeleccion(o.XCent, o.YCent) And Not o.Selected Then o.Selec;
+            if enRecSeleccion(o.AxisX, o.AxisY) And Not o.Selected Then o.Selec;
         end;
         PointerState := EP_NORMAL;
       end;
@@ -546,7 +546,7 @@ begin
       //If tec = 13 Then PropiedSeleccion ;  //Debe procesarlo el diagrama
       If Key = VK_DELETE Then DeleteSelected;  //DELETE
       If Key = 9 Then begin
-          SeleccionarSiguiente;  //TAB
+          SelectNext;  //TAB
           Key := 0;   //Para que no se pase el enfoque a otro control
       end;
       If Key = 27 Then begin  //ESCAPE
@@ -586,12 +586,12 @@ begin
       end;
   end else If Shift = [ssShift] Then begin //**********************Shift + ************************
       If Key = 9 Then begin
-          SeleccionarAnterior;  //TAB
+          SelectPrevious;  //TAB
           Key := 0;   //Para que no se pase el enfoque a otro control
       end;
 //  end else If Shift = [ssCtrl] Then begin  //**********************Ctrl + ************************
-//      If Key = 107 Then Call AmpliarClick      ;  //+
-//      If Key = 109 Then Call ReducirClick      ;  //-
+//      If Key = 107 Then Call ZoomInClick      ;  //+
+//      If Key = 109 Then Call ZoomOutClick      ;  //-
 //      If Key = 37 Then Call ScrollRight(DESPLAZ_MAYOR)   ;  //derecha
 //      If Key = 39 Then Call ScrollLeft(DESPLAZ_MAYOR) ;  //izquierda
 //      If Key = 40 Then Call ScrollUp(DESPLAZ_MAYOR)    ;  //arriba
@@ -748,8 +748,8 @@ begin
     end;
   end;
 end;
-function TEditionMot.SiguienteVisible(c: TObjGraf): TObjGraf;
-//devuelve el siguiente objeto visible en el orden de creación
+function TEditionMot.NextVisible(c: TObjGraf): TObjGraf;
+//Devuelve el siguiente objeto visible en el orden de creación
 var
   i: Integer;
 begin
@@ -768,8 +768,8 @@ begin
     //selecciona el siguiente visible
     Result := objects[i];
 end;
-function TEditionMot.AnteriorVisible(c: TObjGraf): TObjGraf;
-//devuelve el anterior objeto visible en el orden de creación
+function TEditionMot.PreviousVisible(c: TObjGraf): TObjGraf;
+//Devuelve el anterior objeto visible en el orden de creación
 var
   i: Integer;
 begin
@@ -788,7 +788,7 @@ begin
     //selecciona el siguiente visible
     Result := objects[i];
 End;
-procedure TEditionMot.SeleccionarSiguiente;
+procedure TEditionMot.SelectNext;
 //Selecciona el siguiente elemento visible en el orden de creación.
 //Si no hay ninguno seleccionado, selecciona el primero
 var
@@ -797,7 +797,7 @@ begin
     if NumberOfVisible() = 0 Then exit;
     if selection.Count = 1 Then begin  //hay uno Selected
         s := selection[0];   //toma el Selected
-        s := SiguienteVisible(s);
+        s := NextVisible(s);
         UnselectAll;
         s.Selec;
     end else begin     //hay cero o más de uno Selected
@@ -807,7 +807,7 @@ begin
     end;
     Refresh;
 end;
-procedure TEditionMot.SeleccionarAnterior;
+procedure TEditionMot.SelectPrevious;
 //Selecciona el anterior elemento visible en el orden de creación.
 //Si no hay ninguno seleccionado, selecciona el ultimo
 var
@@ -816,7 +816,7 @@ begin
     if NumberOfVisible() = 0 Then exit;
     if selection.Count = 1 then begin     //hay uno Selected
         s := selection[0];    //toma el Selected
-        s := AnteriorVisible(s);
+        s := PreviousVisible(s);
         UnselectAll;
         s.Selec;
     end else begin               //hay cero o más de uno Selected
@@ -827,7 +827,7 @@ begin
     Refresh;
 end;
 // Funciones de visualización
-procedure TEditionMot.AmpliarClick(factor: single = ZOOM_INC_FACTOR;
+procedure TEditionMot.ZoomInClick(factor: single = ZOOM_INC_FACTOR;
                         xrZoom: integer = 0; yrZoom: integer = 0);
 var
   xv0, yv0, xv1, yv1: Single;
@@ -846,7 +846,7 @@ begin
   v2d.SavePerspectiveIn(Pfinal);  //para que no se regrese al ángulo inicial
   Refresh;
 End;
-procedure TEditionMot.ReducirClick(factor: single = ZOOM_INC_FACTOR;
+procedure TEditionMot.ZoomOutClick(factor: single = ZOOM_INC_FACTOR;
                         xrZoom: integer = 0; yrZoom: integer = 0);
 var
   xv1, yv1, xv0, yv0: Single;
