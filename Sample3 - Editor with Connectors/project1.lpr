@@ -7,7 +7,7 @@ uses
   cthreads,
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, Unit1, ogObjConnector;
+  Forms, Unit1;
 
 {$R *.res}
 

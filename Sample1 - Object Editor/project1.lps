@@ -20,7 +20,7 @@
         <UnitName Value="Unit1"/>
         <IsVisibleTab Value="True"/>
         <TopLine Value="26"/>
-        <CursorPos X="11" Y="32"/>
+        <CursorPos X="6" Y="48"/>
         <UsageCount Value="93"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -143,7 +143,7 @@
       <Unit18>
         <Filename Value="..\ogEditionMot.pas"/>
         <EditorIndex Value="1"/>
-        <CursorPos X="64" Y="19"/>
+        <CursorPos Y="19"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit18>
