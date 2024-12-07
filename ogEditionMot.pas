@@ -396,6 +396,7 @@ procedure TEditionMot.MouseMove(Sender: TObject; Shift: TShiftState;
 var
   s: TObjGraf;
   selPntCnx: TPtoConx;
+  ptoCtrl: TPtoCtrl;
 begin
   if OnMouseMove<>nil then OnMouseMove(Sender, Shift, xp, yp);
   If Shift = [ssCtrl, ssShift, ssRight] Then  //<Shift>+<Ctrl> + <Botón derecho>
@@ -428,8 +429,10 @@ begin
           s.MouseMove(xp,yp, selection.Count);
       Refresh;
   end Else If PointerState = EP_DIMEN_OBJ then begin
+      ptoCtrl:= CaptureEvent.curPntCtl;
+      if ptoCtrl= nil then exit;  //El único que puede dimensionar un objeto es un Punto de Control
       selPntCnx := SelectPointOfConexion(xp, yp);
-      if selPntCnx <> nil then begin
+      if (selPntCnx <> nil) and (ptoCtrl.Parent<>selPntCnx.Parent) then begin
          //Engancha la coordenada de pantalla al punto de control
          v2d.XYpant(selPntCnx.x, selPntCnx.y, xp, yp);
       end;
