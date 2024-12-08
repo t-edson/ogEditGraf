@@ -15,7 +15,7 @@ unit ogEditionMot;
 INTERFACE
 uses
   Classes, Forms, Controls, ExtCtrls, SysUtils, Graphics, Fgl, LCLIntf,
-  LCLType, GraphType, Dialogs, LCLProc, ogMotGraf2D, ogDefObjGraf;
+  LCLType, GraphType, Dialogs, LCLProc, ogMotGraf2D, ogDefObjGraf, ogBasic;
 
 const
   CUR_DEFEC = crDefault;   //Cursor por defecto
@@ -152,6 +152,7 @@ type
   end;
 
 implementation
+
 
 procedure TEditionMot.MouseDownRight(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; xp, yp: Integer);
@@ -399,13 +400,12 @@ var
   ptoCtrl: TPtoCtrl;
 begin
   if OnMouseMove<>nil then OnMouseMove(Sender, Shift, xp, yp);
-  If Shift = [ssCtrl, ssShift, ssRight] Then  //<Shift>+<Ctrl> + <Botón derecho>
-     begin
+  if Shift = [ssCtrl, ssShift, ssRight] then begin  //<Shift>+<Ctrl> + <Botón derecho>
       PointerState := EP_DESP_PANT;
       ScrollDesp(x_pulso - xp, y_pulso - yp);
       Refresh;
-      Exit;
-     End;
+      exit;
+  end;
   If ToMove = True Then VerifyForMove(xp, yp);
   If PointerState = EP_SELECMULT then begin  //modo seleccionando multiples formas
       x2Sel := xp;
@@ -414,10 +414,10 @@ begin
       if objects.Count < 100 Then begin//sólo anima para pocos objects
           for s In objects do begin
             if s.SelLocked then continue;
-            if enRecSeleccion(s.AxisX, s.AxisY) And Not s.Selected Then begin
+            if enRecSeleccion(s.XCent, s.YCent) And Not s.Selected Then begin
               s.Selec;
             End;
-            if Not enRecSeleccion(s.AxisX, s.AxisY) And s.Selected Then begin
+            if Not enRecSeleccion(s.XCent, s.YCent) And s.Selected Then begin
               s.Deselec;
             end;
           end;
@@ -429,18 +429,19 @@ begin
           s.MouseMove(xp,yp, selection.Count);
       Refresh;
   end Else If PointerState = EP_DIMEN_OBJ then begin
+      CaptureEvent.state := ogsResizing;   //Activa bandera
       ptoCtrl:= CaptureEvent.curPntCtl;
       if ptoCtrl= nil then exit;  //El único que puede dimensionar un objeto es un Punto de Control
       selPntCnx := SelectPointOfConexion(xp, yp);
       if (selPntCnx <> nil) and (ptoCtrl.Parent<>selPntCnx.Parent) then begin
          //Engancha la coordenada de pantalla al punto de control
-         v2d.XYpant(selPntCnx.x, selPntCnx.y, xp, yp);
+         v2d.XYpant(selPntCnx.AxisX, selPntCnx.AxisY, xp, yp);
       end;
       //Se está dimensionando un objeto, moviendo un punto de control
       CaptureEvent.MouseMove(xp, yp, selection.Count);
       Refresh;
   end else begin
-      if CaptureEvent <> NIL then begin
+      if CaptureEvent <> nil then begin
          CaptureEvent.MouseMove(xp, yp, selection.Count);
          Refresh;
       end else begin  //Movimiento simple
@@ -482,13 +483,13 @@ begin
     EP_SELECMULT : begin //------ En selección múltiple, Botón izquierdo o derecho
         if objects.Count > 100 Then begin  //Necesita actualizar porque la selección múltiple es diferente
           for o in objects do
-            if enRecSeleccion(o.AxisX, o.AxisY) And Not o.Selected Then o.Selec;
+            if enRecSeleccion(o.XCent, o.YCent) And Not o.Selected Then o.Selec;
         end;
         PointerState := EP_NORMAL;
       end;
     EP_NORMAL    : begin //------ En modo normal
         o := SelectSomeObject(xp, yp);  //verifica si selecciona a un objeto
-        If Button = mbRight Then //----- solto derecho -------------------
+        if Button = mbRight Then //----- solto derecho -------------------
           begin
 (*            If o = NIL Then  //Ninguno Selected
                 RaiseEvent ClickDerDiag    //Genera evento
@@ -498,7 +499,7 @@ begin
             End If*)
           end
         else If Button = mbLeft Then begin //----- solto izquierdo -----------
-            If o = NIL Then    //No selecciona a ninguno
+            If o = nil Then    //No selecciona a ninguno
 //                Call UnselectAll
             else begin         //Selecciona a alguno
                 If Shift = [] Then UnselectAll;
@@ -511,16 +512,17 @@ begin
                   Refresh;
                 end;
             End;
-            CaptureEvent := NIL;      //inicia bandera de captura de evento
+            CaptureEvent := nil;      //inicia bandera de captura de evento
             ToMove := False;        //por si aca
         end;
       end;
     EP_DIMEN_OBJ : begin  //Se soltó mientras se estaba dimensionado un objeto
         //Pasa evento a objeto que se estaba dimensionando
         CaptureEvent.MouseUp(Sender, Button, Shift, xp, yp, false);
+        CaptureEvent.state := ogsNormal;  //Restaura estado
         //termina estado
         PointerState := EP_NORMAL;
-        CaptureEvent := NIL;    //Inicia bandera de captura de evento
+        CaptureEvent := nil;    //Inicia bandera de captura de evento
         ToMove := False;        //Por si aca...
         //Verifica el enganche de los puntos de conexión
         selPntCnx := SelectPointOfConexion(xp, yp);
@@ -532,7 +534,7 @@ begin
           end;
         end;
       end;
-    End;
+    end;
     if OnMouseUp<>nil then OnMouseUp(Sender, Button, Shift, xp, yp);
     if Button = mbRight then
       if OnMouseUpRight<> nil then OnMouseUpRight(Shift, xp,yp);  //evento
@@ -1231,4 +1233,4 @@ begin
 end;
 
 end.
-
+//1231

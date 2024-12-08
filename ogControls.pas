@@ -96,54 +96,54 @@ implementation
 procedure TogCheckBox.Dibujar;
 //Dibuja el botón de acuerdo a su tipo y estado
 begin
-  case tipo of
-  BOT_CERRAR: begin
-//       v2d.DibFonBoton(fx,fy,15,15);
-       v2d.DibVnormal(x+2, y+2,10,5);
-       v2d.DibVnormal(x+2, y+12,10,-5);
-     end;
-  BOT_EXPAND:
-      if estado then begin
-//         v2d.DibFonBoton(fx,fy,15,15);
-//         v2d.DibVnormal(fx+2,fy+7,10,-5);
-//         v2d.DibVnormal(fx+2,fy+11,10,-5);
-         v2d.SetColor(COL_GRIS, COL_GRIS, 1);
-         v2d.Polygon(x+3      , y + height-5,
-                      x+width-3, y + height-5,
-                      x+width/2, y + 4);
-      end else begin
-//         v2d.DibFonBoton(fx,fy,15,15);
-//         v2d.DibVnormal(fx+2,fy+2,10,5);
-//         v2d.DibVnormal(fx+2,fy+6,10,5);
-        v2d.SetColor(COL_GRIS, COL_GRIS, 1);
-        v2d.Polygon(x+3      , y + 5,
-                     x+width-3, y + 5,
-                     x+width/2, y + height - 4);
-      end;
-  BOT_CHECK: begin  //botón check
-     if estado then begin   //dibuja solo borde
-        v2d.DrawButtonBord(x, y,15,15);
-     end else begin         //dibuja con check
-        v2d.DrawButtonBord(x, y,15,15);
-        v2d.DrawCheck(x+2, y+2,10,8);
-     end;
-    end;
-  BOT_REPROD: begin  //botón reproducir
-     if estado then begin   //dibuja solo borde
-       v2d.SetColor(clBlack, TColor($E5E5E5), 1);
-       v2d.RectRedonR(x, y, x+width, y+height);
-       v2d.SetColor(clBlack, clBlack, 1);
-       v2d.RectangR(x+6, y+6, x+width-6, y+height-6);
-     end else begin         //dibuja con check
-       v2d.SetColor(clBlack, TColor($E5E5E5), 1);
-       v2d.RectRedonR(x, y, x+width, y+height);
-       v2d.SetColor(clBlack, clBlack, 1);
-       v2d.Polygon(x+ 6, y+3,
-                    x+18, y + height/2,
-                    x+ 6, y + height - 4);
-     end;
-    end;
-  end;
+//  case tipo of
+//  BOT_CERRAR: begin
+////       v2d.DibFonBoton(fx,fy,15,15);
+//       v2d.DibVnormal(x+2, y+2,10,5);
+//       v2d.DibVnormal(x+2, y+12,10,-5);
+//     end;
+//  BOT_EXPAND:
+//      if estado then begin
+////         v2d.DibFonBoton(fx,fy,15,15);
+////         v2d.DibVnormal(fx+2,fy+7,10,-5);
+////         v2d.DibVnormal(fx+2,fy+11,10,-5);
+//         v2d.SetColor(COL_GRIS, COL_GRIS, 1);
+//         v2d.Polygon(x+3      , y + height-5,
+//                      x+width-3, y + height-5,
+//                      x+width/2, y + 4);
+//      end else begin
+////         v2d.DibFonBoton(fx,fy,15,15);
+////         v2d.DibVnormal(fx+2,fy+2,10,5);
+////         v2d.DibVnormal(fx+2,fy+6,10,5);
+//        v2d.SetColor(COL_GRIS, COL_GRIS, 1);
+//        v2d.Polygon(x+3      , y + 5,
+//                     x+width-3, y + 5,
+//                     x+width/2, y + height - 4);
+//      end;
+//  BOT_CHECK: begin  //botón check
+//     if estado then begin   //dibuja solo borde
+//        v2d.DrawButtonBord(x, y,15,15);
+//     end else begin         //dibuja con check
+//        v2d.DrawButtonBord(x, y,15,15);
+//        v2d.DrawCheck(x+2, y+2,10,8);
+//     end;
+//    end;
+//  BOT_REPROD: begin  //botón reproducir
+//     if estado then begin   //dibuja solo borde
+//       v2d.SetColor(clBlack, TColor($E5E5E5), 1);
+//       v2d.RectRedonR(x, y, x+width, y+height);
+//       v2d.SetColor(clBlack, clBlack, 1);
+//       v2d.RectangR(x+6, y+6, x+width-6, y+height-6);
+//     end else begin         //dibuja con check
+//       v2d.SetColor(clBlack, TColor($E5E5E5), 1);
+//       v2d.RectRedonR(x, y, x+width, y+height);
+//       v2d.SetColor(clBlack, clBlack, 1);
+//       v2d.Polygon(x+ 6, y+3,
+//                    x+18, y + height/2,
+//                    x+ 6, y + height - 4);
+//     end;
+//    end;
+//  end;
 end;
 procedure TogCheckBox.MouseUp(Button: TMouseButton; Shift: TShiftState; xp,
   yp: Integer);
@@ -165,59 +165,59 @@ end;
 procedure TogButton.Dibujar;
 //Dibuja el botón de acuerdo a su tipo y estado
 begin
-  case tipo of
-  BOT_CERRAR: begin
-       if drawBack then v2d.DrawButtonBord(x, y,width,height);
-       v2d.DibVnormal(x+2, y+ 2, 10, 5);
-       v2d.DibVnormal(x+2, y+12, 10,-5);
-     end;
-  BOT_EXPAND:
-      if estado then begin
-        if drawBack then v2d.DrawButtonBord(x, y,width,height);
-//         v2d.DibVnormal(fx+2,fy+7,10,-5);
-//         v2d.DibVnormal(fx+2,fy+11,10,-5);
-         v2d.SetColor(COL_GRIS, COL_GRIS, 1);
-         v2d.DrawTrianUp(x+2, y+4, width-4, height-10);
-      end else begin
-         if drawBack then v2d.DrawButtonBord(x, y,width,height);
-//         v2d.DibVnormal(fx+2,fy+2,10,5);
-//         v2d.DibVnormal(fx+2,fy+6,10,5);
-        v2d.SetColor(COL_GRIS, COL_GRIS, 1);
-        v2d.DrawTrianDown(x+2, y+5,width-4,height-10);
-      end;
-  BOT_CHECK: begin  //botón check
-     if estado then begin   //dibuja solo borde
-        v2d.DrawButtonBord(x,y,15,15);
-     end else begin         //dibuja con check
-        v2d.DrawButtonBord(x,y,15,15);
-        v2d.DrawCheck(x+2,y+2,10,8);
-     end;
-    end;
-  BOT_REPROD: begin  //botón reproducir
-     if estado then begin   //dibuja solo borde
-       v2d.SetColor(clBlack, TColor($E5E5E5), 1);
-       v2d.RectRedonR(x,y,x+width, y+height);
-       v2d.SetColor(clBlack, clBlack, 1);
-       v2d.RectangR(x+6,y+6,x+width-6, y+height-6);
-     end else begin         //dibuja con check
-       v2d.SetColor(clBlack, TColor($E5E5E5), 1);
-       v2d.RectRedonR(x,y,x+width, y+height);
-       v2d.SetColor(clBlack, clBlack, 1);
-       v2d.Polygon(x+6, y+3,
-                    x+18, y + height/2,
-                    x+6, y + height - 4);
-     end;
-    end;
-  end;
+//  case tipo of
+//  BOT_CERRAR: begin
+//       if drawBack then v2d.DrawButtonBord(x, y,width,height);
+//       v2d.DibVnormal(x+2, y+ 2, 10, 5);
+//       v2d.DibVnormal(x+2, y+12, 10,-5);
+//     end;
+//  BOT_EXPAND:
+//      if estado then begin
+//        if drawBack then v2d.DrawButtonBord(x, y,width,height);
+////         v2d.DibVnormal(fx+2,fy+7,10,-5);
+////         v2d.DibVnormal(fx+2,fy+11,10,-5);
+//         v2d.SetColor(COL_GRIS, COL_GRIS, 1);
+//         v2d.DrawTrianUp(x+2, y+4, width-4, height-10);
+//      end else begin
+//         if drawBack then v2d.DrawButtonBord(x, y,width,height);
+////         v2d.DibVnormal(fx+2,fy+2,10,5);
+////         v2d.DibVnormal(fx+2,fy+6,10,5);
+//        v2d.SetColor(COL_GRIS, COL_GRIS, 1);
+//        v2d.DrawTrianDown(x+2, y+5,width-4,height-10);
+//      end;
+//  BOT_CHECK: begin  //botón check
+//     if estado then begin   //dibuja solo borde
+//        v2d.DrawButtonBord(x,y,15,15);
+//     end else begin         //dibuja con check
+//        v2d.DrawButtonBord(x,y,15,15);
+//        v2d.DrawCheck(x+2,y+2,10,8);
+//     end;
+//    end;
+//  BOT_REPROD: begin  //botón reproducir
+//     if estado then begin   //dibuja solo borde
+//       v2d.SetColor(clBlack, TColor($E5E5E5), 1);
+//       v2d.RectRedonR(x,y,x+width, y+height);
+//       v2d.SetColor(clBlack, clBlack, 1);
+//       v2d.RectangR(x+6,y+6,x+width-6, y+height-6);
+//     end else begin         //dibuja con check
+//       v2d.SetColor(clBlack, TColor($E5E5E5), 1);
+//       v2d.RectRedonR(x,y,x+width, y+height);
+//       v2d.SetColor(clBlack, clBlack, 1);
+//       v2d.Polygon(x+6, y+3,
+//                    x+18, y + height/2,
+//                    x+6, y + height - 4);
+//     end;
+//    end;
+//  end;
 end;
 procedure TogButton.MouseUp(Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
 begin
-   if LoSelec(xp,yp) then begin    //se soltó en el botón
-      //cambia el estado, si aplica
-      if tipo in [BOT_EXPAND, BOT_CHECK, BOT_REPROD] then estado := not estado;
-      if Assigned(OnClick) then
-         OnClick(estado);    //ejecuta evento
-   end;
+//   if LoSelec(xp,yp) then begin    //se soltó en el botón
+//      //cambia el estado, si aplica
+//      if tipo in [BOT_EXPAND, BOT_CHECK, BOT_REPROD] then estado := not estado;
+//      if Assigned(OnClick) then
+//         OnClick(estado);    //ejecuta evento
+//   end;
 end;
 { TogScrollBar }
 constructor TogScrollBar.Create(mGraf: TMotGraf; tipo0: TSBOrientation;
@@ -294,48 +294,48 @@ var
   yIni, yFin: Single;
   yDesp: SIngle;
 begin
-  case tipo of
-  SB_HORIZONT: begin
-    end;
-  SB_VERTICAL: begin
-      v2d.SetPen(psSolid, 1, clScrollBar);
-      v2d.SetBrush(clMenu);
-      v2d.rectangR(x,y,x+width,y+height);  //fondo
-
-      butUp.x:=x+1;
-      butUp.width:=width-3;
-      butUp.y:=y;
-
-      butDown.x:=x+1;
-      butDown.width:=width-3;
-      butDown.y:=y+height-butDown.height;
-
-      butUp.Dibujar;
-      butDown.Dibujar;
-      //dibuja líneas
-      altBot := butUp.height;
-      y2 := y + height;
-      yIni := y+altBot;
-      yFin := y2-altBot;
-      v2d.SetPen(psSolid, 1, clScrollBar);
-      v2d.SetBrush(clScrollBar);
-      v2d.Line(x,yIni,x+width,yIni);
-      v2d.Line(x,yFin,x+width,yFin);
-      //dibuja cursor
-      facPag := page/(valMax-valMin+1);  //factor de página
-      espCur := yFin-yIni;  //espacio disponible para desplazamiento del cursor
-      if espCur > ALT_MIN_CUR then begin
-         altCur := facPag * espCur;
-         if altCur<ALT_MIN_CUR then altCur:= ALT_MIN_CUR;
-         //dibuja cursor
-         yDesp := (valCur-valMin)/(valMax-valMin+1)*espCur;
-         if espCur<=altCur then exit;   //protección
-         yIni := yIni + yDesp*(espCur-altCur)/(espCur-facPag * espCur);
-         if yIni+altCur > yFin then exit;   //protección
-         v2d.RectangR(x,yIni,x+width,yIni+altCur);
-      end;
-    end;
-  end;
+//  case tipo of
+//  SB_HORIZONT: begin
+//    end;
+//  SB_VERTICAL: begin
+//      v2d.SetPen(psSolid, 1, clScrollBar);
+//      v2d.SetBrush(clMenu);
+//      v2d.rectangR(x,y,x+width,y+height);  //fondo
+//
+//      butUp.x:=x+1;
+//      butUp.width:=width-3;
+//      butUp.y:=y;
+//
+//      butDown.x:=x+1;
+//      butDown.width:=width-3;
+//      butDown.y:=y+height-butDown.height;
+//
+//      butUp.Dibujar;
+//      butDown.Dibujar;
+//      //dibuja líneas
+//      altBot := butUp.height;
+//      y2 := y + height;
+//      yIni := y+altBot;
+//      yFin := y2-altBot;
+//      v2d.SetPen(psSolid, 1, clScrollBar);
+//      v2d.SetBrush(clScrollBar);
+//      v2d.Line(x,yIni,x+width,yIni);
+//      v2d.Line(x,yFin,x+width,yFin);
+//      //dibuja cursor
+//      facPag := page/(valMax-valMin+1);  //factor de página
+//      espCur := yFin-yIni;  //espacio disponible para desplazamiento del cursor
+//      if espCur > ALT_MIN_CUR then begin
+//         altCur := facPag * espCur;
+//         if altCur<ALT_MIN_CUR then altCur:= ALT_MIN_CUR;
+//         //dibuja cursor
+//         yDesp := (valCur-valMin)/(valMax-valMin+1)*espCur;
+//         if espCur<=altCur then exit;   //protección
+//         yIni := yIni + yDesp*(espCur-altCur)/(espCur-facPag * espCur);
+//         if yIni+altCur > yFin then exit;   //protección
+//         v2d.RectangR(x,yIni,x+width,yIni+altCur);
+//      end;
+//    end;
+//  end;
 end;
 procedure TogScrollBar.MouseUp(Button: TMouseButton; Shift: TShiftState; xp,
   yp: Integer);

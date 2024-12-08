@@ -25,33 +25,57 @@ gráficas. Basado en la clase equivalente CV2D desarrollada en VB.
 }
 {$mode objfpc}{$H+}
 interface
-uses Classes, Controls, SysUtils, Graphics, FPCanvas, Types, FPimage;
+uses Classes, Controls, SysUtils, Graphics, LCLProc, ogBasic, LazUtilities,
+  FPCanvas, Types, fgl, Math, FPimage;
 const
   COL_GRIS = $808080;          //gris
 
 Type
 
-//Define el Tipo de dato perspectiva
-Tperspectiva = record
-  zoom  : Real;        //zoom de la perspectiva
-  x_cam : Single;     //parámetro de desplazamiento x_cam
-  y_cam : Single;     //parámetro de desplazamiento y_cam
+
+  { TOgPoint }
+{Define a un punto geométrico que puede ser usado para definir la geometría de una forma.}
+TOgPoint = Class
+public
+  x, y  : Single;     //Coordenadas
+public  //Parámetros de la fórmula de ubicación
+  locX  : TLocExp;     //Expresión que define la ubicación horizontal
+  locY  : TLocExp;     //Expresión que define la ubicación horizontal
+  procedure Relocate(width, height: Single);
+  constructor Create(x0, y0: Single);
 end;
-//Par ordenado de Reales.
-TFPoint = record
-  x: single;
-  y: single;
-end;
+//Lista de puntos.
+TOgPoints = specialize TFPGObjectList<TOgPoint>;
 
 { TMotGraf }
 TMotGraf = class
+public
+public  //Propiedades geométricas de la pantalla
   //Parámetros de la cámara (perspectiva)
   x_cam      : Single;  //Coordenadas de la camara
   y_cam      : Single;
-  Zoom       : Single;  //Factor de ampliación
+  Zoom       : Single;  //Factor de ampliación a partir del centro de la pantalla
   //Coordenadas de desplazamiento para ubicar el centro de la pantalla
   x_des      : integer;
   y_des      : Integer;
+public
+  function XPant(x: Single): Integer;
+  function YPant(y: Single): Integer;
+  function Xvirt(xr, yr: Integer): Single;
+  procedure XYpant(xv, yv: Single; out xp, yp: Integer);
+  procedure XYpantR(xv, yv: Single; xCen, yCen, angle: Single; out xp, yp: Integer);
+  procedure XYpantR2(var xv, yv: Single; xCen, yCen, angle: Single; out xp, yp: Integer);
+  procedure XYvirt(xp, yp: Integer; out xv, yv: Single);
+  function Yvirt(xr, yr: Integer): Single;
+public
+  procedure ReadPerspectiveFrom(p: TPerspectiva);
+  procedure SavePerspectiveIn(var p: TPerspectiva);
+  procedure SetWindow(ScaleWidth, ScaleHeight: Real; xMin, xMax, yMin,
+    yMax: Real);
+  procedure Scroll(dx, dy: Integer);
+public
+  //Referencia al lienzo
+  Canvas    : Tcanvas;
 
   ImageList  : TImageList;
   constructor IniMotGraf(canvas0: Tcanvas);
@@ -62,23 +86,21 @@ TMotGraf = class
   procedure SetColor(colLin,colRel:TColor; ancho: Integer = 1); //Fija colorde línea y relleno
   procedure SetLine(colLin:TColor; width: Integer = 1); //Fija características de línea
 
-  procedure Line(x1, y1, x2, y2:Single);
+  procedure Line(x1, y1, x2, y2: Integer);
   procedure Line0(x1, y1, x2, y2: Integer);
-  procedure Rectang(x1, y1, x2, y2: Single);
+  procedure Rectang(x1, y1, x2, y2: Integer);
   procedure Rectang0(x1, y1, x2, y2: Integer);
-  procedure RectangR(x1, y1, x2, y2: Single);
+  procedure RectangR(x1, y1, x2, y2: Integer);
   procedure RectangR0(x1, y1, x2, y2: Integer);
-  procedure RectRedonR(x1, y1, x2, y2: Single);
-  procedure Barra(x1, y1, x2, y2: Single; colFon: TColor=-1);
+  procedure RectRedonR(x1, y1, x2, y2: Integer);
+  procedure Barra(x1, y1, x2, y2: integer; colFon: TColor = - 1);
   procedure Barra0(x1, y1, x2, y2: Integer; colFon: TColor);
-  procedure Arc(x1, y1, x2, y2: Single; Angle16Deg, Angle16DegLength: Integer);
-  procedure Ellipse(x1, y1, x2, y2: Single);
-  procedure RadialPie(x1, y1, x2, y2: Single; StartAngle16Deg,
+  procedure Arc(x1, y1, x2, y2: integer; Angle16Deg, Angle16DegLength: Integer);
+  procedure Ellipse(x1, y1, x2, y2: integer);
+  procedure RadialPie(x1, y1, x2, y2: integer; StartAngle16Deg,
     Angle16DegLength: integer);
-  procedure Polygon(x1, y1, x2, y2, x3, y3: Single; x4: Single=-10000;
-    y4: Single=-10000; x5: Single=-10000; y5: Single=-10000; x6: Single=-10000;
-    y6: Single=-10000);
-  procedure Polygon(const Points: array of TFPoint);
+  procedure Polyline(const Ptos: array of TPoint);
+  procedure Polygon(const Ptos: array of TPoint);
 public      //Funciones para texto
   procedure SetFont(Letra: string);
   procedure SetText(color: TColor);
@@ -87,56 +109,189 @@ public      //Funciones para texto
     underline: Boolean=False);
   procedure SetText(color: TColor; fsize: single; font: String;
     bold: Boolean=False; italic: Boolean=False; underline: Boolean=False);
-  procedure TextOut(x1, y1: Single; txt: String);
-  procedure TextRect(x1, y1, x2, y2: Single; x0, y0: Single; const Text: string;
-    const Style: TTextStyle);
-  procedure TextoR(x1, y1, width, height: Single; txt: String);
   function TextWidth(const txt: string): Single;  //Ancho del texto
   function TextHeight(const txt: string): Single; //Alto del texto
 
-  procedure SavePerspectiveIn(var p: TPerspectiva);
-  procedure ReadPerspectiveFrom(p: TPerspectiva);
-
-  procedure SetWindow(ScaleWidth, ScaleHeight: Real; xMin, xMax, yMin, yMax: Real);
-  procedure Scroll(dx, dy: Integer);
   procedure ObtenerDesplaz2(xr, yr: Integer; Xant, Yant: Integer; out dx,
     dy: Single);
-  procedure DrawIcon(x1, y1: Single; idx: integer);
-  procedure DrawImage(im: TGraphic; x1, y1, dx, dy: Single);
-  procedure DrawImageN(im: TGraphic; x1, y1: Single);
+  procedure DrawIcon(x1, y1: Integer; idx: integer);
+  procedure DrawImage(im: TGraphic; x1, y1: Integer; dx, dy: Single);
+  procedure DrawImageN(im: TGraphic; x1, y1: Integer);
   procedure DrawImage0(im: TGraphic; x1, y1, dx, dy: Integer);
-public  //Funciones de transformación
-  function XPant(x: Single): Integer;    //INLINE Para acelerar las llamadas
-  function YPant(y: Single): Integer;    //INLINE Para acelerar las llamadas
-  procedure XYpant(xv, yv: Single; out xp, yp: Integer);
-  procedure XYvirt(xp, yp: Integer; out xv, yv: Single);
-  function Xvirt(xr, {%H-}yr: Integer): Single;  //INLINE Para acelerar las llamadas
-  function Yvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
 public  //funciones básicas para dibujo de Controles
-  procedure DrawButtonBord(x1,y1:Single; width, height: Single);
-  procedure DrawButtonBack(x1, y1: Single; width, height: Single);
-  procedure DrawCheck(px, py: Single; width, height: Single);
-  procedure DibVnormal(x1, y1: Single; width, height: Single);
-  procedure DrawTrianUp(x1,y1:Single; width, height: Single);
-  procedure DrawTrianDown(x1,y1:Single; width, height: Single);
-public
-  Canvas    : Tcanvas;                 //referencia al lienzo
+  procedure DrawButtonBord(x1, y1: Integer; width, height: Integer);
+  procedure DrawButtonBack(x1, y1: Integer; width, height: Integer);
+  procedure DrawCheck(px, py: Integer; width, height: Integer);
+  procedure DibVnormal(x1, y1: Integer; width, height: Integer);
+  procedure DrawTrianUp(x1, y1: Integer; width, height: Integer);
+  procedure DrawTrianDown(x1, y1: Integer; width, height: Integer);
 end;
 
 implementation
+
+{ TOgPoint }
+procedure TOgPoint.Relocate(width, height: Single);
+{Reubica el punto geométrico de acuerdo a la fórmula definida de su ubicación y a los
+valores "width" y "height".}
+begin
+  x := locX.newVal(width, Height);
+  y := locY.newVal(width, Height);
+end;
+constructor TOgPoint.Create(x0, y0: Single);
+begin
+  x := x0;
+  y := y0;
+end;
+
+//Funciones de transformación
+//*****************************FUNCIONES DE TRANSFORMACIÓN********************************
+//Las siguientes funciones son por así decirlo, "estandar".
+function TMotGraf.XPant(x:Single): Integer; INLINE;    //INLINE Para acelerar las llamadas
+//Función de la geometría del motor. Da la transformación lineal de la coordenada x.
+begin
+   Result := Round((x - x_cam) * Zoom + x_des);
+end;
+function TMotGraf.YPant(y:Single): Integer; INLINE;    //INLINE Para acelerar las llamadas
+//Función de la geometría del motor. Da la transformación lineal de la coordenada y.
+begin
+   Result := Round((y - y_cam) * Zoom + y_des);
+end;
+procedure TMotGraf.XYpant(xv, yv: Single; out xp, yp: Integer);
+//Devuelve las coordenadas de pantalla para un punto virtual (x,y), sin aplicar giro.
+begin
+    xp := XPant(xv);
+    yp := YPant(yv);
+End;
+procedure TMotGraf.XYpantR(xv, yv: Single; xCen, yCen, angle: Single; out xp, yp: Integer);
+{Devuelve las coordenadas de pantalla para un punto virtual (x,y), aplicando una rotación
+"angle" a partir del centro (xCen, yCen).}
+var
+  ang: Single;
+  dy, dx: Single;
+  mag: ValReal;
+begin
+   //Aplica rotación
+   if angle<>0 then begin
+     dx := xv - xCen;
+     dy := yv - yCen;
+     mag := Sqrt(dx**2 + dy**2);
+     ang := ArcTan2(yv - yCen, xv - xCen) - angle;
+     xv := mag*Cos(ang) + xCen;
+     yv := mag*Sin(ang) + yCen;
+   end;
+   //Ubica en pantalla
+   xp := XPant(xv);
+   yp := YPant(yv);
+end;
+procedure TMotGraf.XYpantR2(var xv, yv: Single; xCen, yCen, angle: Single; out xp, yp: Integer);
+{Similar a XYpantR, pero actualiza "xv" e "yv".}
+var
+  ang: Single;
+  dy, dx: Single;
+  mag: ValReal;
+begin
+   //Aplica rotación
+   if angle<>0 then begin
+     dx := xv - xCen;
+     dy := yv - yCen;
+     mag := Sqrt(dx**2 + dy**2);
+     ang := ArcTan2(yv - yCen, xv - xCen) - angle;
+     xv := mag*Cos(ang) + xCen;
+     yv := mag*Sin(ang) + yCen;
+   end;
+   //Ubica en pantalla
+   xp := XPant(xv);
+   yp := YPant(yv);
+End;
+
+function TMotGraf.Xvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
+//Obtiene la coordenada X virtual (del punto X,Y,Z ) a partir de unas coordenadas de pantalla
+begin
+    Xvirt := (xr - x_des) / Zoom + x_cam;
+End;
+function TMotGraf.Yvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
+//Obtiene la coordenada Y virtual (del punto X,Y,Z ) a partir de unas coordenadas de pantalla
+begin
+    Yvirt := (yr - y_des) / Zoom + y_cam;
+End;
+procedure TMotGraf.XYvirt(xp, yp: Integer; out xv, yv: Single);
+//Devuelve las coordenadas virtuales xv,yv a partir de unas coordenadas de pantalla
+//(o del ratón). Equivale a intersecar un plano
+//paralelo al plano XY con la línea de mira del ratón en pantalla.
+begin
+    xv := Xvirt(xp, yp);
+    yv := Yvirt(yp, yp);
+End;
+//Funciones de perspectiva
+procedure TMotGraf.SavePerspectiveIn(var p: TPerspectiva);
+//guarda sus datos de perspectiva en una variable perspectiva
+begin
+  p.x_cam := x_cam;
+  p.y_cam := y_cam;
+  p.zoom := Zoom;
+End;
+procedure TMotGraf.ReadPerspectiveFrom(p: TPerspectiva);
+//lee sus datos de perspectiva de una variable perspectiva
+begin
+  x_cam := p.x_cam;
+  y_cam := p.y_cam;
+  Zoom := p.Zoom;
+end;
+
+procedure TMotGraf.SetWindow(ScaleWidth, ScaleHeight: Real;
+               xMin, xMax, yMin, yMax: Real);
+//Fija las coordenadas de pantalla de manera que se ajusten a las nuevas que se dan
+//Recibe coordenadas virtuales
+var zoomX: Real;
+    zoomY: Real;
+    dxcen: Real; //Desplazamiento en x para centrar
+    dycen: Real; //Desplazamiento en y para centrar
+begin
+   If xMax <= xMin Then Exit;
+   If yMax <= yMin Then Exit;
+   //calcula el zoom por efecto de dX
+   zoomX := ScaleWidth / (xMax - xMin);
+   //calcula el zoom por efecto de dY
+   zoomY := ScaleHeight / (yMax - yMin);
+   //toma el zoom menor, en caso de relación de aspecto diferente de 1
+   If zoomY > zoomX Then   //toma el zoom de x
+      begin
+        Zoom := zoomX;
+        dxcen := 0;
+        dycen := (ScaleHeight / Zoom - (yMax - yMin)) / 2;   //para centrar en vertical
+      end
+   Else  //zoomX > zoomy    ,toma el zoom de y
+      begin
+        Zoom := zoomY;
+        dycen := 0;
+        dxcen := (ScaleWidth / Zoom - (xMax - xMin)) / 2;   //para centrar en horizontal
+      end;
+   //fija las coordenadas de cámara
+   x_cam := xMin + x_des / Zoom - dxcen;
+   y_cam := yMin + y_des / Zoom - dycen;
+End;
+procedure TMotGraf.Scroll(dx, dy: Integer);
+//Desplaza el escenario (el punto de rotación siempre está en el centro de la pantalla)
+begin
+  y_cam := y_cam - dy;
+  x_cam := x_cam - dx;
+End;
 
 //////////////////////////////// Funciones públicas //////////////////////////////
 constructor TMotGraf.IniMotGraf(canvas0: Tcanvas);
 begin
    Canvas := canvas0;
-    //GetClientRect frmS.hwnd, tCR
-    x_des := 0;
-    y_des := 0;
-    //posición de cámara
-    x_cam := 0;
-    y_cam := 0;
-    //ampliación inicial
-    Zoom := 1;
+   //Ampliación inicial
+   Zoom := 1;
+   //Inicia geometría de hoja
+   //GetClientRect frmS.hwnd, tCR
+   x_des := 0;
+   y_des := 0;
+   //posición de cámara
+   x_cam := 0;
+   y_cam := 0;
+   //ampliación inicial
+   Zoom := 1;
 End;
 procedure TMotGraf.SetPenMode(modo: TFPPenMode);
 begin
@@ -216,44 +371,6 @@ begin
    Canvas.Font.Italic := italic;
    Canvas.Font.Underline := underline;
 End;
-procedure TMotGraf.TextOut(x1, y1: Single; txt: String);
-//Escribe un texto
-begin
-   //Canvas.Brush.Style := bsClear;  //Fondo transparente
-   Canvas.TextOut(XPant(x1), YPant(y1), txt);
-   //Canvas.Brush.Style := bsSolid;  //devuelve estilo de fondo
-End;
-procedure TMotGraf.TextRect(x1,y1,x2,y2: Single; x0, y0: Single; const Text: string;
-                       const Style: TTextStyle);
-//Escribe un texto
-var
-  Arect: TRect;
-begin
-   //Canvas.Brush.Style := bsClear;  //Fondo transparente
-   ARect.Left   := XPant(x1);
-   ARect.Top    := YPant(y1);
-   ARect.Right  := XPant(x2);
-   ARect.Bottom := YPant(y2);
-   Canvas.TextRect(Arect, XPant(x0), YPant(y0), Text, Style);
-   //Canvas.Brush.Style := bsSolid;  //devuelve estilo de fondo
-End;
-procedure TMotGraf.TextoR(x1, y1, width, height: Single; txt: String);
-//Escribe un texto
-var r:TRect;
-    //s:TTextStyle;
-begin
-//    Canvas.Font.Color:=clred;
-   Canvas.Brush.Style := bsClear;  //Fondo transparente
-   Canvas.Font.Size := round(11 * Zoom);
-   r.Left := XPant(x1);
-   r.Top := YPant(y1);
-   r.Right := XPant(x1+width);     { TODO : Ver como dibujar TextOut no limitado }
-   r.Bottom:= YPant(y1+height);
-//   s.Alignment:=taRightJustify;  //alineado a la derecha
-// Canvas.TextRect(r,r.Left,r.Top,txt,s);//No permite cambia el tamaño de letra!!!!
-   Canvas.TextRect(r,r.Left,r.Top,txt);
-   Canvas.Brush.Style := bsSolid;  //devuelve estilo de fondo
-End;
 function TMotGraf.TextWidth(const txt: string): Single;
 begin
   Result := Canvas.TextWidth(txt)/ Zoom;
@@ -262,7 +379,6 @@ function TMotGraf.TextHeight(const txt: string): Single;
 begin
   Result := Canvas.TextHeight(txt)/ Zoom;
 end;
-
 (*
 Sub FijaTextoF(l As CFLetra)
 //Establece las características de texto, por medio de una clase "CFLetra"
@@ -406,10 +522,10 @@ Dim rc As RECT
     DrawText hdc, cad, Len(cad), rc, DT_WORDBREAK + DT_EDITCONTROL //+ DT_END_ELLIPSIS
 End;
 *)
-procedure TMotGraf.Line(x1, y1, x2, y2: Single);
+procedure TMotGraf.Line(x1, y1, x2, y2: Integer);
 //Dibuja una línea
 begin
-   Canvas.Line(XPant(x1), YPant(y1), XPant(x2), YPant(y2));
+   Canvas.Line(x1, y1, x2, y2);
 End;
 procedure TMotGraf.Line0(x1, y1, x2, y2: Integer);
 //Dibuja una línea , sin transformación
@@ -457,40 +573,40 @@ End;
 
 *)
 
-procedure TMotGraf.Rectang(x1, y1, x2, y2: Single);
+procedure TMotGraf.Rectang(x1, y1, x2, y2: Integer);
 //Dibuja un rectángulo
 begin
-    Canvas.Frame(XPant(x1), YPant(y1), XPant(x2), YPant(y2));
+    Canvas.Frame(x1, y1, x2, y2);
 End;
 procedure TMotGraf.Rectang0(x1, y1, x2, y2: Integer);
 //Dibuja un rectángulo sin "transformación"
 begin
     Canvas.Frame(x1, y1, x2, y2);
 End;
-procedure TMotGraf.RectangR(x1, y1, x2, y2: Single);
+procedure TMotGraf.RectangR(x1, y1, x2, y2: Integer);
 //Dibuja un rectángulo relleno
 begin
-    Canvas.Rectangle(XPant(x1), YPant(y1), XPant(x2), YPant(y2));
+    Canvas.Rectangle(x1, y1, x2, y2);
 End;
 procedure TMotGraf.RectangR0(x1, y1, x2, y2: Integer);
 //Dibuja un rectángulo relleno sin "transformación"
 begin
     Canvas.Rectangle(x1, y1, x2, y2);
 End;
-procedure TMotGraf.RectRedonR(x1, y1, x2, y2: Single);
+procedure TMotGraf.RectRedonR(x1, y1, x2, y2: Integer);
 //Dibuja un rectángulo relleno con bordes redondeados
 begin
-    Canvas.RoundRect(XPant(x1), YPant(y1), XPant(x2), YPant(y2), round(10 * Zoom), Round(10 * Zoom));
+    Canvas.RoundRect(x1, y1, x2, y2, round(10 * Zoom), Round(10 * Zoom));
 End;
-procedure TMotGraf.Barra(x1, y1, x2, y2: Single; colFon: TColor = -1);
+procedure TMotGraf.Barra(x1, y1, x2, y2: integer; colFon: TColor = -1);
 //Rellena un área rectangular, no rellena el borde derecho e inferior.
 //Es más rápido que rellenar con Rectangle()
 var rc: TRect;
 begin
-    rc.Left   := XPant(x1);
-    rc.Top    := YPant(y1);
-    rc.Right  := XPant(x2);
-    rc.Bottom := YPant(y2);
+    rc.Left   := x1;
+    rc.Top    := y1;
+    rc.Right  := x2;
+    rc.Bottom := y2;
     if colFon<> -1 then Canvas.Brush.Color := colFon;
     Canvas.FillRect(rc); //fondo
 End;
@@ -502,232 +618,31 @@ begin
     Canvas.FillRect(x1,y1,x2,y2); //fondo
 End;
 
-procedure TMotGraf.Arc(x1, y1, x2, y2: Single; Angle16Deg,
+procedure TMotGraf.Arc(x1, y1, x2, y2: integer; Angle16Deg,
   Angle16DegLength: Integer);
 begin
-  Canvas.Arc(XPant(x1), YPant(y1), XPant(x2), YPant(y2), Angle16Deg, Angle16DegLength);
+  Canvas.Arc(x1, y1, x2, y2, Angle16Deg, Angle16DegLength);
 end;
-procedure TMotGraf.Ellipse(x1, y1, x2, y2: Single);
+procedure TMotGraf.Ellipse(x1, y1, x2, y2: integer);
 begin
-  Canvas.Ellipse(XPant(x1), YPant(y1), XPant(x2), YPant(y2));
+  Canvas.Ellipse(x1, y1, x2, y2);
 end;
-procedure TMotGraf.RadialPie(x1, y1, x2, y2: Single; StartAngle16Deg, Angle16DegLength: integer);
+procedure TMotGraf.RadialPie(x1, y1, x2, y2: integer; StartAngle16Deg, Angle16DegLength: integer);
 begin
-  Canvas.RadialPie(XPant(x1), YPant(y1), XPant(x2), YPant(y2), StartAngle16Deg, Angle16DegLength);
+  Canvas.RadialPie(x1, y1, x2, y2, StartAngle16Deg, Angle16DegLength);
 end;
 
-(*
-Public Sub polilinea(x1 As Single, y1 As Single, _
-                  x2 As Single, y2 As Single, _
-                  x3 As Single, Y3 As Single, _
-                  Optional x4 As Single = -10000, Optional y4 As Single = -10000, _
-                  Optional x5 As Single = -10000, Optional y5 As Single = -10000, _
-                  Optional x6 As Single = -10000, Optional y6 As Single = -10000)
-//Dibuja un polígono usando llamadas a la API de Windows
-Dim Ptos3(1 To 7) As Tpunto      //puntos
-Dim ptos(1 To 7) As POINTAPI    //arreglo de puntos a dibujar
-Dim nPtos As Long
-Dim x1c As Single, y1c As Single
-Dim i As Integer
- Ptos3(1).X = x1: Ptos3(1).Y = y1
- Ptos3(2).X = x2: Ptos3(2).Y = y2
- Ptos3(3).X = x3: Ptos3(3).Y = Y3
- nPtos = 3
- If x4 <> -10000 Then Ptos3(4).X = x4: Ptos3(4).Y = y4: nPtos = 4
- If x5 <> -10000 Then Ptos3(5).X = x5: Ptos3(5).Y = y5: nPtos = 5
- If x6 <> -10000 Then Ptos3(6).X = x6: Ptos3(6).Y = y6: nPtos = 6
- //cierra el polígono
- Ptos3(nPtos + 1).X = Ptos3(1).X
- Ptos3(nPtos + 1).Y = Ptos3(1).Y
- //transformación
- For i = 1 To nPtos + 1
-     ptos(i).X = (x_des + (Ptos3(i).X - x_cam) * mZoom)
-     ptos(i).Y = (y_des + (Ptos3(i).Y - y_cam) * mZoom)
- Next
- Call Polyline(hdc, ptos(1), nPtos + 1)
-End;
-
-Public Sub polilinea0(x1 As Single, y1 As Single, _
-                  x2 As Single, y2 As Single, _
-                  x3 As Single, Y3 As Single, _
-                  Optional x4 As Single = -10000, Optional y4 As Single = -10000, _
-                  Optional x5 As Single = -10000, Optional y5 As Single = -10000, _
-                  Optional x6 As Single = -10000, Optional y6 As Single = -10000)
-//Dibuja un polígono usando llamadas a la API de Windows, sin "transformación"
-Dim Ptos3(1 To 7) As Tpunto      //puntos
-Dim ptos(1 To 7) As POINTAPI    //arreglo de puntos a dibujar
-Dim nPtos As Long
-Dim x1c As Single, y1c As Single
-Dim i As Integer
- Ptos3(1).X = x1: Ptos3(1).Y = y1
- Ptos3(2).X = x2: Ptos3(2).Y = y2
- Ptos3(3).X = x3: Ptos3(3).Y = Y3
- nPtos = 3
- If x4 <> -10000 Then Ptos3(4).X = x4: Ptos3(4).Y = y4: nPtos = 4
- If x5 <> -10000 Then Ptos3(5).X = x5: Ptos3(5).Y = y5: nPtos = 5
- If x6 <> -10000 Then Ptos3(6).X = x6: Ptos3(6).Y = y6: nPtos = 6
- //cierra el polígono
- Ptos3(nPtos + 1).X = Ptos3(1).X
- Ptos3(nPtos + 1).Y = Ptos3(1).Y
- //transformación
- For i = 1 To nPtos + 1
-     ptos(i).X = Ptos3(i).X
-     ptos(i).Y = Ptos3(i).Y
- Next
- Call Polyline(hdc, ptos(1), nPtos + 1)
-End;
-
-Public Sub poligono0(x1 As Single, y1 As Single, _
-                  x2 As Single, y2 As Single, _
-                  x3 As Single, Y3 As Single, _
-                  Optional x4 As Single = -10000, Optional y4 As Single = -10000, _
-                  Optional x5 As Single = -10000, Optional y5 As Single = -10000, _
-                  Optional x6 As Single = -10000, Optional y6 As Single = -10000)
-//Dibuja un polígono relleno usando llamadas a la API de Windows "sin transformación"
-Dim Ptos3(1 To 7) As Tpunto      //puntos
-Dim ptos(1 To 7) As POINTAPI    //arreglo de puntos a dibujar
-Dim nPtos As Long
-Dim x1c As Single, y1c As Single
-Dim i As Integer
- Ptos3(1).X = x1: Ptos3(1).Y = y1
- Ptos3(2).X = x2: Ptos3(2).Y = y2
- Ptos3(3).X = x3: Ptos3(3).Y = Y3
- nPtos = 3
- If x4 <> -10000 Then Ptos3(4).X = x4: Ptos3(4).Y = y4: nPtos = 4
- If x5 <> -10000 Then Ptos3(5).X = x5: Ptos3(5).Y = y5: nPtos = 5
- If x6 <> -10000 Then Ptos3(6).X = x6: Ptos3(6).Y = y6: nPtos = 6
- //cierra el polígono
- Ptos3(nPtos + 1).X = Ptos3(1).X
- Ptos3(nPtos + 1).Y = Ptos3(1).Y
- //transformación
- For i = 1 To nPtos + 1
-     ptos(i).X = Ptos3(i).X
-     ptos(i).Y = Ptos3(i).Y
- Next
- Call Polygon(hdc, ptos(1), nPtos + 1)   //dibuja borde
-End;
-*)
-procedure TMotGraf.Polygon(x1, y1, x2, y2, x3, y3 : Single;
-                  x4: Single = -10000; y4: Single = -10000;
-                  x5: Single = -10000; y5: Single = -10000;
-                  x6: Single = -10000; y6: Single = -10000);
+procedure TMotGraf.Polyline(const Ptos: array of TPoint);
+//Dibuja una polilínea
+begin
+  Canvas.Polyline(Ptos);   //dibuja
+end;
+procedure TMotGraf.Polygon(const Ptos: array of TPoint);
 //Dibuja un polígono relleno.
-var
-  Ptos: array of TPoint;    //arreglo de puntos a dibujar
-  nPtos: integer;
 begin
-  //calcula número de puntos
-  If x4 = -10000 Then nPtos := 3
-  else if x5 = -10000 Then nPtos := 4
-       else If x6 = -10000 Then nPtos := 5
-            else nPtos := 6;
-  SetLength(Ptos, nPtos);   //dimensiona
-  //Llena arreglo
-  Ptos[0].x := XPant(x1); Ptos[0].y := YPant(y1);
-  Ptos[1].x := XPant(x2); Ptos[1].y := YPant(y2);
-  Ptos[2].x := XPant(x3); Ptos[2].y := YPant(y3);
-  If x4 <> -10000 Then begin
-    Ptos[3].x := XPant(x4); Ptos[3].y := YPant(y4);
-  end;
-  If x5 <> -10000 Then begin
-    Ptos[4].x := XPant(x5); Ptos[4].y := YPant(y5);
-  end;
-  If x6 <> -10000 Then begin
-    Ptos[5].x := XPant(x6); Ptos[5].y := YPant(y6);
-  end;
   Canvas.Polygon(Ptos);   //dibuja
-End;
-procedure TMotGraf.Polygon(const Points: array of TFPoint);
-//Dibuja un polígono relleno.
-var
-  Ptos: array of TPoint;    //arreglo de puntos a dibujar
-  i: Integer;
-begin
-  SetLength(Ptos, high(Points)+1);   //dimensiona
-  //transforma puntos
-  for i:= 0 to high(Points) do begin
-    Ptos[i].x := XPant(Points[i].x);
-    Ptos[i].y := YPant(Points[i].y);
-  end;
-  Canvas.Polygon(Ptos);   //dibuja
-End;
+end;
 
-//*****************************FUNCIONES DE TRANSFORMACIÓN********************************
-//Las siguientes funciones son por así decirlo, "estandar".
-//Cuando se creen otras clases de dispositivo interfase gráfica deberían tener también estas
-//funciones que son siempre necesarias.
-function TMotGraf.XPant(x:Single): Integer; INLINE;    //INLINE Para acelerar las llamadas
-//Función de la geometría del motor. Da la transformación lineal de la coordenada x.
-begin
-   XPant := Round((x - x_cam) * Zoom + x_des);
-end;
-function TMotGraf.YPant(y:Single): Integer; INLINE;    //INLINE Para acelerar las llamadas
-//Función de la geometría del motor. Da la transformación lineal de la coordenada y.
-begin
-   YPant := Round((y - y_cam) * Zoom + y_des);
-end;
-procedure TMotGraf.XYpant(xv, yv: Single; out xp, yp: Integer);
-//Devuelve las coordenadas de pantalla para un punto virtual (x,y,z).
-begin
-    xp := Xpant(xv);
-    yp := Ypant(yv);
-End;
-function TMotGraf.Xvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
-//Obtiene la coordenada X virtual (del punto X,Y,Z ) a partir de unas coordenadas de pantalla
-begin
-    Xvirt := (xr - x_des) / Zoom + x_cam;
-End;
-function TMotGraf.Yvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
-//Obtiene la coordenada Y virtual (del punto X,Y,Z ) a partir de unas coordenadas de pantalla
-begin
-    Yvirt := (yr - y_des) / Zoom + y_cam;
-End;
-procedure TMotGraf.XYvirt(xp, yp: Integer; out xv, yv: Single);
-//Devuelve las coordenadas virtuales xv,yv a partir de unas coordenadas de pantalla
-//(o del ratón). Equivale a intersecar un plano
-//paralelo al plano XY con la línea de mira del ratón en pantalla.
-begin
-    xv := Xvirt(xp, yp);
-    yv := Yvirt(yp, yp);
-End;
-procedure TMotGraf.SetWindow(ScaleWidth, ScaleHeight: Real;
-               xMin, xMax, yMin, yMax: Real);
-//Fija las coordenadas de pantalla de manera que se ajusten a las nuevas que se dan
-//Recibe coordenadas virtuales
-var zoomX: Real;
-    zoomY: Real;
-    dxcen: Real; //Desplazamiento en x para centrar
-    dycen: Real; //Desplazamiento en y para centrar
-begin
-   If xMax <= xMin Then Exit;
-   If yMax <= yMin Then Exit;
-   //calcula el zoom por efecto de dX
-   zoomX := ScaleWidth / (xMax - xMin);
-   //calcula el zoom por efecto de dY
-   zoomY := ScaleHeight / (yMax - yMin);
-   //toma el zoom menor, en caso de relación de aspecto diferente de 1
-   If zoomY > zoomX Then   //toma el zoom de x
-      begin
-        Zoom := zoomX;
-        dxcen := 0;
-        dycen := (ScaleHeight / Zoom - (yMax - yMin)) / 2;   //para centrar en vertical
-      end
-   Else  //zoomX > zoomy    ,toma el zoom de y
-      begin
-        Zoom := zoomY;
-        dycen := 0;
-        dxcen := (ScaleWidth / Zoom - (xMax - xMin)) / 2;   //para centrar en horizontal
-      end;
-   //fija las coordenadas de cámara
-   x_cam := xMin + x_des / Zoom - dxcen;
-   y_cam := yMin + y_des / Zoom - dycen;
-End;
-procedure TMotGraf.Scroll(dx, dy: Integer);
-//Desplaza el escenario (el punto de rotación siempre está en el centro de la pantalla)
-begin
-  y_cam := y_cam - dy;
-  x_cam := x_cam - dx;
-End;
 procedure TMotGraf.ObtenerDesplaz2(xr, yr: Integer; Xant, Yant: Integer;
   out dx, dy: Single);
 //Obtiene los desplazamientos dx, dy para los objetos gráficos en base a
@@ -767,29 +682,13 @@ Dim entran As Long
 End Function
 
 *)
-//////////////////////////////  FUNCIONES DE PERSPECTIVA  //////////////////////////////
-procedure TMotGraf.SavePerspectiveIn(var p: TPerspectiva);
-//guarda sus datos de perspectiva en una variable perspectiva
-begin
-  p.x_cam := x_cam;
-  p.y_cam := y_cam;
-  p.zoom := Zoom;
-End;
-procedure TMotGraf.ReadPerspectiveFrom(p: TPerspectiva);
-//lee sus datos de perspectiva de una variable perspectiva
-begin
-  x_cam := p.x_cam;
-  y_cam := p.y_cam;
-  Zoom := p.Zoom;
-End;
-
 //*********************************************************************************
-procedure TMotGraf.DrawIcon(x1, y1: Single; idx: integer);
+procedure TMotGraf.DrawIcon(x1, y1: Integer; idx: integer);
 //Dibuja una de las imágenes alamcenadas en la propiedad ImageList
 begin
-  ImageList.Draw(Canvas, XPant(x1),YPant(y1), idx);
+  ImageList.Draw(Canvas, x1,y1, idx);
 end;
-procedure TMotGraf.DrawImage(im: TGraphic; x1, y1, dx, dy: Single);
+procedure TMotGraf.DrawImage(im: TGraphic; x1, y1: Integer; dx, dy: Single);
 //Dibuja imagen. Debe recibir el ancho y alto de la imagen
 //en pixeles. Estos valores "ancho" y "alto" no se puede obtener
 //de manera directa con im.Width e im.Height, porque vienen en unidades
@@ -798,20 +697,19 @@ procedure TMotGraf.DrawImage(im: TGraphic; x1, y1, dx, dy: Single);
 var r:TRect;
 begin
    if im = nil then exit;
-    r.Left:=XPant(x1);
-    r.Top :=YPant(y1);
-    r.Right :=r.Left + round(dx * Zoom);
-    r.Bottom:=r.Top + round(dy * Zoom);
-    Canvas.StretchDraw(r,im);
+   r.Left:=x1;
+   r.Top :=y1;
+   r.Right :=r.Left + round(dx * Zoom);
+   r.Bottom:=r.Top + round(dy * Zoom);
+   Canvas.StretchDraw(r,im);
 End;
-procedure TMotGraf.DrawImageN(im: TGraphic; x1, y1: Single);
+procedure TMotGraf.DrawImageN(im: TGraphic; x1, y1: Integer);
 //Igual a DibujarImagen() pero no hace escalamiento de la imagen, solo por el Zoom.
 var r:TRect;
 begin
   if im = nil then exit;
-//   Canvas.Draw(XPant(x1), YPant(y1),im);
-  r.Left:=XPant(x1);
-  r.Top :=YPant(y1);
+  r.Left:=x1;
+  r.Top :=y1;
   r.Right :=r.Left + round(im.Width * Zoom); //se probó quitándole 1, pero así cuadra mejor
   r.Bottom:=r.Top + round(im.Height * Zoom);
   Canvas.StretchDraw(r,im);
@@ -831,23 +729,23 @@ begin
 End;
 
 ////////////////////////  Funciones de Dibujo de Controles /////////////////////////
-procedure TMotGraf.DrawButtonBord(x1, y1: Single; width, height: Single);
+procedure TMotGraf.DrawButtonBord(x1, y1: Integer; width, height: Integer);
 //Dibuja el borde de los botones
 begin
    SetColor(clGray, clWhite, 1);
-   Canvas.RoundRect(XPant(x1), YPant(y1), XPant(x1+width), YPant(y1+height),
+   Canvas.RoundRect(x1, y1, x1+width, y1+height,
                     round(6 * Zoom), Round(6 * Zoom));
 end;
-procedure TMotGraf.DrawButtonBack(x1, y1: Single; width, height: Single);
+procedure TMotGraf.DrawButtonBack(x1, y1: Integer; width, height: Integer);
 //Dibuja el fondo de los botones
 begin
    SetColor(clGray, clScrollBar, 1);
-   Canvas.RoundRect(XPant(x1), YPant(y1), XPant(x1+width), YPant(y1+height),
+   Canvas.RoundRect(x1, y1, x1+width, y1+height,
                     round(6 * Zoom), Round(6 * Zoom));
 end;
-procedure TMotGraf.DibVnormal(x1, y1: Single; width, height: Single);
+procedure TMotGraf.DibVnormal(x1, y1: Integer; width, height: Integer);
 //Dibuja una V en modo normal. Usado para dibujar el ícono de los botones
-var xm: Single;
+var xm: Integer;
 begin
     SetPen(psSolid,2,clGray);
     xm := x1 + round(width/2);  //se redondea antes (width/2), para evitar vavriación en la
@@ -855,39 +753,39 @@ begin
     Line(x1, y1, xm, y1+height);
     Line(xm,y1+height,x1+width,y1);
 end;
-procedure TMotGraf.DrawCheck(px, py: Single; width, height: Single);
+procedure TMotGraf.DrawCheck(px, py: Integer; width, height: Integer);
 //Dibuja una marca de tipo "Check". Útil para implementar el control "Check"
-var xm: Single;
+var xm: Integer;
 begin
     SetPen(psSolid,2,clGray);
     xm := round(width/4);
     Line(px     , py + 3, px + xm, py + height);
     Line(px + xm, py + height, px + width, py );
 End;
-procedure TMotGraf.DrawTrianUp(x1, y1: Single; width, height: Single);
+procedure TMotGraf.DrawTrianUp(x1, y1: Integer; width, height: Integer);
 //Dibuja un pequeño triángulo apuntando hacia arriba
 var
   Ptos: array of TPoint;    //arreglo de puntos a dibujar
 begin
   SetLength(Ptos, 3);   //dimensiona
   //Llena arreglo
-  Ptos[0].x := XPant(x1);         Ptos[0].y := YPant(y1+height);
-  Ptos[1].x := XPant(x1+width);   Ptos[1].y := YPant(y1+height);
-  Ptos[2].x := XPant(x1+width/2); Ptos[2].y := YPant(y1);
+  Ptos[0].x := x1;         Ptos[0].y := y1+height;
+  Ptos[1].x := x1+width;   Ptos[1].y := y1+height;
+  Ptos[2].x := x1+width div 2; Ptos[2].y := y1;
   Canvas.Polygon(Ptos);   //dibuja
 end;
-procedure TMotGraf.DrawTrianDown(x1, y1: Single; width, height: Single);
+procedure TMotGraf.DrawTrianDown(x1, y1: Integer; width, height: Integer);
 //Dibuja un pequeño triángulo apuntando hacia abajo
 var
   Ptos: array of TPoint;    //arreglo de puntos a dibujar
 begin
   SetLength(Ptos, 3);   //dimensiona
   //Llena arreglo
-  Ptos[0].x := XPant(x1);         Ptos[0].y := YPant(y1);
-  Ptos[1].x := XPant(x1+width);   Ptos[1].y := YPant(y1);
-  Ptos[2].x := XPant(x1+width/2); Ptos[2].y := YPant(y1+height);
+  Ptos[0].x := x1;         Ptos[0].y := y1;
+  Ptos[1].x := x1+width;   Ptos[1].y := y1;
+  Ptos[2].x := x1+width div 2; Ptos[2].y := y1+height;
   Canvas.Polygon(Ptos);   //dibuja
 end;
 
 end.
-
+//1006

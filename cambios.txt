@@ -1,3 +1,9 @@
+3.0
+====
+Se cambian de nombre a los valoes del enumerado TPosicPCtrol.
+Se cambia el sistema de coordenadas de para que trabajen en base a las coordenadas
+centrales que ahora se llaman AxisX y AxisY.
+
 2.11
 ====
 Se corrige el error de selección de un segemento que tenía PointSelectSegment().
