@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="12"/>
+    <BuildModes Active="Debug"/>
+    <Units Count="19">
+      <Unit0>
+        <Filename Value="project1.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="72" Y="10"/>
+        <UsageCount Value="217"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="unit1.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Unit1"/>
+        <TopLine Value="48"/>
+        <CursorPos Y="66"/>
+        <UsageCount Value="217"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="ogConnector.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="115"/>
+        <CursorPos X="17" Y="140"/>
+        <UsageCount Value="201"/>
+        <Loaded Value="True"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="frameEditor.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="fraEditor"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="42"/>
+        <CursorPos X="18" Y="48"/>
+        <UsageCount Value="200"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="ogShape.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="10"/>
+        <CursorPos X="3" Y="32"/>
+        <UsageCount Value="242"/>
+        <Loaded Value="True"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="673"/>
+        <CursorPos Y="689"/>
+        <FoldState Value=" T5c03 T7kID8 T8kJ260C1 T3p60z4181113222A pnZrW0P8 pkGl80L3 piejM0c019]BglQ0D4 pj6jP0B T6pB01142]d3vb0102214 T0pMIAB437[+4Psec3]P3632C1812A Pj7s0R THs2JD_"/>
+        <UsageCount Value="206"/>
+        <Bookmarks Count="2">
+          <Item0 X="22" Y="1209" ID="2"/>
+          <Item1 X="44" Y="698" ID="1"/>
+        </Bookmarks>
+        <Loaded Value="True"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="..\ogBasic.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="8"/>
+        <TopLine Value="54"/>
+        <CursorPos X="3" Y="81"/>
+        <UsageCount Value="208"/>
+        <Loaded Value="True"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="..\ogMotGraf2D.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="7"/>
+        <TopLine Value="148"/>
+        <CursorPos X="24" Y="159"/>
+        <UsageCount Value="200"/>
+        <Loaded Value="True"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="..\ogEditionMot.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="387"/>
+        <CursorPos X="20" Y="438"/>
+        <FoldState Value=" T0qFj5141 PJvbD T3tR0+6 pj4kV0E[943jP0I[94Bje069]9CmI062 PBE0 TK.N0{Z9"/>
+        <UsageCount Value="200"/>
+        <Loaded Value="True"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="..\ogControls.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="323"/>
+        <CursorPos X="3" Y="337"/>
+        <UsageCount Value="117"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="..\ogMotEdicion.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="6" Y="14"/>
+        <FoldState Value=" TL00C T4G02 T8i22C3q"/>
+        <UsageCount Value="14"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="C:\lazarus\lcl\graphics.pp"/>
+        <UnitName Value="Graphics"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2639"/>
+        <CursorPos X="3" Y="2641"/>
+        <UsageCount Value="87"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\inc\objpas.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="323"/>
+        <CursorPos X="9" Y="325"/>
+        <UsageCount Value="9"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="C:\lazarus\lcl\lclproc.pas"/>
+        <UnitName Value="LCLProc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1118"/>
+        <CursorPos X="3" Y="1120"/>
+        <UsageCount Value="4"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="C:\lazarus\components\lazutils\lazutilities.pas"/>
+        <UnitName Value="LazUtilities"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="10"/>
+        <CursorPos X="10" Y="26"/>
+        <UsageCount Value="4"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="C:\lazarus\lcl\controls.pp"/>
+        <UnitName Value="Controls"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1757"/>
+        <CursorPos X="14" Y="1774"/>
+        <UsageCount Value="4"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\win\sysdl.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="42"/>
+        <CursorPos X="10" Y="50"/>
+        <UsageCount Value="9"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\objpas\math.pp"/>
+        <UnitName Value="Math"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="906"/>
+        <CursorPos X="5" Y="909"/>
+        <UsageCount Value="9"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="C:\lazarus\lcl\include\canvas.inc"/>
+        <EditorIndex Value="6"/>
+        <TopLine Value="1170"/>
+        <CursorPos X="3" Y="1178"/>
+        <UsageCount Value="15"/>
+        <Loaded Value="True"/>
+      </Unit18>
+    </Units>
+    <JumpHistory Count="30" HistoryIndex="28">
+      <Position1>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="1101" Column="16" TopLine="986"/>
+      </Position1>
+      <Position2>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="975" Column="22" TopLine="957"/>
+      </Position2>
+      <Position3>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="1043" Column="17" TopLine="984"/>
+      </Position3>
+      <Position4>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="1044" Column="17" TopLine="987"/>
+      </Position4>
+      <Position5>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="703" Column="3" TopLine="696"/>
+      </Position5>
+      <Position6>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="688" Column="3" TopLine="684"/>
+      </Position6>
+      <Position7>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="170" Column="5" TopLine="139"/>
+      </Position7>
+      <Position8>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="693" TopLine="681"/>
+      </Position8>
+      <Position9>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="695" TopLine="681"/>
+      </Position9>
+      <Position10>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="1120" Column="36" TopLine="1068"/>
+      </Position10>
+      <Position11>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="642" Column="11" TopLine="634"/>
+      </Position11>
+      <Position12>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="643" Column="11" TopLine="634"/>
+      </Position12>
+      <Position13>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="650" Column="8" TopLine="634"/>
+      </Position13>
+      <Position14>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="651" Column="19" TopLine="634"/>
+      </Position14>
+      <Position15>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="1064" Column="10" TopLine="1021"/>
+      </Position15>
+      <Position16>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="990" Column="7" TopLine="973"/>
+      </Position16>
+      <Position17>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="690" Column="11" TopLine="673"/>
+      </Position17>
+      <Position18>
+        <Filename Value="..\ogMotGraf2D.pas"/>
+        <Caret Line="158" TopLine="142"/>
+      </Position18>
+      <Position19>
+        <Filename Value="..\ogMotGraf2D.pas"/>
+        <Caret Line="148" Column="19" TopLine="142"/>
+      </Position19>
+      <Position20>
+        <Filename Value="..\ogMotGraf2D.pas"/>
+        <Caret Line="62" Column="17" TopLine="44"/>
+      </Position20>
+      <Position21>
+        <Filename Value="..\ogMotGraf2D.pas"/>
+        <Caret Line="153" Column="19" TopLine="142"/>
+      </Position21>
+      <Position22>
+        <Filename Value="..\ogMotGraf2D.pas"/>
+        <Caret Line="63" Column="17" TopLine="45"/>
+      </Position22>
+      <Position23>
+        <Filename Value="..\ogMotGraf2D.pas"/>
+        <Caret Line="153" Column="19" TopLine="142"/>
+      </Position23>
+      <Position24>
+        <Filename Value="..\ogMotGraf2D.pas"/>
+        <Caret Line="183" TopLine="164"/>
+      </Position24>
+      <Position25>
+        <Filename Value="..\ogMotGraf2D.pas"/>
+        <Caret Line="67" TopLine="48"/>
+      </Position25>
+      <Position26>
+        <Filename Value="..\ogMotGraf2D.pas"/>
+        <Caret Line="159" Column="24" TopLine="148"/>
+      </Position26>
+      <Position27>
+        <Filename Value="..\ogMotGraf2D.pas"/>
+        <Caret Line="65" Column="19" TopLine="47"/>
+      </Position27>
+      <Position28>
+        <Filename Value="..\ogMotGraf2D.pas"/>
+        <Caret Line="159" Column="24" TopLine="148"/>
+      </Position28>
+      <Position29>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="688" Column="17" TopLine="673"/>
+      </Position29>
+      <Position30>
+        <Filename Value="..\ogDefObjGraf.pas"/>
+        <Caret Line="56" Column="5" TopLine="38"/>
+      </Position30>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode="default"/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>
