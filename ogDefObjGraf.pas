@@ -54,8 +54,10 @@ type
   protected
     v2d       : TMotGraf;  //motor gráfico
     fAxisX, fAxisY: Single;  //Coordenadas virtuales del Eje
-    Xant  ,Yant : Integer;   //coordenadas anteriores
-    baseAngle: Single;      //Ángulo al iniciar una rotación
+    baseX, baseY : Integer;  //Coordenadas al iniciar un redimensionado
+    baseAngle: Single;       //Ángulo al iniciar una rotación
+//    baseWidth: Single;       //Ancho al iniciar un redimensionado
+//    baseHeight: Single;       //Alto al iniciar un redimensionado
   public  //Contenedor de la forma (Cuadro de selección)
     //Cuadro de selección
     Width     : Single;    //Ancho
@@ -106,9 +108,6 @@ type
   { TPtoCtrl }
   {Define al objeto Punto de Control.}
   TPtoCtrl = class(TObjVisible)
-  private
-    function GetQuadrant: byte;
-    procedure SetQuadrant(AValue: byte);
   public //Identificación
     id_pCtrl   : (PTO_CTRL, PTO_TERM);  //Identifica a las clases
     idIcon     : TPtoCtrlIco;   {Forma gráfica del punto de control.}
@@ -121,7 +120,6 @@ type
     mousePtr   : TCursor;       //Tipo de puntero del mouse
     Parent     : TObjGraf;      //Referencia al objeto contenedor
     OnChangePosition: TEvPCReqPosition;  //Requiere dimensionamiento en modo 1D
-    property Quadrant: byte read GetQuadrant write SetQuadrant;
     procedure Draw();
     procedure StartMove(xr, yr: Integer; xIni, yIni, angIni, widthIni,
       heighIni: Single);
@@ -250,6 +248,7 @@ type
     procedure Rotate(newAngle: Single; UpdatePCtrls: boolean = true); virtual;
     procedure ReLocateSize(newX, newY, newWidth, newHeight: Single;
       UpdatePCtrls: boolean=true);
+    procedure SetAxis(newAxisX, newAxisY: Single);
     procedure Draw; virtual;  //Dibuja el objeto gráfico
   public
     behav      : TBehave;   //Indica si la forma es de 1D o 2D.
@@ -264,7 +263,7 @@ type
     procedure Selec;        //Método único para seleccionar al objeto
     procedure Deselec;      //Método único para quitar la selección del objeto
     procedure Delete;       //Método para eliminar el objeto
-    function IsSelectedBy(xr, yr:integer): Boolean; virtual;
+    function IsSelectedBy(xp, yp:integer): Boolean; virtual;
   public      //Eventos del ratón
     procedure StartMove(xr, yr : Integer);
     procedure MouseMove(xr, yr : Integer; nobjetos : Integer); virtual;
@@ -410,23 +409,6 @@ begin
       end;
   end;
 end;
-
-{ TPtoTerm }
-procedure TPtoTerm.Disconnect;
-{Desconecta la el punto de control al punto de conexión que pudiera estar ligado.}
-begin
-  if ConnectedTo<>nil then begin
-     ConnectedTo.DisconnectFrom(self);
-     ConnectedTo := nil;
-  end;
-end;
-constructor TPtoTerm.Create(Parent0: TObjGraf; PosicPCtrol: TPosicPCtrol;
-  mousePtr0: TCursor; ChangePosition: TEvPCReqPosition);
-begin
-  inherited Create(Parent0, PosicPCtrol, mousePtr0, ChangePosition);
-  id_pCtrl := PTO_TERM;
-end;
-
 { TObjVisible }
 procedure TObjVisible.SetAxisX(AValue: Single);
 begin
@@ -448,8 +430,8 @@ begin
   Result := false;  //Por el momento, no devuelve valor
   if not visible then exit;    //validación
   //captura posición actual, para calcular los desplazamientos
-  Xant := xr;
-  Yant := yr;
+  baseX := xr;
+  baseY := yr;
 end;
 constructor TObjVisible.Create(mGraf: TMotGraf);
 begin
@@ -461,42 +443,6 @@ begin
   inherited Destroy;
 end;
 // TPtoCtrl
-function TPtoCtrl.GetQuadrant: byte;
-{Devuelve el cuadrante, en el sentido geométrico, de la posición del Putno de Control con respecto al centro de
-su objeto contenedor :
-             |
-       2     |     1
-             |
-   <-------------------->
-             |
-       3     |     4
-             |
-   }
-begin
-  case relPosition of
-  TD_TOP_IZQ: exit(2);
-  TD_TOP_CEN: exit(1);
-  TD_TOP_DER: exit(1);
-
-  TD_CEN_IZQ: exit(2);
-  TD_CEN_DER: exit(4);
-
-  TD_BOT_IZQ: exit(3);
-  TD_BOT_CEN: exit(3);
-  TD_BOT_DER: exit(4);
-  else
-    exit(1);
-  end;
-end;
-procedure TPtoCtrl.SetQuadrant(AValue: byte);
-begin
-  case AValue of
-  1: relPosition := TD_TOP_DER;
-  2: relPosition := TD_TOP_IZQ;
-  3: relPosition := TD_BOT_IZQ;
-  4: relPosition := TD_BOT_DER;
-  end
-end;
 function TPtoCtrl.isTerminal: Boolean;
 begin
   exit(id_pCtrl = PTO_TERM);
@@ -543,8 +489,8 @@ var
   dx, dy, wishX, wishY: Single;
 begin
   if not visible then exit;    //validación
-  dx := (xr - Xant) / v2d.Zoom;     //obtiene desplazamiento absoluto
-  dy := (yr - Yant) / v2d.Zoom;     //obtiene desplazamiento absoluto
+  dx := (xr - baseX) / v2d.Zoom;     //obtiene desplazamiento absoluto
+  dy := (baseY - yr) / v2d.Zoom;     //obtiene desplazamiento absoluto
   {Comunica que se requiere cambiar la posición del punto de control, para que el
   objeto gráfico padre tome la decisión sobre el cambio}
   v2d.XYvirt(xr, yr, wishX, wishY);
@@ -631,6 +577,21 @@ begin
   fAxisX :=0;
   fAxisY :=0;
 end;
+{ TPtoTerm }
+procedure TPtoTerm.Disconnect;
+{Desconecta la el punto de control al punto de conexión que pudiera estar ligado.}
+begin
+  if ConnectedTo<>nil then begin
+     ConnectedTo.DisconnectFrom(self);
+     ConnectedTo := nil;
+  end;
+end;
+constructor TPtoTerm.Create(Parent0: TObjGraf; PosicPCtrol: TPosicPCtrol;
+  mousePtr0: TCursor; ChangePosition: TEvPCReqPosition);
+begin
+  inherited Create(Parent0, PosicPCtrol, mousePtr0, ChangePosition);
+  id_pCtrl := PTO_TERM;
+end;
 //////////////////////////////  TPtoConx //////////////////////////////
 procedure TPtoConx.Draw;
 //Draw the Connection point.
@@ -666,19 +627,19 @@ procedure TPtoConx.Mover(xr, yr: Integer);
 //las variaciones indicadas (dx, dy)
 begin
   if not visible then exit;    //validación
-//  dx := (xr - Xant) / v2d.Zoom;     //obtiene desplazamiento absoluto
-//  dy := (yr - Yant) / v2d.Zoom;     //obtiene desplazamiento absoluto
-//  Xant := xr; Yant := yr;   //actualiza coordenadas
+//  dx := (xr - baseX) / v2d.Zoom;     //obtiene desplazamiento absoluto
+//  dy := (yr - baseY) / v2d.Zoom;     //obtiene desplazamiento absoluto
+//  baseX := xr; baseY := yr;   //actualiza coordenadas
 end;
 function TPtoConx.IsSelectedBy(xp, yp: Integer; accuracy: integer = 0): boolean;
 //Indica si las coordenadas lo selecciona.
 begin
-  IsSelectedBy := False;
+  Result := False;
   if not visible then exit;    //validación
   //Compara en coordenadas de pantalla
   if (xp >= pAxisX - ANC_PCN2-accuracy) and (xp <= pAxisX + ANC_PCN2+accuracy) and
      (yp >= pAxisY - ANC_PCN2-accuracy) and (yp <= pAxisY + ANC_PCN2+accuracy) then
-       IsSelectedBy := True;
+       Result := True;
 end;
 procedure TPtoConx.Locate(x0, y0: Single);
 var
@@ -788,8 +749,8 @@ procedure TObjGraf.StartMove(xr, yr: Integer);
 var
   baseXp, baseYp: Single;
 begin
-  Xant := xr;
-  Yant := yr;
+  baseX := xr;
+  baseY := yr;
   v2d.XYvirt(xr, yr, baseXp, baseYp);  //*** Mejor sería tener "baseXp, baseYp" como atributos TObjGraf
   baseAngle := -ArcTan2(baseYp- AxisY, baseXp - AxisX);
   Proceso := False;
@@ -819,7 +780,7 @@ begin
 //     If ArrastBoton Then Exit;       //Arrastrando botón  { TODO : Revisar }
 //     If ArrastFila Then Exit;        //Arrastrando botón  { TODO : Revisar }
      If Selected Then begin
-        v2d.ObtenerDesplaz2(xr, yr, Xant, Yant, dx, dy);
+        v2d.ObtenerDesplaz2(xr, yr, baseX, baseY, dx, dy);
         if Proceso then begin
             //Algún elemento del objeto ha procesado el evento de movimiento
             if curPntCtl <> nil then begin
@@ -833,26 +794,26 @@ begin
             ReLocate(fAxisX + dx, fAxisY + dy);  //reubica los elementos
             Proceso := False;
         end;
-        Xant := xr; Yant := yr;
+        baseX := xr; baseY := yr;
      End;
 end;
-function TObjGraf.IsSelectedBy(xr, yr:integer): Boolean;
+function TObjGraf.IsSelectedBy(xp, yp: integer): Boolean;
 //Devuelve verdad si la coordenada de pantalla (xr,yr) cae en un punto tal
 //que "lograria" la seleccion de la forma.
 var
   xv , yv , x1, y1: Single; //corodenadas virtuales
 begin
-    v2d.XYvirt(xr, yr, xv, yv);
-    IsSelectedBy := False; //valor por defecto
+    v2d.XYvirt(xp, yp, xv, yv);
+    Result := False; //valor por defecto
     //verifica área de selección
     x1 := fAxisX-locAxisX;
     y1 := fAxisY-locAxisY;
     if (xv > x1 - 1) And (xv < x1 + width + 1) And
        (yv > y1 - 1) And (yv < y1 + height + 1) then begin
-      IsSelectedBy := True;
+      Result := True;
     end;
     if Selected then begin   //Ub objeto seleccionado, tiene un área mayor de selección
-      if SelecPtoControl(xr,yr) <> NIL then IsSelectedBy := True;
+      if SelecPtoControl(xp,yp) <> NIL then IsSelectedBy := True;
     end;
 End;
 procedure TObjGraf.MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; xp, yp: Integer);
@@ -955,19 +916,25 @@ begin
   pMarkRect.Top := ymin;
   pMarkRect.Right := xmax;
   pMarkRect.Bottom := ymax;
-  //Actualiza área de selección
+  //Actualiza área de selección.
+  {Se crean 4 puntos en selRectan[] para definir el rectángulo de selección.
+           [0] -------------------------- [1]
+            |                              |
+            |                              |
+         +  |        (AxisX, AxisY)        |
+         |  |                              |
+locAxisY |  |                              |
+         |  |                              |
+         + [2] -------------------------- [3]
+     (x1,y1) \_____________/
+               locAxisX
+  }
   //selRectan[0].X := v2d.XPant(x1);
   //selRectan[0].Y := v2d.XPant(y1);
-  v2d.XYpantR(x1, y1, AxisX, AxisY, angle, selRectan[0].X, selRectan[0].Y);
-  //selRectan[1].X := v2d.XPant(x1 + Width);
-  //selRectan[1].Y := v2d.XPant(y1);
-  v2d.XYpantR(x1+Width, y1, AxisX, AxisY, angle, selRectan[1].X, selRectan[1].Y);
-  //selRectan[2].X := v2d.XPant(x1 + Width);
-  //selRectan[2].Y := v2d.XPant(y1 + Height);
-  v2d.XYpantR(x1+Width, y1+Height, AxisX, AxisY, angle, selRectan[2].X, selRectan[2].Y);
-  //selRectan[3].X := v2d.XPant(x1);
-  //selRectan[3].Y := v2d.XPant(y1 + Height);
-  v2d.XYpantR(x1, y1+Height, AxisX, AxisY, angle, selRectan[3].X, selRectan[3].Y);
+  v2d.XYpantR(x1      , y1+Height, AxisX, AxisY, angle, selRectan[0].X, selRectan[0].Y);
+  v2d.XYpantR(x1+Width, y1+Height, AxisX, AxisY, angle, selRectan[1].X, selRectan[1].Y);
+  v2d.XYpantR(x1+Width, y1       , AxisX, AxisY, angle, selRectan[2].X, selRectan[2].Y);
+  v2d.XYpantR(x1      , y1       , AxisX, AxisY, angle, selRectan[3].X, selRectan[3].Y);
 
   //Reubica todos los puntos de control
   if UpdatePCtrls then begin
@@ -989,20 +956,22 @@ begin
     pcEND.AxisX := v2d.Xvirt(pcEND.pAxisX, pcEND.pAxisY);
     pcEND.AxisY := v2d.Yvirt(pcEND.pAxisX, pcEND.pAxisY);
   end;
+//  v2d.XYpant(pcBEGIN.AxisX, pcBEGIN.AxisY, pcBEGIN.pAxisX, pcBEGIN.pAxisY);
+//  v2d.XYpant(pcEND.AxisX, pcEND.AxisY, pcEND.pAxisX, pcEND.pAxisY);
 end;
 procedure TObjGraf.ReLocate(newX, newY: Single; UpdatePCtrls: boolean = true);
 {Se usa para cambiar SOLAMENTE la ubicación del objeto}
 var
   pCnx: TPtoConx;
 begin
-  {$IFDEF debugmode} Inc(dProf); DebugLn(Space(dProf) + 'TObjGraf.Relocate: '+ Self.Name+' at ' + fx.toString); {$ENDIF}
+  {$IFDEF debugmode} Inc(dProf); DebugLn(Space(dProf) + 'TObjGraf.Relocate: '+ Self.Name+' at ' + newX.toString); {$ENDIF}
   fAxisX := newX;
   fAxisY := newY;
   //Reubica todos los puntos de conexión
   for pCnx in PtosConex do begin
     pCnx.Relocate();
   end;
-  //Reubica los puntos geométricos de la forma. NO ES NECESARIO
+  //Reubica los puntos geométricos de la forma. NO ES NECESARIO, porque tienen posiciones relativas
   //for pGeo in geometry do begin
   //  pGeo.Relocate(newWidth, newheight);
   //end;
@@ -1098,12 +1067,25 @@ begin
   end;
   {$IFDEF debugmode} DebugLn(Space(dProf)+'TObjGraf.RelocateSize end'); Dec(dProf); {$ENDIF}
 end;
+procedure TObjGraf.SetAxis(newAxisX, newAxisY: Single);
+{Mueve las coordenadas del punto (AxisX, AxisY) sin mover la posición del objeto.}
+var
+  dx, dy: Single;
+begin
+ if (AxisX = newAxisX) and (newAxisY = AxisY) then exit;
+  dx := newAxisX - AxisX;
+  dy := newAxisY - AxisY;
+  AxisX := newAxisX;
+  AxisY := newAxisY;
+  locAxisX := locAxisX + dx;
+  locAxisY := locAxisY + dy;
+end;
 procedure TObjGraf.Draw;
 const tm = 3;
 var
   pct : TPtoCtrl;
   pcn : TPtoConx;
-  xt, yt: Integer;
+  xt, yt, pAxisY, pAxisX: Integer;
 begin
   //---------------Draw mark --------------
   if Marked and Highlight then begin
@@ -1117,7 +1099,12 @@ begin
     if behav = behav1D then begin
        for pct in PtosTerminal do pct.Draw;   //Dibuja puntos de control
     end else if behav = behav2D then begin
-       for pct in PtosControl do pct.Draw;   //Dibuja puntos de control
+       if (state = ogsResizing) and (curPntCtl<>nil) then begin
+         //Se está dimensionando
+         curPntCtl.Draw;
+       end else begin
+         for pct in PtosControl do pct.Draw;   //Dibuja puntos de control
+       end;
     end;
   end;
   //Draw Connection Points
@@ -1127,10 +1114,15 @@ begin
   //if MarkConnectPoints then begin
     for pcn in PtosConex do if pcn.Marked then pcn.Mark;
   //end
+  //Dibuja eje
+  v2d.SetPen(psSolid, 1, clRed);
+  v2d.XYpant(AxisX, AxisY, pAxisX, pAxisY);
+  v2d.Canvas.Line(pAxisX-10, pAxisY, pAxisX+10, pAxisY);
+  v2d.Canvas.Line(pAxisX, pAxisY-10, pAxisX, pAxisY+10);
   //Dibuja etiqueta informativa
-  if state = ogsResizing then begin
-    xt := pcBOT_CEN.pAxisX;
-    yt := pcBOT_CEN.pAxisY + 10;
+  if (state = ogsResizing) and (curPntCtl<>nil) then begin
+    xt := curPntCtl.pAxisX + 10;
+    yt := curPntCtl.pAxisY;
     v2d.Canvas.Font.Size := 10;
     v2d.Canvas.Font.Bold := false;
     v2d.SetBrush(colBckToolTip);
@@ -1141,44 +1133,52 @@ procedure TObjGraf.PtoCtl_ChangePosition(target: TPtoCtrl; dx, dy: Single;
                                 wishX, wishY: Single);
 {Un punto de control está solicitando reposicionamiento, lo que se supone, afecta
 a la posición y/o el dimensionamiento de la forma.}
-  procedure ReadQuadrant;
-  begin
-    if          (pcBEGIN.AxisX < pcEND.AxisX) and (pcBEGIN.AxisY < pcEND.AxisY) then begin
-      pcBEGIN.Quadrant := 2;
-      pcEND.Quadrant := 4;
-    end else if (pcBEGIN.AxisX > pcEND.AxisX) and (pcBEGIN.AxisY < pcEND.AxisY) then begin
-      pcBEGIN.Quadrant := 1;
-      pcEND.Quadrant := 3;
-    end else if (pcBEGIN.AxisX < pcEND.AxisX) and (pcBEGIN.AxisY > pcEND.AxisY) then begin
-      pcBEGIN.Quadrant := 3;
-      pcEND.Quadrant := 1;
-    end else if (pcBEGIN.AxisX > pcEND.AxisX) and (pcBEGIN.AxisY > pcEND.AxisY) then begin
-      pcBEGIN.Quadrant := 4;
-      pcEND.Quadrant := 2;
-    end;
-  end;
 var
   newX, newY, newWidth, newHeight: Single;
   dimSize: Boolean;
-  newAngle, dAngle, finalAngle: Single;
+  newAngle, dAngle, finalAngle, dax, day: Single;
 begin
   case behav of
   behav1D: begin
     //Desplazamiento en una dimensión
-    //Ubica el cuadrante del punto de control
     if target = pcBEGIN then begin
       //Se mueve el punto de inicio
-      pcBEGIN.Locate(wishX, wishY);  //Mueve el punto de control
+//      pcBEGIN.Locate(wishX, wishY);  //Mueve el punto de control
+      dax := wishX - pcEND.AxisX;
+      day := wishY - pcEND.AxisY;
+DebugLn('PtoCtl_ChangePosition. dax=' + dax.ToString + ', day=' + day.toString);
+      newAngle := ArcTan2(-day, -dax);
+      //Traslada punto de giro al otro punto de control
+      SetAxis(pcEND.AxisX, pcEND.AxisY);
+DebugLn('PtoCtl_ChangePosition. newAngle=' + (newAngle*180/pi).ToString);
+      //Rotate(newAngle);
     end else if target = pcEND then begin
       //Se mueve el punto final
-      pcEND.Locate(wishX, wishY);  //Mueve el punto de control
+//      pcEND.Locate(wishX, wishY);  //Mueve el punto de control
+      dax := wishX - pcBEGIN.AxisX;
+      day := wishY - pcBEGIN.AxisY;
+      newAngle := ArcTan2(day, dax);
+      //Traslada punto de giro al otro punto de control
+      SetAxis(pcBEGIN.AxisX, pcBEGIN.AxisY);
+DebugLn('PtoCtl_ChangePosition. newAngle=' + (newAngle*180/pi).ToString);
+      Rotate(newAngle);
     end;
-    ReadQuadrant;  //Reubica cuandrantes de pcBEGIN AxisY pcEND
-    newX := min(pcBEGIN.AxisX, pcEND.AxisX);
-    newY := min(pcBEGIN.AxisY, pcEND.AxisY);
-    newWidth := abs(pcBEGIN.AxisX - pcEND.AxisX);
-    newHeight := abs(pcBEGIN.AxisY - pcEND.AxisY);
-    ReLocateSize(newX, newY, newWidth, newHeight, false);
+//    //Cambia las dimensiones
+//    newX := (pcBEGIN.AxisX + pcEND.AxisX)/2;
+//    newY := (pcBEGIN.AxisY + pcEND.AxisY)/2;
+//    dax := pcBEGIN.AxisX - pcEND.AxisX + dx;
+//    day := pcBEGIN.AxisY - pcEND.AxisY + dy;
+//    //newWidth := Sqrt(dax**2 + day**2);
+//    newWidth := target.width0 + Sqrt(dx**2 + dy**2);
+//    newHeight := Height; // abs(pcBEGIN.AxisY - pcEND.AxisY);
+////    ReLocateSize(AxisX, AxisY, newWidth, Height, false);
+//    //Calcula nuevo ángulo, por efecto del movimiento del Punto de control
+//    newAngle := -ArcTan2(wishY- AxisY, wishX - AxisX);
+//    dAngle := (newAngle - baseAngle);
+//    finalAngle := target.angle0 + dAngle;   //En radianes
+//
+//    Rotate(finalAngle);   //¿No son muchas llamadas a Transform()?
+
     lblResize := '';
   end;
   behav2D: begin
@@ -1187,22 +1187,23 @@ begin
      posición) del punto de control.}
     dimSize := true;
     case target.relPosition of
-    TD_TOP_IZQ: ReLocateSize(target.x0+dx/2, target.y0+dy/2, target.width0-dx, target.height0-dy);
-    TD_TOP_CEN: ReLocateSize(target.x0     , target.y0+dy/2, target.width0   , target.height0-dy);
-    TD_TOP_DER: ReLocateSize(target.x0+dx/2, target.y0+dy/2, target.width0+dx, target.height0-dy);
+    TD_BOT_IZQ: ReLocateSize(target.x0+dx/2, target.y0+dy/2, target.width0-dx, target.height0-dy);
+    TD_BOT_CEN: ReLocateSize(target.x0     , target.y0+dy/2, target.width0   , target.height0-dy);
+    TD_BOT_DER: ReLocateSize(target.x0+dx/2, target.y0+dy/2, target.width0+dx, target.height0-dy);
 
     TD_CEN_IZQ: ReLocateSize(target.x0+dx/2, target.y0     , target.width0-dx, target.height0);
-    TD_CEN_DER: ReLocateSize(target.x0+dx/2, target.y0     , target.width0+dx, target.height0);
+    TD_CEN_DER: ReLocateSize(target.x0+(dx*Cos(angle))/2, target.y0     ,
+                             target.width0+dx, target.height0);
 
-    TD_BOT_IZQ: ReLocateSize(target.x0+dx/2, target.y0+dy/2, target.width0-dx, target.height0+dy);
-    TD_BOT_CEN: ReLocateSize(target.x0     , target.y0+dy/2, target.width0   , target.height0+dy);
-    TD_BOT_DER: ReLocateSize(target.x0+dx/2, target.y0+dy/2, target.width0+dx, target.height0+dy);
+    TD_TOP_IZQ: ReLocateSize(target.x0+dx/2, target.y0+dy/2, target.width0-dx, target.height0+dy);
+    TD_TOP_CEN: ReLocateSize(target.x0     , target.y0+dy/2, target.width0   , target.height0+dy);
+    TD_TOP_DER: ReLocateSize(target.x0+dx/2, target.y0+dy/2, target.width0+dx, target.height0+dy);
 
     TD_ROTATE: begin
         dimSize := False;  //Estamos dimensionando ángulo
         //lblResize := angle.ToString + 'º';
         newAngle := -ArcTan2(wishY- AxisY, wishX - AxisX);
-        dAngle := (newAngle - baseAngle);
+        dAngle := (baseAngle - newAngle);
         finalAngle := target.angle0 + dAngle;   //En radianes
         finalAngle := Round(finalAngle*180/PI) * Pi/180;  //Ajusta a grados, pero sigue en radianes
         Rotate(finalAngle);
@@ -1395,9 +1396,13 @@ begin
   pcROTATE.idIcon := pciIcon0;
 
   //Crea puntos de control para formas 1D
-  pcBEGIN   := AddPtoTerminal(TD_TOP_IZQ, crSize);
-  pcEND     := AddPtoTerminal(TD_BOT_DER, crSize);
-  //pcBEGIN.idIcon := pciCircle;
+  pcBEGIN   := AddPtoTerminal(TD_CEN_IZQ, crSize);
+  pcEND     := AddPtoTerminal(TD_CEN_DER, crSize);
+  pcBEGIN.idIcon := pciCircle;
+//  pcBEGIN.fAxisX := 200;
+//  pcBEGIN.fAxisY := 200;
+//  pcEND.fAxisX := 300;
+//  pcEND.fAxisY := 300;
   //pcEND.idIcon := pciCircle;
 
   //Rectángulo de selección

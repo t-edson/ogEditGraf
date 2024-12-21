@@ -38,6 +38,7 @@ type
   TlistObjGraf = specialize TFPGObjectList<TObjGraf>;   //Lista de "TObjTabla"
 
   TEvMouse = procedure(Shift: TShiftState; x,y:integer) of object;
+
   TOnObjectsDel = procedure of object;
 
   { TEditionMot }
@@ -56,8 +57,9 @@ type
     procedure PBMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   public  //Events
+    OnObjectSel   : procedure of object;   //Cuando se selecciona uno o más objetos
     OnObjectsDel  : TOnObjectsDel;   //Cuando se elminan uno o más objetos
-    OnMouseUp     : TMouseEvent;      //Cuando se suelta el botón
+    OnMouseUp     : TMouseEvent;     //Cuando se suelta el botón
     OnMouseUpRight: TEvMouse;
     OnMouseUpLeft : TEvMouse;
     OnMouseDown   : TMouseEvent;
@@ -69,6 +71,7 @@ type
     OnObjectsMoved: procedure of object;
   public
     v2d          : TMotGraf;      //salida gráfica
+    sheet        : TOgSheet;      //Hoja principal de dibujo
     editorMode   : (edmSelect, edmRotat);
     PointerState : TPointerState; //Estado del puntero
     ToMove       : Boolean;       //Bandera de control para el inicio del movimiento
@@ -152,7 +155,6 @@ type
   end;
 
 implementation
-
 
 procedure TEditionMot.MouseDownRight(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; xp, yp: Integer);
@@ -238,10 +240,18 @@ end;
 procedure TEditionMot.Paint(Sender: TObject);
 var
   o:TObjGraf;
+  px1, py1: Integer;
+  px2, py2: Integer;
 begin
-//  If s = NIL Then
-    PBox.canvas.Brush.Color := clWhite; //rgb(255,255,255);
-    PBox.canvas.FillRect(PBox.ClientRect); //fondo
+//    PBox.canvas.Brush.Color := clWhite; ;
+//    PBox.canvas.FillRect(PBox.ClientRect); //fondo
+    v2d.XYpant(sheet.Left, sheet.bottom, px1, py1);
+    v2d.XYpant(sheet.right, sheet.top, px2, py2);
+    PBox.canvas.Brush.Color := clWhite; ;
+    PBox.canvas.FillRect(px1, py1, px2, py2); //Fondo
+    PBox.canvas.Pen.Color := clGray;
+    PBox.canvas.Frame(px1, py1, px2, py2); //Borde
+
     If PointerState = EP_SELECMULT Then DrawSelectionFrame;
     //Dibuja objects
     for o In objects do begin
@@ -403,6 +413,9 @@ begin
   if Shift = [ssCtrl, ssShift, ssRight] then begin  //<Shift>+<Ctrl> + <Botón derecho>
       PointerState := EP_DESP_PANT;
       ScrollDesp(x_pulso - xp, y_pulso - yp);
+      for s in objects do begin
+        s.Transform(true);     //Para refrescar sus coordenadas físicas
+      end;
       Refresh;
       exit;
   end;
@@ -990,7 +1003,7 @@ procedure TEditionMot.ScrollDesp(dx, dy: integer);
 begin
 //PBox.Canvas.TextOut(0,30,'dx=' + FloatToStr(dx) + '  ');
     v2d.x_cam := round(x_cam_a + dx / v2d.zoom);
-    v2d.y_cam := round(y_cam_a + dy / v2d.zoom);
+    v2d.y_cam := round(y_cam_a - dy / v2d.zoom);
     v2d.SavePerspectiveIn(Pfinal);  //para que no se regrese al valor inicial
 End;
 // Funciones del Rectángulo de Selección
@@ -1177,6 +1190,7 @@ procedure TEditionMot.ObjGraf_Select(obj: TObjGraf);
 begin
 //    If obj.Seleccionado Then Exit;  //Ya está Selected. No debe ser necesario
   selection.Add(obj);      { TODO : Verificar si se puede manejar bien el programa sin usar la propiedad "NombreObj"}
+  if OnObjectSel<>nil then OnObjectSel();
 End;
 procedure TEditionMot.ObjGraf_Unselec(obj: TObjGraf);
 //Quita un objeto gráfico de la lista "selección". Este método no debe ser llamado directamente.
@@ -1208,9 +1222,18 @@ begin
   //Inicia motor
   v2d := TMotGraf.IniMotGraf(PBox.Canvas);   //Inicia motor gráfico
   v2d.SetFont('MS Sans Serif');   //define tipo de letra
+  v2d.Zoom := 3;
+  v2d.y_des := 900;  //Como para encajar un A4 en la pantalla
+  v2d.x_des := 20;   //UN pequeño margen a la izquierda
   objects := TlistObjGraf.Create(TRUE);   //crea lista con "posesión" de objects
   selection := TlistObjGraf.Create(FALSE);   //crea lista sin posesión", porque la
                                         //administración la hará "objects".
+  //Configura hoja de tamaño A4
+  sheet.Left := 0;
+  sheet.bottom := 0;
+  sheet.right := 210;
+  sheet.top := 297;
+
   PointerState := EP_NORMAL;
   ToMove := false;
   CaptureEvent := NIL;

@@ -44,6 +44,12 @@ type    //Expresiones de ubicación
     function newVal(Width, Height: Single): Single;
   end;
 
+  TOgSheet = object
+    left  : Single;
+    top   : Single;
+    right : Single;
+    bottom: Single;
+  end;
 
 implementation
 

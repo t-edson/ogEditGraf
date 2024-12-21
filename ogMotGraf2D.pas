@@ -154,7 +154,8 @@ end;
 function TMotGraf.YPant(y:Single): Integer; INLINE;    //INLINE Para acelerar las llamadas
 //Función de la geometría del motor. Da la transformación lineal de la coordenada y.
 begin
-   Result := Round((y - y_cam) * Zoom + y_des);
+  //Result := Round((y - y_cam) * Zoom + y_des);
+   Result := Round((y_cam-y) * Zoom + y_des);
 end;
 procedure TMotGraf.XYpant(xv, yv: Single; out xp, yp: Integer);
 //Devuelve las coordenadas de pantalla para un punto virtual (x,y), sin aplicar giro.
@@ -175,7 +176,7 @@ begin
      dx := xv - xCen;
      dy := yv - yCen;
      mag := Sqrt(dx**2 + dy**2);
-     ang := ArcTan2(yv - yCen, xv - xCen) - angle;
+     ang := ArcTan2(yv - yCen, xv - xCen) + angle;
      xv := mag*Cos(ang) + xCen;
      yv := mag*Sin(ang) + yCen;
    end;
@@ -195,7 +196,7 @@ begin
      dx := xv - xCen;
      dy := yv - yCen;
      mag := Sqrt(dx**2 + dy**2);
-     ang := ArcTan2(yv - yCen, xv - xCen) - angle;
+     ang := ArcTan2(yv - yCen, xv - xCen) + angle;
      xv := mag*Cos(ang) + xCen;
      yv := mag*Sin(ang) + yCen;
    end;
@@ -203,7 +204,6 @@ begin
    xp := XPant(xv);
    yp := YPant(yv);
 End;
-
 function TMotGraf.Xvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
 //Obtiene la coordenada X virtual (del punto X,Y,Z ) a partir de unas coordenadas de pantalla
 begin
@@ -212,7 +212,7 @@ End;
 function TMotGraf.Yvirt(xr, yr: Integer): Single;  //INLINE Para acelerar las llamadas
 //Obtiene la coordenada Y virtual (del punto X,Y,Z ) a partir de unas coordenadas de pantalla
 begin
-    Yvirt := (yr - y_des) / Zoom + y_cam;
+    Yvirt := (y_des - yr) / Zoom + y_cam;
 End;
 procedure TMotGraf.XYvirt(xp, yp: Integer; out xv, yv: Single);
 //Devuelve las coordenadas virtuales xv,yv a partir de unas coordenadas de pantalla
@@ -286,7 +286,7 @@ begin
    //Inicia geometría de hoja
    //GetClientRect frmS.hwnd, tCR
    x_des := 0;
-   y_des := 0;
+   y_des := 600;
    //posición de cámara
    x_cam := 0;
    y_cam := 0;
@@ -650,7 +650,7 @@ procedure TMotGraf.ObtenerDesplaz2(xr, yr: Integer; Xant, Yant: Integer;
 begin
     //desplazamiento en plano XY en caso alfa=0, fi=0
     dx := (xr - Xant) / Zoom;
-    dy := (yr - Yant) / Zoom;
+    dy := (Yant - yr) / Zoom;
 End;
 (*
 Public Function LeeGeomTextoZ(cad As String, ancho As Single, alto As Single)
